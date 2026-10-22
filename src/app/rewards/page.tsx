@@ -35,7 +35,6 @@ export default function RewardsPage() {
 
   const staffUsers = users.filter((u) => u.role !== "ceo");
 
-  // For Project Managers, scope to projects and employers under their management
   const myManagedProjects = isPm
     ? projects.filter((p) => p.projectManagerId === currentUser.id)
     : projects;
@@ -126,7 +125,6 @@ export default function RewardsPage() {
       <div className="px-7 py-6 space-y-6">
         {isCeo ? (
           <>
-            {/* CEO Workforce Rewards In-Page Subtabs */}
             <InPageSubTabs<"All" | "project_manager" | "employer">
               activeTab={selectedStaffRole}
               onChange={(role) => setSelectedStaffRole(role)}
@@ -152,7 +150,6 @@ export default function RewardsPage() {
               ]}
             />
 
-            {/* Filter and Selection Section */}
             <div className="bg-white rounded-lg border border-slate-200/90 p-4 shadow-2xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <p className="text-[12px] text-slate-500">
@@ -171,7 +168,6 @@ export default function RewardsPage() {
                 </div>
               </div>
 
-              {/* Staff Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {filteredStaffUsers.map((user) => {
                   const profile = USER_REWARDS_DATA[user.id];
@@ -239,7 +235,6 @@ export default function RewardsPage() {
               </div>
             </div>
 
-            {/* Overall Organization Leaderboard */}
             <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
               <div>
                 <h3 className="text-[14px] font-bold text-slate-900 tracking-tight">
@@ -322,7 +317,6 @@ export default function RewardsPage() {
           </>
         ) : (
           <>
-            {/* Standard Non-CEO Personal Rewards View */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between">
                 <div>
@@ -380,7 +374,6 @@ export default function RewardsPage() {
               </div>
             </div>
 
-            {/* Employer Dedicated History Banner (Separate Page Link) */}
             {!isPm && (
               <div className="bg-gradient-to-r from-sky-50 via-white to-blue-50/60 border border-sky-200/80 rounded-lg p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
@@ -406,7 +399,6 @@ export default function RewardsPage() {
               </div>
             )}
 
-            {/* Project Manager: Employers Under My Management Rewards Roster */}
             {isPm && (
               <div className="space-y-4">
                 <InPageSubTabs<"all" | "leads">
@@ -511,7 +503,6 @@ export default function RewardsPage() {
               </div>
             )}
 
-            {/* Badges & Leaderboard Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               <div className="lg:col-span-2 bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between">
                 <div>

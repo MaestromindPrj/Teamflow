@@ -272,7 +272,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProject = (id: string, updates: Partial<Project>) => {
-    // Project code is immutable like a unique serial number or system ID and cannot be edited
     const { code: _ignoredCode, ...safeUpdates } = updates;
     setProjects((prev) =>
       prev.map((p) => {
@@ -421,7 +420,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     let nextState: UserClockInState;
 
     if (nextClockedIn) {
-      // Clock in: start session ticker now
       nextState = {
         isClockedIn: true,
         clockInTimestamp: Date.now(),
@@ -430,7 +428,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         elapsedSeconds: newElapsed
       };
     } else {
-      // Clock out: stop ticker, accumulate elapsed session
       const sessionSeconds = userState.clockInTimestamp
         ? Math.max(1, Math.floor((Date.now() - userState.clockInTimestamp) / 1000))
         : 0;
@@ -449,7 +446,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       [userId]: nextState
     }));
 
-    // Update attendance record for this user
     setAttendance((prev) => {
       const existingToday = prev.find((r) => r.userId === userId && r.date === todayString);
       const hours = Math.floor(newElapsed / 3600);

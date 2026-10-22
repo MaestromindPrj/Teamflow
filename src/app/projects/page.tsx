@@ -75,7 +75,6 @@ export default function ProjectsPage() {
       />
 
       <div className="px-7 py-6 space-y-6">
-        {/* Search, Filter, and Add New Project Header */}
         <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -124,7 +123,6 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        {/* Navigation In-Page Subtabs */}
         <InPageSubTabs
           activeTab={projectStatusFilter}
           onChange={(status) => setProjectStatusFilter(status)}
@@ -162,7 +160,6 @@ export default function ProjectsPage() {
           ]}
         />
 
-        {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredProjects.map((project) => {
             const pm = users.find((u) => u.id === project.projectManagerId);

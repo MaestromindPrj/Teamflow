@@ -60,7 +60,6 @@ function ProjectManagerDetailContent() {
     );
   }
 
-  // Project Managers can only view their own portfolio, not other PMs
   if (currentUser.role === "project_manager" && pm.id !== currentUser.id) {
     return (
       <div className="flex-1 flex flex-col pb-12">
@@ -135,7 +134,6 @@ function ProjectManagerDetailContent() {
       />
 
       <div className="px-7 py-6 space-y-6">
-        {/* Back Link */}
         <div>
           <Link
             href="/team?tab=project_managers"
@@ -146,7 +144,6 @@ function ProjectManagerDetailContent() {
           </Link>
         </div>
 
-        {/* PM Dossier Header Card */}
         <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 bg-slate-50/70 p-4 rounded-lg">
             <div className="flex items-center gap-4">
@@ -197,7 +194,6 @@ function ProjectManagerDetailContent() {
             </div>
           </div>
 
-          {/* Quick Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[12px]">
             <div className="bg-slate-50/70 p-3 rounded-lg border border-slate-100">
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Active Projects</span>
@@ -218,7 +214,6 @@ function ProjectManagerDetailContent() {
           </div>
         </div>
 
-        {/* Navigation Tabs Header */}
         <InPageSubTabs<"projects" | "workforce" | "tasks">
           activeTab={pmDetailTab}
           onChange={(tab) => setPmDetailTab(tab)}
@@ -244,7 +239,6 @@ function ProjectManagerDetailContent() {
           ]}
         />
 
-        {/* TAB 1: Projects Under This Project Manager */}
         {pmDetailTab === "projects" && (
           <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-5">
             <div>
@@ -277,7 +271,6 @@ function ProjectManagerDetailContent() {
                       key={project.id}
                       className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs hover:border-[#0084d4] transition-all space-y-4"
                     >
-                      {/* Project Header Info */}
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -310,9 +303,7 @@ function ProjectManagerDetailContent() {
                         </button>
                       </div>
 
-                      {/* Who is Leading and Who are Under this Project */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/70 p-4 rounded-lg border border-slate-200/80">
-                        {/* Designated Team Lead */}
                         <div className="space-y-2">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                             Who is leading that project:
@@ -345,7 +336,6 @@ function ProjectManagerDetailContent() {
                           )}
                         </div>
 
-                        {/* Who are under that project (Team Members) */}
                         <div className="space-y-2">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                             Who are under that project ({members.length} team members):
@@ -387,7 +377,6 @@ function ProjectManagerDetailContent() {
                         </div>
                       </div>
 
-                      {/* Progress bar and details */}
                       <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
                         <div className="flex items-center gap-2">
                           <span>Deadline: <strong className="text-slate-800">{project.deadline}</strong></span>
@@ -417,7 +406,6 @@ function ProjectManagerDetailContent() {
           </div>
         )}
 
-        {/* TAB 2: Assigned Workforce Under This PM */}
         {pmDetailTab === "workforce" && (
           <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
             <div>
@@ -474,7 +462,6 @@ function ProjectManagerDetailContent() {
           </div>
         )}
 
-        {/* TAB 3: Tasks Pipeline */}
         {pmDetailTab === "tasks" && (
           <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
             <div>

@@ -68,7 +68,6 @@ export default function CeoDashboard() {
 
   return (
     <div className="px-7 py-6 space-y-6">
-      {/* Top Executive KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
           <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
@@ -148,7 +147,6 @@ export default function CeoDashboard() {
         </div>
       </div>
 
-      {/* Organizational Hierarchy: Project Managers -> Projects Below Him -> Leading Team Lead -> Executing Team */}
       <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
@@ -184,7 +182,6 @@ export default function CeoDashboard() {
                 key={pm.id}
                 className="bg-slate-50/50 border border-slate-200 rounded-lg p-5 space-y-4"
               >
-                {/* Project Manager Header Card */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200/70">
                   <div className="flex items-center gap-3.5">
                     <img
@@ -234,7 +231,6 @@ export default function CeoDashboard() {
                   </div>
                 </div>
 
-                {/* Projects Below this PM */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
@@ -255,7 +251,6 @@ export default function CeoDashboard() {
                           key={proj.id}
                           className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs hover:border-[#0084d4] transition-all space-y-3"
                         >
-                          {/* Project Header Info */}
                           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -285,9 +280,7 @@ export default function CeoDashboard() {
                             </button>
                           </div>
 
-                          {/* Team Lead & Executing Team Members Display */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-100 bg-slate-50/60 p-3 rounded-lg">
-                            {/* Who is Leading That Team */}
                             <div className="space-y-1.5">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                                 Who is leading that team:
@@ -319,7 +312,6 @@ export default function CeoDashboard() {
                               )}
                             </div>
 
-                            {/* What Team Does That */}
                             <div className="space-y-1.5">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                                 What team does that ({members.length} members):
@@ -348,7 +340,6 @@ export default function CeoDashboard() {
                             </div>
                           </div>
 
-                          {/* Progress and Timeline Bar */}
                           <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
                             <div className="flex items-center gap-2">
                               <span>Deadline: <strong className="text-slate-700">{proj.deadline}</strong></span>
@@ -378,7 +369,6 @@ export default function CeoDashboard() {
         </div>
       </div>
 
-      {/* Master List of All Company Projects */}
       <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -511,7 +501,6 @@ export default function CeoDashboard() {
         </div>
       </div>
 
-      {/* Workforce Attendance Roster for CEO Inspection */}
       <div className="space-y-4">
         <InPageSubTabs<"All" | "project_manager" | "employer">
           activeTab={attendanceFilter}

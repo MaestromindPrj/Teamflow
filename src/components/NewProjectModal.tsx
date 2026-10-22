@@ -61,7 +61,6 @@ export default function NewProjectModal({
   const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
 
-  // Initialize auto code
   useEffect(() => {
     setCode(generateProjectCode(name, projects));
   }, [name, projects]);
@@ -70,17 +69,14 @@ export default function NewProjectModal({
   const [deadline, setDeadline] = useState("");
   const [budget, setBudget] = useState("");
 
-  // PM selection (if CEO creates, can pick PM; if PM creates, defaults to PM)
   const [selectedPmId, setSelectedPmId] = useState<string>(
     currentUser.role === "project_manager" ? currentUser.id : projectManagers[0]?.id || ""
   );
 
-  // Selected members
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(
     employers.slice(0, 3).map((e) => e.id)
   );
 
-  // Selected team lead (must be one of the employers)
   const [selectedLeadId, setSelectedLeadId] = useState<string>(
     employers[0]?.id || ""
   );
@@ -89,7 +85,7 @@ export default function NewProjectModal({
 
   const handleToggleMember = (empId: string) => {
     if (selectedMemberIds.includes(empId)) {
-      if (selectedMemberIds.length === 1) return; // Keep at least one member
+      if (selectedMemberIds.length === 1) return;
       setSelectedMemberIds(selectedMemberIds.filter((id) => id !== empId));
       if (selectedLeadId === empId) {
         const remaining = selectedMemberIds.filter((id) => id !== empId);

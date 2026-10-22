@@ -51,9 +51,6 @@ export default function Sidebar() {
     }
   };
 
-  // Role-based navigation visibility:
-  // - CEO does not upload or manage media assets, so hide /media
-  // - Employer does not manage company personnel/PMs, so hide /team
   const visibleNavItems = NAV_ITEMS.filter((item) => {
     if (currentUser.role === "ceo" && item.href === "/media") {
       return false;

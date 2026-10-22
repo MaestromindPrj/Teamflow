@@ -37,7 +37,6 @@ export default function AttendancePage() {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
 
-  // Ticker for real-time calculation of check-in duration
   useEffect(() => {
     setCurrentTime(Date.now());
     const timer = setInterval(() => {
@@ -49,7 +48,6 @@ export default function AttendancePage() {
   const isCeo = currentUser.role === "ceo";
   const isPm = currentUser.role === "project_manager";
 
-  // For Project Managers, scope records to projects under their management + their own check-in
   const myManagedProjects = isPm
     ? projects.filter((p) => p.projectManagerId === currentUser.id)
     : projects;
@@ -60,14 +58,12 @@ export default function AttendancePage() {
 
   const pmAllowedUserIds = new Set([currentUser.id, ...Array.from(myEmployerIds)]);
 
-  // Base attendance records
   const baseAttendance = isCeo
     ? attendance
     : isPm
     ? attendance.filter((rec) => pmAllowedUserIds.has(rec.userId))
     : attendance.filter((rec) => rec.userId === currentUser.id);
 
-  // Visible records based on current role permissions
   const visibleAttendance = baseAttendance.filter((rec) => {
     if (isCeo || isPm) {
       if (roleFilter !== "All" && rec.userRole !== roleFilter) return false;
@@ -88,7 +84,6 @@ export default function AttendancePage() {
   const pmRecordsCount = baseAttendance.filter((r) => r.userRole === "project_manager").length;
   const employerRecordsCount = baseAttendance.filter((r) => r.userRole === "employer").length;
 
-  // Active check-in counts
   const currentlyActiveCount = baseAttendance.filter((r) => {
     const state = userClockInData[r.userId];
     if (state) return state.isClockedIn;
@@ -122,7 +117,6 @@ export default function AttendancePage() {
       />
 
       <div className="px-7 py-6 space-y-6">
-        {/* Metric Cards Banner */}
         <div
           className={`grid gap-4 ${
             isCeo
@@ -130,7 +124,6 @@ export default function AttendancePage() {
               : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-5"
           }`}
         >
-          {/* Punch clock card for employers / PMs only - CEO never has punch clock */}
           {!isCeo && (
             <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
@@ -202,7 +195,6 @@ export default function AttendancePage() {
           )}
         </div>
 
-        {/* Navigation In-Page Subtabs */}
         {(isCeo || isPm) && (
           <InPageSubTabs<"All" | "project_manager" | "employer">
             activeTab={roleFilter}
@@ -234,7 +226,6 @@ export default function AttendancePage() {
           />
         )}
 
-        {/* Attendance Records Table */}
         <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -291,7 +282,6 @@ export default function AttendancePage() {
                     ? null
                     : clockState?.clockOutTimeString || (row.clockOut !== "—" ? row.clockOut : null);
 
-                  // Calculate live duration in seconds
                   let liveDurationStr = row.duration;
                   if (row.status === "Leave") {
                     liveDurationStr = "—";
@@ -324,7 +314,6 @@ export default function AttendancePage() {
                       className="hover:bg-sky-50/60 transition-colors cursor-pointer group"
                       title="Click to view complete workday attendance dossier"
                     >
-                      {/* Employee Info */}
                       <td className="py-3.5 pr-3">
                         <div className="flex items-center gap-2.5">
                           {staffUser?.avatar ? (
@@ -349,7 +338,6 @@ export default function AttendancePage() {
                         </div>
                       </td>
 
-                      {/* Role & Department */}
                       <td className="py-3.5 px-3">
                         <div>
                           <span
@@ -367,12 +355,10 @@ export default function AttendancePage() {
                         </div>
                       </td>
 
-                      {/* Date */}
                       <td className="py-3.5 px-3 text-slate-600 text-[12px] whitespace-nowrap">
                         {row.date}
                       </td>
 
-                      {/* Check-In Time */}
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         {checkInTime && checkInTime !== "—" ? (
                           <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-800">
@@ -384,7 +370,6 @@ export default function AttendancePage() {
                         )}
                       </td>
 
-                      {/* Check-Out Time */}
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         {isWorkingNow ? (
                           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#4ade1d]/15 border border-[#4ade1d]/30 text-[11px] font-bold text-[#4ade1d]">
@@ -401,7 +386,6 @@ export default function AttendancePage() {
                         )}
                       </td>
 
-                      {/* Duration */}
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         {isWorkingNow ? (
                           <span className="font-mono font-bold text-[12px] text-[#4ade1d] bg-[#4ade1d]/15 px-2.5 py-1 rounded-md border border-[#4ade1d]/30">
@@ -416,7 +400,6 @@ export default function AttendancePage() {
                         )}
                       </td>
 
-                      {/* Status & Dossier Trigger */}
                       <td className="py-3.5 pl-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2.5">
                           <StatusBadge status={row.status} />

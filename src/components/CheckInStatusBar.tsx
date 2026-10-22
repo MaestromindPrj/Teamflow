@@ -42,9 +42,7 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
 
   return (
     <div className={`bg-white rounded-lg border border-slate-200/90 shadow-2xs p-4 sm:p-5 transition-all flex flex-col justify-between ${className}`}>
-      {/* Top Row: Clock, Status Title, Badge, and Toggle Switch */}
       <div className="flex items-start justify-between gap-3">
-        {/* Left Side: Status & Check-in / Check-out timestamps */}
         <div className="flex items-start gap-3 min-w-0">
           <div
             className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
@@ -79,7 +77,6 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
           </div>
         </div>
 
-        {/* Interactive Check-in Toggle Switch */}
         <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
           <span className="text-[12px] font-semibold text-slate-600 hidden sm:inline">
             {isCheckedIn ? "Check Out" : "Check In"}
@@ -106,9 +103,7 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
         </div>
       </div>
 
-      {/* Bottom Row: Live Duration Counter & Status */}
       <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-        {/* Live Hours, Minutes, Seconds Timer */}
         <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-lg px-3 py-1.5">
           <div className="flex flex-col items-center">
             <span className="text-[16px] font-bold text-slate-900 font-mono leading-none">

@@ -56,7 +56,6 @@ export default function AttendanceDetailModal({
     ? null
     : clockState?.clockOutTimeString || (record.clockOut !== "—" ? record.clockOut : null);
 
-  // Calculate live duration in seconds
   let liveDurationStr = record.duration;
   if (record.status === "Leave") {
     liveDurationStr = "00h 00m 00s (On Leave)";
@@ -82,7 +81,6 @@ export default function AttendanceDetailModal({
     )}m ${String(s).padStart(2, "0")}s`;
   }
 
-  // Projects associated with this staff member
   const userProjects = projects.filter(
     (p) =>
       p.teamMemberIds.includes(record.userId) ||
@@ -93,7 +91,6 @@ export default function AttendanceDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
-        {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100 shrink-0">
@@ -122,9 +119,7 @@ export default function AttendanceDetailModal({
           </button>
         </div>
 
-        {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-5">
-          {/* Employee Card */}
           <div className="flex items-center gap-4 bg-slate-50/80 p-4 rounded-lg border border-slate-100">
             {staffUser?.avatar ? (
               <img
@@ -161,7 +156,6 @@ export default function AttendanceDetailModal({
             </div>
           </div>
 
-          {/* Punch Log Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-white border border-slate-200/90 rounded-lg p-3.5 shadow-2xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
@@ -211,7 +205,6 @@ export default function AttendanceDetailModal({
             </div>
           </div>
 
-          {/* Daily Work Timeline Breakdown */}
           <div className="bg-slate-50/60 rounded-lg border border-slate-100 p-4 space-y-3">
             <h4 className="text-[12px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
               <Activity className="w-3.5 h-3.5 text-[#0084d4]" />
@@ -263,7 +256,6 @@ export default function AttendanceDetailModal({
             </div>
           </div>
 
-          {/* Associated Initiatives */}
           {userProjects.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-[12px] font-bold text-slate-700">
@@ -286,7 +278,6 @@ export default function AttendanceDetailModal({
           )}
         </div>
 
-        {/* Modal Footer */}
         <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end">
           <button
             onClick={onClose}

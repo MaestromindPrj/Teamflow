@@ -39,7 +39,6 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
   const isPm = currentUser.role === "project_manager";
   const isEmployer = currentUser.role === "employer";
 
-  // Available projects to upload to
   const availableProjects = isPm
     ? projects.filter((p) => p.projectManagerId === currentUser.id)
     : isEmployer
@@ -81,7 +80,6 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
       const objUrl = URL.createObjectURL(file);
       setFileUrl(objUrl);
     } catch {
-      // fallback
     }
   };
 
@@ -114,7 +112,6 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
-        {/* Header */}
         <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100">
@@ -138,7 +135,6 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
           </button>
         </div>
 
-        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           <div>
             <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
@@ -180,7 +176,6 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
             </select>
           </div>
 
-          {/* Hidden native file input for local storage file explorer */}
           <input
             type="file"
             ref={fileInputRef}
@@ -188,7 +183,6 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
             className="hidden"
           />
 
-          {/* Local Storage Media Upload Dropzone */}
           <div>
             <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
               Upload From Media

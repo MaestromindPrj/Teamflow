@@ -33,7 +33,7 @@ export default function MediaHubPage() {
   });
 
   const visibleMedia = allMediaItems.filter((item) => {
-    if (isCeo) return false; // CEO does not view or manage media assets
+    if (isCeo) return false;
     if (isPm) return item.projectManagerId === currentUser.id;
 
     const isLeadOnProj = isUserTeamLead(currentUser.id, item.projectId);
@@ -105,7 +105,6 @@ export default function MediaHubPage() {
           </div>
         ) : (
           <>
-            {/* Navigation In-Page Subtabs */}
             <InPageSubTabs
               activeTab={selectedType}
               onChange={(type) => setSelectedType(type)}

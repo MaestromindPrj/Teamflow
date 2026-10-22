@@ -58,7 +58,6 @@ export default function UploadMediaModal({ taskId, taskTitle, isOpen, onClose }:
       const objUrl = URL.createObjectURL(file);
       setUrl(objUrl);
     } catch {
-      // fallback
     }
   };
 
@@ -114,7 +113,6 @@ export default function UploadMediaModal({ taskId, taskTitle, isOpen, onClose }:
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Hidden native file input for local storage file explorer */}
           <input
             type="file"
             ref={fileInputRef}
@@ -122,7 +120,6 @@ export default function UploadMediaModal({ taskId, taskTitle, isOpen, onClose }:
             className="hidden"
           />
 
-          {/* Local Storage Media Upload Dropzone */}
           <div>
             <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
               Upload from Media

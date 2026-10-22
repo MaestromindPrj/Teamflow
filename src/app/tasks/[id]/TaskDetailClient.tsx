@@ -78,7 +78,6 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
       />
 
       <div className="px-7 py-6 space-y-6">
-        {/* Back Link */}
         <div>
           <Link
             href="/"
@@ -89,11 +88,8 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
           </Link>
         </div>
 
-        {/* 2 Column Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Left Column (Span 2) */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Description Card */}
             <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs space-y-4">
               <h2 className="text-[14px] font-semibold text-slate-900 tracking-tight">
                 Description
@@ -103,7 +99,6 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
                   "Redesign the company homepage following the approved visual direction and improve the overall content hierarchy. Ensure proper visual balance, correct component state mappings, and responsive patterns in Figma."}
               </p>
 
-              {/* Progress */}
               <div className="pt-2">
                 <div className="flex items-center justify-between text-[13px] mb-2">
                   <span className="font-semibold text-slate-800 text-[13px]">
@@ -122,7 +117,6 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
               </div>
             </div>
 
-            {/* Attachments Card */}
             <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs">
               <h2 className="text-[14px] font-semibold text-slate-900 tracking-tight mb-4">
                 Attachments ({task.attachments ? task.attachments.length : 3})
@@ -164,7 +158,6 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
               </div>
             </div>
 
-            {/* Discussion Card */}
             <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs space-y-4">
               <h2 className="text-[14px] font-semibold text-slate-900 tracking-tight">
                 Discussion
@@ -174,7 +167,6 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
                 {comments.map((comment) => (
                   <div key={comment.id} className="flex items-start gap-3">
                     <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0 mt-0.5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={comment.avatar}
                         alt={comment.author}
@@ -200,7 +192,6 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
                 ))}
               </div>
 
-              {/* Reply box */}
               <form
                 onSubmit={handleSendComment}
                 className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2"
@@ -222,9 +213,7 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
             </div>
           </div>
 
-          {/* Right Column: Properties & Activity */}
           <div className="space-y-4">
-            {/* Task Properties Card */}
             <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs space-y-4">
               <h2 className="text-[14px] font-semibold text-slate-900 tracking-tight">
                 Task Properties
@@ -273,7 +262,6 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
               </div>
             </div>
 
-            {/* Task Activity Card */}
             <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs">
               <h2 className="text-[14px] font-semibold text-slate-900 tracking-tight mb-4">
                 Task Activity

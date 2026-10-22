@@ -35,17 +35,14 @@ function TeamDirectoryContent() {
   const { users, projects, tasks, currentUser } = useTeamFlow();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  // Tab state: "project_managers" | "employers"
   const [activeTab, setActiveTab] = useState<"project_managers" | "employers">("project_managers");
 
-  // Search filters
   const [pmSearch, setPmSearch] = useState("");
   const [empSearch, setEmpSearch] = useState("");
 
   const isPm = currentUser.role === "project_manager";
   const isCeo = currentUser.role === "ceo";
 
-  // For PMs, strictly filter to projects under their management
   const myManagedProjects = isPm
     ? projects.filter((p) => p.projectManagerId === currentUser.id)
     : projects;
@@ -55,7 +52,6 @@ function TeamDirectoryContent() {
   );
 
   const projectManagers = users.filter((u) => u.role === "project_manager");
-  // PM only sees employers who are below him in his managed projects
   const employers = isPm
     ? users.filter((u) => u.role === "employer" && myEmployerIds.has(u.id))
     : users.filter((u) => u.role === "employer");
@@ -107,7 +103,6 @@ function TeamDirectoryContent() {
     }
   };
 
-  // Filtered PMs (for CEO only)
   const filteredPMs = projectManagers.filter((pm) => {
     if (!pmSearch.trim()) return true;
     const q = pmSearch.toLowerCase();
@@ -125,7 +120,6 @@ function TeamDirectoryContent() {
     myManagedProjects.some((p) => p.teamLeadId === e.id)
   ).length;
 
-  // Filtered Employers
   const filteredEmployers = employers
     .filter((emp) => {
       if (isPm && pmEmployerFilter === "leads") {
@@ -156,7 +150,6 @@ function TeamDirectoryContent() {
       />
 
       <div className="px-7 py-6 space-y-6">
-        {/* Navigation Tabs Header - CEO Roster Tabs */}
         {isCeo && (
           <InPageSubTabs<"project_managers" | "employers">
             activeTab={activeTab}
@@ -178,7 +171,6 @@ function TeamDirectoryContent() {
           />
         )}
 
-        {/* Navigation Tabs Header - PM Roster Subtabs */}
         {isPm && (
           <InPageSubTabs<"all" | "leads">
             activeTab={pmEmployerFilter}
@@ -200,12 +192,8 @@ function TeamDirectoryContent() {
           />
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 1: PROJECT MANAGERS                                                   */}
-        {/* ========================================================================= */}
         {activeTab === "project_managers" && (
           <div className="space-y-6">
-            {/* PM Selection Section */}
             <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div>
@@ -230,7 +218,6 @@ function TeamDirectoryContent() {
                 </div>
               </div>
 
-              {/* PM Cards Grid (Clickable to open in new page) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredPMs.map((pm) => {
                   const pCount = projects.filter((p) => p.projectManagerId === pm.id).length;
@@ -289,9 +276,6 @@ function TeamDirectoryContent() {
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 2: EMPLOYERS ROSTER                                                   */}
-        {/* ========================================================================= */}
         {activeTab === "employers" && (
           <div className="space-y-4">
             <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">

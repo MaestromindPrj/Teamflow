@@ -74,7 +74,6 @@ function StaffRewardDetailContent() {
     );
   }
 
-  // Employers can only view rewards and point ledger of themselves
   if (currentUser.role === "employer" && targetUser.id !== currentUser.id) {
     return (
       <div className="flex-1 flex flex-col pb-12">
@@ -107,7 +106,6 @@ function StaffRewardDetailContent() {
     );
   }
 
-  // Project Managers can only view themselves and employers assigned to their managed initiatives
   if (currentUser.role === "project_manager" && targetUser.id !== currentUser.id) {
     const isEmployerUnderPm =
       targetUser.role === "employer" &&
@@ -166,7 +164,6 @@ function StaffRewardDetailContent() {
       />
 
       <div className="px-7 py-6 space-y-6">
-        {/* Back Link */}
         <div>
           <Link
             href="/rewards"
@@ -177,7 +174,6 @@ function StaffRewardDetailContent() {
           </Link>
         </div>
 
-        {/* Member Profile Hero Banner */}
         <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-4">
@@ -249,7 +245,6 @@ function StaffRewardDetailContent() {
             </div>
           </div>
 
-          {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[12px]">
             <div className="bg-slate-50/70 p-3 rounded-lg border border-slate-100">
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Logged Milestones</span>
@@ -270,7 +265,6 @@ function StaffRewardDetailContent() {
           </div>
         </div>
 
-        {/* Itemized Points Ledger: What Points Were Gained and For What */}
         <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
@@ -329,9 +323,7 @@ function StaffRewardDetailContent() {
           </div>
         </div>
 
-        {/* Badges & Appreciation Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Unlocked Badges */}
           <div className="bg-white border border-slate-200/90 rounded-lg p-5 shadow-2xs space-y-4">
             <h4 className="text-[14px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
               <Award className="w-4 h-4 text-purple-600" />
@@ -359,7 +351,6 @@ function StaffRewardDetailContent() {
             </div>
           </div>
 
-          {/* Executive & Peer Appreciation */}
           <div className="bg-white border border-slate-200/90 rounded-lg p-5 shadow-2xs flex flex-col justify-between space-y-4">
             <div>
               <h4 className="text-[14px] font-bold text-slate-900 tracking-tight flex items-center gap-2">

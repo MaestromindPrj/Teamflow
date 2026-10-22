@@ -28,15 +28,12 @@ export default function EmployerDashboard() {
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  // Projects where this employer is a member or team lead
   const myProjects = projects.filter(
     (p) => p.teamMemberIds.includes(currentUser.id) || p.teamLeadId === currentUser.id
   );
 
-  // Projects where this employer is the designated team lead
   const teamLeadProjects = projects.filter((p) => p.teamLeadId === currentUser.id);
 
-  // Tasks assigned directly to this employer
   const myAssignedTasks = tasks.filter((t) => t.assignedTo === currentUser.id);
   const myInProgressTasks = myAssignedTasks.filter((t) => t.status === "In Progress");
   const myReviewTasks = myAssignedTasks.filter((t) => t.status === "Review");
@@ -44,8 +41,6 @@ export default function EmployerDashboard() {
 
   return (
     <div className="px-7 py-6 space-y-6">
-      {/* Top Section: Check-In Status Bar & Welcome Banner side-by-side */}
-     
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
         <div className="flex flex-col justify-between gap-4 bg-linear-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-lg p-5 shadow-md border border-slate-800">
           <div className="space-y-1">
