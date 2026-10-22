@@ -1,0 +1,183 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Trophy, ArrowRight, Sparkles } from "lucide-react";
+import { REWARDS_DATA } from "@/data/mockData";
+import { useTeamFlow } from "@/context/TeamFlowContext";
+
+export default function RewardLeaderboardWidget() {
+  const router = useRouter();
+  const { currentUser, users, projects } = useTeamFlow();
+  const isPm = currentUser.role === "project_manager";
+  const isCeo = currentUser.role === "ceo";
+  const isEmployer = currentUser.role === "employer";
+
+  const myManagedProjects = isPm
+    ? projects.filter((p) => p.projectManagerId === currentUser.id)
+    : projects;
+
+  const myEmployerIds = new Set(
+    myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
+  );
+
+  const visibleLeaderboard = REWARDS_DATA.leaderboard.filter((item) => {
+    if (isCeo || isEmployer) return true;
+    if (isPm) {
+      const matched = users.find((u) => u.fullName === item.name);
+      if (!matched) return false;
+      return (
+        matched.id === currentUser.id ||
+        (matched.role === "employer" && myEmployerIds.has(matched.id))
+      );
+    }
+    return true;
+  });
+
+  const handleRowClick = (name: string) => {
+    const matched = users.find((u) => u.fullName === name);
+    if (!matched) return;
+    if (isCeo) {
+      router.push(`/rewards/${matched.id}`);
+    } else if (isPm) {
+      if (matched.id === currentUser.id || (matched.role === "employer" && myEmployerIds.has(matched.id))) {
+        router.push(`/rewards/${matched.id}`);
+      }
+    } else if (isEmployer) {
+      if (matched.id === currentUser.id) {
+        router.push(`/rewards/${currentUser.id}`);
+      }
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[#ffa500]/15 text-[#ffa500] flex items-center justify-center border border-[#ffa500]/30">
+            <Trophy className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-[15px] font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
+              <span>{isPm ? "My Team Reward Standings" : "Workforce Reward Leaderboard"}</span>
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#ffa500]/15 text-[#ffa500]">
+                <Sparkles className="w-2.5 h-2.5" />
+                Live Standings
+              </span>
+            </h3>
+            <p className="text-[12px] text-slate-500">
+              {isPm
+                ? "Merit standings for yourself and employers assigned under your management"
+                : "Merit standings and gamified points across company project managers and employers"}
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/rewards"
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0084d4] hover:text-[#0277bd] transition-colors self-start sm:self-auto shrink-0 group"
+        >
+          <span>View Rewards Hub</span>
+          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <th className="pb-2.5 pr-3 w-16">Rank</th>
+              <th className="pb-2.5 px-3">Team Member</th>
+              <th className="pb-2.5 px-3">Role &amp; Department</th>
+              <th className="pb-2.5 pl-3 text-right">Points</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-[13px]">
+            {visibleLeaderboard.map((user) => {
+              const matchedStaff = users.find((u) => u.fullName === user.name);
+              const isCurrent = matchedStaff?.id === currentUser.id;
+              const isClickable =
+                isCeo ||
+                (isPm && (isCurrent || (matchedStaff?.role === "employer" && myEmployerIds.has(matchedStaff.id)))) ||
+                (isEmployer && isCurrent);
+
+              return (
+                <tr
+                  key={user.name}
+                  onClick={() => isClickable && handleRowClick(user.name)}
+                  className={`transition-colors ${
+                    isClickable ? "cursor-pointer" : ""
+                  } ${
+                    isCurrent
+                      ? "bg-sky-50/70 font-medium hover:bg-sky-50"
+                      : "hover:bg-slate-50/70"
+                  }`}
+                >
+                  <td className="py-2.5 pr-3">
+                    <span
+                      className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold ${
+                        user.rank === 1
+                          ? "bg-[#ffa500]/15 text-[#ffa500] shadow-2xs"
+                          : user.rank === 2
+                          ? "bg-slate-200 text-slate-700"
+                          : user.rank === 3
+                          ? "bg-[#ffa500]/15 text-[#ffa500]"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      #{user.rank}
+                    </span>
+                  </td>
+
+                  <td className="py-2.5 px-3">
+                    <div className="flex items-center gap-2.5">
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
+                      />
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-slate-900 leading-tight">
+                          {isCurrent ? `${user.name} (You)` : user.name}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-100 text-[#0084d4]">
+                            YOU
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="py-2.5 px-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          user.role === "Project Manager"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-[#4ade1d]/15 text-[#4ade1d]"
+                        }`}
+                      >
+                        {user.role}
+                      </span>
+                      <span className="text-[11px] text-slate-400 hidden sm:inline">
+                        {matchedStaff?.department || "Operations"}
+                      </span>
+                    </div>
+                  </td>
+
+                  <td className="py-2.5 pl-3 text-right">
+                    <span className="font-extrabold text-[#0084d4] text-[13px]">
+                      {user.points}{" "}
+                      <span className="text-[10px] font-normal text-slate-400">pts</span>
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

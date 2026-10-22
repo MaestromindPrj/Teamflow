@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+@theme {
+  /* Orange: #ffa500, with 15% opacity background */
+  --color-orange-50: rgba(255, 165, 0, 0.15);
+  --color-orange-100: rgba(255, 165, 0, 0.15);
+  --color-orange-200: rgba(255, 165, 0, 0.3);
+  --color-orange-300: rgba(255, 165, 0, 0.45);
+  --color-orange-400: #ffa500;
+  --color-orange-500: #ffa500;
+  --color-orange-600: #ffa500;
+  --color-orange-700: #ffa500;
+  --color-orange-800: #ffa500;
+  --color-orange-900: #ffa500;
+  --color-orange-950: #ffa500;
+
+  --color-amber-50: rgba(255, 165, 0, 0.15);
+  --color-amber-100: rgba(255, 165, 0, 0.15);
+  --color-amber-200: rgba(255, 165, 0, 0.3);
+  --color-amber-300: rgba(255, 165, 0, 0.45);
+  --color-amber-400: #ffa500;
+  --color-amber-500: #ffa500;
+  --color-amber-600: #ffa500;
+  --color-amber-700: #ffa500;
+  --color-amber-800: #ffa500;
+  --color-amber-900: #ffa500;
+  --color-amber-950: #ffa500;
+
+  /* Green: #4ade1d, with 15% opacity background */
+  --color-green-50: rgba(74, 222, 29, 0.15);
+  --color-green-100: rgba(74, 222, 29, 0.15);
+  --color-green-200: rgba(74, 222, 29, 0.3);
+  --color-green-300: rgba(74, 222, 29, 0.45);
+  --color-green-400: #4ade1d;
+  --color-green-500: #4ade1d;
+  --color-green-600: #4ade1d;
+  --color-green-700: #4ade1d;
+  --color-green-800: #4ade1d;
+  --color-green-900: #4ade1d;
+  --color-green-950: #4ade1d;
+
+  --color-emerald-50: rgba(74, 222, 29, 0.15);
+  --color-emerald-100: rgba(74, 222, 29, 0.15);
+  --color-emerald-200: rgba(74, 222, 29, 0.3);
+  --color-emerald-300: rgba(74, 222, 29, 0.45);
+  --color-emerald-400: #4ade1d;
+  --color-emerald-500: #4ade1d;
+  --color-emerald-600: #4ade1d;
+  --color-emerald-700: #4ade1d;
+  --color-emerald-800: #4ade1d;
+  --color-emerald-900: #4ade1d;
+  --color-emerald-950: #4ade1d;
+
+  /* Red: #de2d1d, with 15% opacity background */
+  --color-red-50: rgba(222, 45, 29, 0.15);
+  --color-red-100: rgba(222, 45, 29, 0.15);
+  --color-red-200: rgba(222, 45, 29, 0.3);
+  --color-red-300: rgba(222, 45, 29, 0.45);
+  --color-red-400: #de2d1d;
+  --color-red-500: #de2d1d;
+  --color-red-600: #de2d1d;
+  --color-red-700: #de2d1d;
+  --color-red-800: #de2d1d;
+  --color-red-900: #de2d1d;
+  --color-red-950: #de2d1d;
+
+  --color-rose-50: rgba(222, 45, 29, 0.15);
+  --color-rose-100: rgba(222, 45, 29, 0.15);
+  --color-rose-200: rgba(222, 45, 29, 0.3);
+  --color-rose-300: rgba(222, 45, 29, 0.45);
+  --color-rose-400: #de2d1d;
+  --color-rose-500: #de2d1d;
+  --color-rose-600: #de2d1d;
+  --color-rose-700: #de2d1d;
+  --color-rose-800: #de2d1d;
+  --color-rose-900: #de2d1d;
+  --color-rose-950: #de2d1d;
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-border: #f1f5f9;
+  --sidebar: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --primary: #0084d4;
+  --primary-hover: #0277bd;
+
+  /* Standardized color system */
+  --app-orange: #ffa500;
+  --app-orange-bg: rgba(255, 165, 0, 0.15);
+  --app-orange-border: rgba(255, 165, 0, 0.3);
+
+  --app-green: #4ade1d;
+  --app-green-bg: rgba(74, 222, 29, 0.15);
+  --app-green-border: rgba(74, 222, 29, 0.3);
+
+  --app-red: #de2d1d;
+  --app-red-bg: rgba(222, 45, 29, 0.15);
+  --app-red-border: rgba(222, 45, 29, 0.3);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

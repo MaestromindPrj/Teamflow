@@ -1,0 +1,182 @@
+"use client";
+
+import { useState } from "react";
+import { X, CheckSquare } from "lucide-react";
+import { useTeamFlow } from "@/context/TeamFlowContext";
+import { Project } from "@/data/teamflowData";
+
+interface CreateTaskModalProps {
+  project: Project;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function CreateTaskModal({ project, isOpen, onClose }: CreateTaskModalProps) {
+  const { users, createTask, currentUser } = useTeamFlow();
+
+  const projectMembers = users.filter((u) => project.teamMemberIds.includes(u.id));
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [assignedTo, setAssignedTo] = useState(projectMembers[0]?.id || "");
+  const [priority, setPriority] = useState<"High" | "Medium" | "Low">("Medium");
+  const [deadline, setDeadline] = useState("2026-10-31");
+  const [status, setStatus] = useState<"To Do" | "In Progress" | "Review" | "Completed">("To Do");
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !assignedTo) return;
+
+    createTask({
+      projectId: project.id,
+      title: title.trim(),
+      description: description.trim(),
+      assignedTo,
+      priority,
+      deadline,
+      status
+    });
+
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100">
+              <CheckSquare className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-bold text-slate-900 tracking-tight">
+                Add Task to Project
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                {project.name} ({project.code})
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-[12px] font-semibold text-slate-700 mb-1">
+              Task Title *
+            </label>
+            <input
+              type="text"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Implement Responsive Navigation Menu"
+              className="w-full px-3 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-slate-700 mb-1">
+              Task Description
+            </label>
+            <textarea
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Detailed instructions, requirements and deliverables..."
+              className="w-full px-3 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900 resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-slate-700 mb-1">
+              Assign To Team Member *
+            </label>
+            <select
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              required
+              className="w-full px-3 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900"
+            >
+              {projectMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.jobTitle}) {member.id === project.teamLeadId ? "• [Team Lead]" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Priority
+              </label>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as "High" | "Medium" | "Low")}
+                className="w-full px-2.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
+              >
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Status
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as "To Do" | "In Progress" | "Review" | "Completed")}
+                className="w-full px-2.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
+              >
+                <option value="To Do">To Do</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Review">Review</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Deadline
+              </label>
+              <input
+                type="date"
+                required
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+                className="w-full px-2.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[12px] font-medium transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span>Create Task</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
