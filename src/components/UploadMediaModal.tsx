@@ -77,7 +77,8 @@ export default function UploadMediaModal({ taskId, taskTitle, isOpen, onClose }:
       name: name.trim(),
       size: calculatedSize || (selectedFile ? formatFileSize(selectedFile.size) : "Cloud Link"),
       type,
-      url: url.trim() || (selectedFile ? URL.createObjectURL(selectedFile) : "#")
+      url: url.trim() || (selectedFile ? URL.createObjectURL(selectedFile) : "#"),
+      rawFile: selectedFile
     });
 
     setSelectedFile(null);

@@ -341,9 +341,9 @@ export default function AttendancePage() {
                       <td className="py-3.5 px-3">
                         <div>
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
                               row.userRole === "project_manager"
-                                ? "bg-indigo-50 text-indigo-700 border border-indigo-200/60"
+                                ? "bg-blue-100 text-blue-800 border border-blue-200"
                                 : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
                             }`}
                           >

@@ -53,31 +53,22 @@ export default function RewardLeaderboardWidget() {
   return (
     <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#ffa500]/15 text-[#ffa500] flex items-center justify-center border border-[#ffa500]/30">
-            <Trophy className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-[15px] font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
-              <span>{isPm ? "My Team Reward Standings" : "Workforce Reward Leaderboard"}</span>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#ffa500]/15 text-[#ffa500]">
-                <Sparkles className="w-2.5 h-2.5" />
-                Live Standings
-              </span>
-            </h3>
-            <p className="text-[12px] text-slate-500">
-              {isPm
-                ? "Merit standings for yourself and employers assigned under your management"
-                : "Merit standings and gamified points across company project managers and employers"}
-            </p>
-          </div>
+        <div>
+          <h3 className="text-[15px] font-bold text-slate-900 tracking-tight">
+            {isPm ? "My Team Reward Standings" : "Workforce Reward Leaderboard"}
+          </h3>
+          <p className="text-[12px] text-slate-500">
+            {isPm
+              ? "Merit standings for yourself and employers assigned under your management"
+              : "Merit standings and gamified points across company project managers and employers"}
+          </p>
         </div>
 
         <Link
           href="/rewards"
           className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0084d4] hover:text-[#0277bd] transition-colors self-start sm:self-auto shrink-0 group"
         >
-          <span>View Rewards Hub</span>
+          <span>View Rewards</span>
           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>
@@ -152,10 +143,10 @@ export default function RewardLeaderboardWidget() {
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
                           user.role === "Project Manager"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-[#4ade1d]/15 text-[#4ade1d]"
+                            ? "bg-blue-100 text-blue-800 border border-blue-200"
+                            : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
                         }`}
                       >
                         {user.role}

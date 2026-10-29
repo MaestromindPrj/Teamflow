@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   FolderKanban,
   Users,
@@ -9,6 +10,7 @@ import {
   Shield,
   Layers,
   ArrowUpRight,
+  ArrowRight,
   TrendingUp,
   Clock,
   Search,
@@ -24,15 +26,12 @@ import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import NewProjectModal from "@/components/NewProjectModal";
 import RewardLeaderboardWidget from "@/components/RewardLeaderboardWidget";
-import InPageSubTabs from "@/components/InPageSubTabs";
 
 export default function CeoDashboard() {
   const { users, projects, tasks, attendance, currentUser } = useTeamFlow();
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
-  const [attendanceFilter, setAttendanceFilter] = useState<"All" | "project_manager" | "employer">("All");
-  const [projectSearch, setProjectSearch] = useState("");
 
   const projectManagers = users.filter((u) => u.role === "project_manager");
   const employers = users.filter((u) => u.role === "employer");
@@ -46,25 +45,6 @@ export default function CeoDashboard() {
   const todayAttendance = attendance;
   const presentCount = todayAttendance.filter((a) => a.status === "Present" || a.status === "Remote").length;
   const attendanceRate = todayAttendance.length > 0 ? Math.round((presentCount / todayAttendance.length) * 100) : 100;
-
-  const filteredProjects = projects.filter((p) => {
-    if (!projectSearch.trim()) return true;
-    const term = projectSearch.toLowerCase();
-    const pm = users.find((u) => u.id === p.projectManagerId);
-    const lead = users.find((u) => u.id === p.teamLeadId);
-    return (
-      p.name.toLowerCase().includes(term) ||
-      p.code.toLowerCase().includes(term) ||
-      p.category.toLowerCase().includes(term) ||
-      pm?.fullName.toLowerCase().includes(term) ||
-      lead?.fullName.toLowerCase().includes(term)
-    );
-  });
-
-  const filteredAttendance = todayAttendance.filter((rec) => {
-    if (attendanceFilter === "All") return true;
-    return rec.userRole === attendanceFilter;
-  });
 
   return (
     <div className="px-7 py-6 space-y-6">
@@ -150,10 +130,6 @@ export default function CeoDashboard() {
       <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[11px] font-semibold border border-purple-200/80 mb-1">
-              <Shield className="w-3.5 h-3.5" />
-              <span>Executive Hierarchy &bull; Portfolios &bull; Teams &bull; Leads</span>
-            </div>
             <h2 className="text-[17px] font-bold text-slate-900 tracking-tight">
               Project Managers, Portfolios &amp; Assigned Teams
             </h2>
@@ -194,7 +170,7 @@ export default function CeoDashboard() {
                         <h3 className="text-[15px] font-bold text-slate-900">
                           {pm.fullName}
                         </h3>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-200">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium bg-purple-100 text-purple-800 border border-purple-200">
                           Project Manager
                         </span>
                         <span className="text-[11px] text-slate-400 font-medium">
@@ -249,35 +225,25 @@ export default function CeoDashboard() {
                       return (
                         <div
                           key={proj.id}
-                          className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs hover:border-[#0084d4] transition-all space-y-3"
+                          onClick={() => setSelectedProjectId(proj.id)}
+                          className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs hover:border-[#0084d4] transition-all space-y-3 cursor-pointer group"
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                                  {proj.code}
-                                </span>
-                                <h4
-                                  onClick={() => setSelectedProjectId(proj.id)}
-                                  className="text-[14px] font-bold text-slate-900 hover:text-[#0084d4] cursor-pointer transition-colors"
-                                >
-                                  {proj.name}
-                                </h4>
-                                <StatusBadge status={proj.status} />
-                                <PriorityBadge priority={proj.priority} />
-                              </div>
-                              <p className="text-[12px] text-slate-500 max-w-2xl line-clamp-2">
-                                {proj.description}
-                              </p>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                                {proj.code}
+                              </span>
+                              <h4
+                                className="text-[14px] font-bold text-slate-900 group-hover:text-[#0084d4] transition-colors"
+                              >
+                                {proj.name}
+                              </h4>
+                              <StatusBadge status={proj.status} />
+                              <PriorityBadge priority={proj.priority} />
                             </div>
-
-                            <button
-                              onClick={() => setSelectedProjectId(proj.id)}
-                              className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12px] font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-auto"
-                            >
-                              <span>Inspect Project</span>
-                              <ArrowUpRight className="w-3.5 h-3.5" />
-                            </button>
+                            <p className="text-[12px] text-slate-500 max-w-2xl line-clamp-2">
+                              {proj.description}
+                            </p>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-100 bg-slate-50/60 p-3 rounded-lg">
@@ -298,9 +264,6 @@ export default function CeoDashboard() {
                                       <p className="text-[12px] font-bold text-slate-900 truncate">
                                         {lead.id === currentUser.id ? "(You)" : lead.fullName}
                                       </p>
-                                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#ffa500]/15 text-[#ffa500]">
-                                        Team Lead
-                                      </span>
                                     </div>
                                     <p className="text-[11px] text-slate-500 truncate">
                                       {lead.jobTitle}
@@ -370,7 +333,7 @@ export default function CeoDashboard() {
       </div>
 
       <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-100">
           <div>
             <h2 className="text-[15px] font-bold text-slate-900 tracking-tight">
               All Company Projects &amp; Live Status
@@ -380,18 +343,13 @@ export default function CeoDashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={projectSearch}
-                onChange={(e) => setProjectSearch(e.target.value)}
-                placeholder="Search projects, leads, PMs..."
-                className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-48 sm:w-60"
-              />
-            </div>
-          </div>
+          <Link
+            href="/projects"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0084d4] hover:text-[#0277bd] transition-colors self-start sm:self-auto shrink-0 group"
+          >
+            <span>View Projects</span>
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
         </div>
 
         <div className="overflow-x-auto">
@@ -408,7 +366,7 @@ export default function CeoDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-[13px]">
-              {filteredProjects.map((project) => {
+              {projects.map((project) => {
                 const pm = users.find((u) => u.id === project.projectManagerId);
                 const lead = users.find((u) => u.id === project.teamLeadId);
                 const pTasks = tasks.filter((t) => t.projectId === project.id);
@@ -423,17 +381,9 @@ export default function CeoDashboard() {
                     className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
                   >
                     <td className="py-3.5 pr-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                          {project.code}
-                        </span>
-                        <div>
-                          <p className="font-semibold text-slate-900 group-hover:text-[#0084d4] transition-colors">
-                            {project.name}
-                          </p>
-                          <p className="text-[11px] text-slate-400">{project.category}</p>
-                        </div>
-                      </div>
+                      <p className="font-semibold text-slate-900 group-hover:text-[#0084d4] transition-colors">
+                        {project.name}
+                      </p>
                     </td>
 
                     <td className="py-3.5 px-3">
@@ -501,42 +451,25 @@ export default function CeoDashboard() {
         </div>
       </div>
 
-      <div className="space-y-4">
-        <InPageSubTabs<"All" | "project_manager" | "employer">
-          activeTab={attendanceFilter}
-          onChange={(filter) => setAttendanceFilter(filter)}
-          tabs={[
-            {
-              id: "All",
-              label: "All",
-              icon: <Users className="w-4 h-4" />,
-              count: projectManagers.length + employers.length,
-            },
-            {
-              id: "project_manager",
-              label: "Project Managers",
-              icon: <Shield className="w-4 h-4" />,
-              count: projectManagers.length,
-            },
-            {
-              id: "employer",
-              label: "Employers",
-              icon: <Briefcase className="w-4 h-4" />,
-              count: employers.length,
-            },
-          ]}
-        />
-
-        <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
+      <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-100">
           <div>
-            <h2 className="text-[15px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#4ade1d]" />
-              <span>Company Attendance Roster</span>
+            <h2 className="text-[15px] font-bold text-slate-900 tracking-tight">
+              Company Attendance Roster
             </h2>
             <p className="text-[12px] text-slate-500">
               Live clock-in and duration monitoring across the entire company roster
             </p>
           </div>
+
+          <Link
+            href="/attendance"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0084d4] hover:text-[#0277bd] transition-colors self-start sm:self-auto shrink-0 group"
+          >
+            <span>View Attendance</span>
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -552,14 +485,20 @@ export default function CeoDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-[13px]">
-              {filteredAttendance.map((row) => (
+              {todayAttendance.slice(0, 5).map((row) => (
                 <tr key={row.id} className="hover:bg-slate-50/60 transition-colors">
                   <td className="py-3 pr-3">
                     <span className="font-semibold text-slate-900">{row.userName}</span>
                   </td>
                   <td className="py-3 px-3">
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 uppercase">
-                      {row.userRole.replace("_", " ")}
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
+                        row.userRole === "project_manager"
+                          ? "bg-blue-100 text-blue-800 border border-blue-200"
+                          : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
+                      }`}
+                    >
+                      {row.userRole === "project_manager" ? "Project Manager" : "Employer"}
                     </span>
                   </td>
                   <td className="py-3 px-3 text-[12px] text-slate-500">{row.department}</td>
@@ -575,7 +514,6 @@ export default function CeoDashboard() {
           </table>
         </div>
       </div>
-    </div>
 
       <RewardLeaderboardWidget />
 

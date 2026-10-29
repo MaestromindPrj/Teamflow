@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import {
   User,
   Project,
@@ -22,47 +22,54 @@ export interface UserClockInState {
 }
 
 const DEFAULT_CLOCK_IN_DATA: Record<string, UserClockInState> = {
-  "u-pm-1": {
-    isClockedIn: true,
+  "u-ceo-1": {
+    isClockedIn: false,
     clockInTimestamp: null,
-    clockInTimeString: "08:45 AM",
+    clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 7 * 3600 + 15 * 60 + 24
+    elapsedSeconds: 0
+  },
+  "u-pm-1": {
+    isClockedIn: false,
+    clockInTimestamp: null,
+    clockInTimeString: null,
+    clockOutTimeString: null,
+    elapsedSeconds: 0
   },
   "u-pm-2": {
-    isClockedIn: true,
+    isClockedIn: false,
     clockInTimestamp: null,
-    clockInTimeString: "09:02 AM",
+    clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 6 * 3600 + 58 * 60 + 10
+    elapsedSeconds: 0
   },
   "u-emp-1": {
-    isClockedIn: true,
+    isClockedIn: false,
     clockInTimestamp: null,
-    clockInTimeString: "09:12 AM",
+    clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 6 * 3600 + 48 * 60 + 45
+    elapsedSeconds: 0
   },
   "u-emp-2": {
-    isClockedIn: true,
+    isClockedIn: false,
     clockInTimestamp: null,
-    clockInTimeString: "09:05 AM",
+    clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 6 * 3600 + 55 * 60 + 30
+    elapsedSeconds: 0
   },
   "u-emp-3": {
-    isClockedIn: true,
+    isClockedIn: false,
     clockInTimestamp: null,
-    clockInTimeString: "08:30 AM",
+    clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 7 * 3600 + 30 * 60 + 15
+    elapsedSeconds: 0
   },
   "u-emp-4": {
-    isClockedIn: true,
+    isClockedIn: false,
     clockInTimestamp: null,
-    clockInTimeString: "09:42 AM",
+    clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 6 * 3600 + 18 * 60 + 50
+    elapsedSeconds: 0
   },
   "u-emp-5": {
     isClockedIn: false,
@@ -114,6 +121,7 @@ interface TeamFlowContextType {
       size: string;
       type: "image" | "pdf" | "figma" | "zip" | "doc";
       url?: string;
+      rawFile?: File | null;
     }
   ) => void;
   toggleClockInOut: () => void;
@@ -131,7 +139,7 @@ interface TeamFlowContextType {
 const TeamFlowContext = createContext<TeamFlowContextType | undefined>(undefined);
 
 export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
-  const [users] = useState<User[]>(INITIAL_USERS);
+  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [currentUserId, setCurrentUserIdState] = useState<string>("u-ceo-1");
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS_DATA);
@@ -139,13 +147,15 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const [userClockInData, setUserClockInData] = useState<Record<string, UserClockInState>>(DEFAULT_CLOCK_IN_DATA);
   const [hasHydrated, setHasHydrated] = useState(false);
 
+  // Initial local hydration from localStorage
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem("teamflow_current_user");
       const savedProjects = localStorage.getItem("teamflow_projects");
       const savedTasks = localStorage.getItem("teamflow_tasks");
       const savedAttendance = localStorage.getItem("teamflow_attendance");
-      const savedUserClockIn = localStorage.getItem("teamflow_user_clock_in");
+      localStorage.removeItem("teamflow_user_clock_in");
+      const savedUserClockIn = localStorage.getItem("teamflow_user_clock_in_v2");
 
       const validUserIds = new Set(INITIAL_USERS.map((u) => u.id));
 
@@ -157,69 +167,85 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
       if (savedProjects) {
         const parsed = JSON.parse(savedProjects);
-        const sanitized = parsed.map((p: Project) => {
-          const validMembers = (p.teamMemberIds || []).filter((id: string) => validUserIds.has(id));
-          let leadId = p.teamLeadId;
-          if (p.id === "proj-1") leadId = "u-emp-1";
-          else if (p.id === "proj-2") leadId = "u-emp-2";
-          else if (!validUserIds.has(leadId) || leadId === "u-emp-3") {
-            leadId = validMembers.find((id: string) => id !== "u-emp-3" && id.startsWith("u-emp")) || "u-emp-1";
-          }
-          const finalMembers = Array.from(new Set([...validMembers, leadId, "u-emp-1", "u-emp-2", "u-emp-3"]));
-          return {
-            ...p,
-            teamLeadId: leadId,
-            teamMemberIds: finalMembers
-          };
-        });
-        setProjects(sanitized);
+        setProjects(parsed);
       }
 
       if (savedTasks) {
         const parsed = JSON.parse(savedTasks);
-        const sanitized = parsed.map((t: Task) => ({
-          ...t,
-          assignedTo: validUserIds.has(t.assignedTo) ? t.assignedTo : "u-emp-1"
-        }));
-        setTasks(sanitized);
+        setTasks(parsed);
       }
 
       if (savedAttendance) {
         const parsed = JSON.parse(savedAttendance);
-        setAttendance(parsed.filter((a: AttendanceRecord) => validUserIds.has(a.userId)));
+        setAttendance(parsed);
       }
 
-      const now = Date.now();
       if (savedUserClockIn) {
         const parsed = JSON.parse(savedUserClockIn);
-        const filteredClockIn: Record<string, UserClockInState> = {};
-        Object.entries(parsed).forEach(([k, v]) => {
-          if (validUserIds.has(k)) {
-            filteredClockIn[k] = v as UserClockInState;
-          }
-        });
-        setUserClockInData(filteredClockIn);
-      } else {
-        setUserClockInData((prev) => {
-          const updated: Record<string, UserClockInState> = {};
-          Object.entries(prev).forEach(([k, v]) => {
-            updated[k] = {
-              ...v,
-              clockInTimestamp:
-                v.isClockedIn && !v.clockInTimestamp
-                  ? now - (v.elapsedSeconds || 0) * 1000
-                  : v.clockInTimestamp
-            };
-          });
-          return updated;
-        });
+        setUserClockInData(parsed);
       }
     } catch {
+      // Fallback silently
     } finally {
       setHasHydrated(true);
     }
   }, []);
 
+  // Fetch initial data from backend Neon PostgreSQL API
+  const refreshFromBackend = useCallback(async () => {
+    try {
+      const [usersRes, projectsRes, tasksRes, attendanceRes, clockInRes] = await Promise.all([
+        fetch("/api/users").catch(() => null),
+        fetch("/api/projects").catch(() => null),
+        fetch("/api/tasks").catch(() => null),
+        fetch("/api/attendance").catch(() => null),
+        fetch("/api/clock-in").catch(() => null),
+      ]);
+
+      if (usersRes && usersRes.ok) {
+        const data = await usersRes.json();
+        if (Array.isArray(data.users) && data.users.length > 0) {
+          setUsers(data.users);
+        }
+      }
+
+      if (projectsRes && projectsRes.ok) {
+        const data = await projectsRes.json();
+        if (Array.isArray(data.projects) && data.projects.length > 0) {
+          setProjects(data.projects);
+        }
+      }
+
+      if (tasksRes && tasksRes.ok) {
+        const data = await tasksRes.json();
+        if (Array.isArray(data.tasks) && data.tasks.length > 0) {
+          setTasks(data.tasks);
+        }
+      }
+
+      if (attendanceRes && attendanceRes.ok) {
+        const data = await attendanceRes.json();
+        if (Array.isArray(data.attendance) && data.attendance.length > 0) {
+          setAttendance(data.attendance);
+        }
+      }
+
+      if (clockInRes && clockInRes.ok) {
+        const data = await clockInRes.json();
+        if (data.clockInData && Object.keys(data.clockInData).length > 0) {
+          setUserClockInData(data.clockInData);
+        }
+      }
+    } catch (err) {
+      console.warn("Backend sync notice (using local state):", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshFromBackend();
+  }, [refreshFromBackend]);
+
+  // Synchronize with localStorage
   useEffect(() => {
     if (!hasHydrated) return;
     try {
@@ -227,8 +253,9 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("teamflow_projects", JSON.stringify(projects));
       localStorage.setItem("teamflow_tasks", JSON.stringify(tasks));
       localStorage.setItem("teamflow_attendance", JSON.stringify(attendance));
-      localStorage.setItem("teamflow_user_clock_in", JSON.stringify(userClockInData));
+      localStorage.setItem("teamflow_user_clock_in_v2", JSON.stringify(userClockInData));
     } catch {
+      // ignore storage quota errors
     }
   }, [currentUserId, projects, tasks, attendance, userClockInData, hasHydrated]);
 
@@ -268,6 +295,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     };
 
     setProjects((prev) => [newProject, ...prev]);
+
+    // Async backend persist to Neon Postgres
+    fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newProject),
+    }).catch((err) => console.warn("Failed to persist project to backend:", err));
+
     return newProject;
   };
 
@@ -285,11 +320,23 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         return p;
       })
     );
+
+    // Async backend update to Neon Postgres
+    fetch(`/api/projects/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(safeUpdates),
+    }).catch((err) => console.warn("Failed to update project on backend:", err));
   };
 
   const deleteProject = (id: string) => {
     setProjects((prev) => prev.filter((p) => p.id !== id));
     setTasks((prev) => prev.filter((t) => t.projectId !== id));
+
+    // Async backend delete
+    fetch(`/api/projects/${id}`, {
+      method: "DELETE",
+    }).catch((err) => console.warn("Failed to delete project on backend:", err));
   };
 
   const createTask = (taskData: {
@@ -324,6 +371,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     };
 
     setTasks((prev) => [newTask, ...prev]);
+
+    // Async backend persist to Neon Postgres
+    fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newTask),
+    }).catch((err) => console.warn("Failed to persist task to backend:", err));
+
     return newTask;
   };
 
@@ -351,52 +406,129 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         return t;
       })
     );
+
+    // Async backend update to Neon Postgres
+    fetch(`/api/tasks/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...updates,
+        updatedByName: currentUser.fullName,
+      }),
+    }).catch((err) => console.warn("Failed to update task on backend:", err));
   };
 
   const deleteTask = (id: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
+
+    // Async backend delete
+    fetch(`/api/tasks/${id}`, {
+      method: "DELETE",
+    }).catch((err) => console.warn("Failed to delete task on backend:", err));
   };
 
-  const uploadTaskMedia = (
+  const uploadTaskMedia = async (
     taskId: string,
     file: {
       name: string;
       size: string;
       type: "image" | "pdf" | "figma" | "zip" | "doc";
       url?: string;
+      rawFile?: File | null;
     }
   ) => {
+    const attachmentId = `att-${Date.now()}`;
+    const initialUrl =
+      file.url ||
+      (file.type === "image"
+        ? "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80"
+        : "#");
+
     const newAttachment: TaskAttachment = {
-      id: `att-${Date.now()}`,
+      id: attachmentId,
       name: file.name,
       size: file.size,
       type: file.type,
-      url: file.url || (file.type === "image" ? "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80" : "#"),
+      url: initialUrl,
       uploadedBy: currentUser.id,
       uploadedByName: currentUser.fullName,
       uploadedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     };
 
+    const newActivityItem = {
+      id: `act-${Date.now()}`,
+      title: `Deliverable uploaded: ${file.name}`,
+      detail: `Uploaded by ${currentUser.fullName}`,
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    };
+
+    // Optimistically update frontend state
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id === taskId) {
           return {
             ...t,
             attachments: [newAttachment, ...t.attachments],
-            activity: [
-              {
-                id: `act-${Date.now()}`,
-                title: `Deliverable uploaded: ${file.name}`,
-                detail: `Uploaded by ${currentUser.fullName}`,
-                date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-              },
-              ...t.activity
-            ]
+            activity: [newActivityItem, ...t.activity]
           };
         }
         return t;
       })
     );
+
+    // If a physical file was provided, upload to Cloudinary via backend /api/upload
+    if (file.rawFile) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file.rawFile);
+        formData.append("taskId", taskId);
+        formData.append("name", file.name);
+        formData.append("uploadedBy", currentUser.id);
+        formData.append("uploadedByName", currentUser.fullName);
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData?.attachment?.url) {
+            const finalUrl = uploadData.attachment.url;
+            // Update attachment with genuine Cloudinary secure URL
+            setTasks((prev) =>
+              prev.map((t) => {
+                if (t.id === taskId) {
+                  return {
+                    ...t,
+                    attachments: t.attachments.map((att) =>
+                      att.id === attachmentId ? { ...att, url: finalUrl } : att
+                    ),
+                  };
+                }
+                return t;
+              })
+            );
+          }
+        }
+      } catch (uploadErr) {
+        console.warn("Could not upload to Cloudinary backend:", uploadErr);
+      }
+    } else {
+      // No raw file, sync updated attachments directly to backend
+      const targetTask = tasks.find((t) => t.id === taskId);
+      if (targetTask) {
+        fetch(`/api/tasks/${taskId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            attachments: [newAttachment, ...targetTask.attachments],
+            activity: [newActivityItem, ...targetTask.activity],
+            updatedByName: currentUser.fullName,
+          }),
+        }).catch((err) => console.warn("Failed to sync media to backend:", err));
+      }
+    }
   };
 
   const toggleUserClockIn = (userId: string) => {
@@ -446,26 +578,41 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       [userId]: nextState
     }));
 
+    // Async persist clock-in status to Neon Postgres
+    fetch("/api/clock-in", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        ...nextState,
+      }),
+    }).catch((err) => console.warn("Failed to persist clock-in to backend:", err));
+
+    const hours = Math.floor(newElapsed / 3600);
+    const minutes = Math.floor((newElapsed % 3600) / 60);
+    const seconds = newElapsed % 60;
+    const formattedDuration = `${hours}h ${minutes}m ${seconds}s`;
+
     setAttendance((prev) => {
       const existingToday = prev.find((r) => r.userId === userId && r.date === todayString);
-      const hours = Math.floor(newElapsed / 3600);
-      const minutes = Math.floor((newElapsed % 3600) / 60);
-      const seconds = newElapsed % 60;
-      const formattedDuration = `${hours}h ${minutes}m ${seconds}s`;
 
       if (existingToday) {
-        return prev.map((r) => {
-          if (r.id === existingToday.id) {
-            return {
-              ...r,
-              clockIn: r.clockIn && r.clockIn !== "—" ? r.clockIn : timeString,
-              clockOut: nextClockedIn ? "—" : timeString,
-              duration: nextClockedIn ? r.duration : formattedDuration,
-              status: nextClockedIn ? "Present" : r.status
-            };
-          }
-          return r;
-        });
+        const updatedRecord: AttendanceRecord = {
+          ...existingToday,
+          clockIn: existingToday.clockIn && existingToday.clockIn !== "—" ? existingToday.clockIn : timeString,
+          clockOut: nextClockedIn ? "—" : timeString,
+          duration: nextClockedIn ? existingToday.duration : formattedDuration,
+          status: nextClockedIn ? "Present" : existingToday.status
+        };
+
+        // Async persist to attendance API
+        fetch("/api/attendance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedRecord),
+        }).catch((err) => console.warn("Failed to persist attendance update:", err));
+
+        return prev.map((r) => (r.id === existingToday.id ? updatedRecord : r));
       } else {
         const newRecord: AttendanceRecord = {
           id: `att-rec-${Date.now()}`,
@@ -479,6 +626,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           duration: nextClockedIn ? "00h 00m 01s" : formattedDuration,
           status: "Present"
         };
+
+        // Async persist to attendance API
+        fetch("/api/attendance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newRecord),
+        }).catch((err) => console.warn("Failed to persist new attendance:", err));
+
         return [newRecord, ...prev];
       }
     });

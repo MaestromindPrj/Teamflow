@@ -79,7 +79,7 @@ export default function ProfilePage() {
                   <h2 className="text-[18px] font-bold text-slate-900 tracking-tight">
                     {currentUser.fullName}
                   </h2>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-sky-100 text-[#0084d4]">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-[#0084d4] border border-sky-200/70 capitalize">
                     {currentUser.role.replace("_", " ")}
                   </span>
                 </div>

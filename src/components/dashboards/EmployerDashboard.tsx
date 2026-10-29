@@ -177,12 +177,12 @@ export default function EmployerDashboard() {
                     </div>
 
                     {isLead ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#ffa500]/15 text-[#ffa500] border border-[#ffa500]/30 shadow-2xs">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium bg-[#ffa500]/15 text-[#ffa500] border border-[#ffa500]/30 shadow-2xs">
                         <Crown className="w-3.5 h-3.5 text-[#ffa500]" />
                         <span>Team Lead (You)</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200/60">
                         <UserCheck className="w-3.5 h-3.5 text-slate-400" />
                         <span>Team Member</span>
                       </span>

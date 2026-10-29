@@ -157,7 +157,7 @@ function ProjectManagerDetailContent() {
                   <h2 className="text-[20px] font-bold text-slate-900">
                     {pm.fullName}
                   </h2>
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-purple-100 text-purple-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium bg-purple-100 text-purple-800 border border-purple-200">
                     Project Manager
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">

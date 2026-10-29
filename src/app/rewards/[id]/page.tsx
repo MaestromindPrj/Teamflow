@@ -188,10 +188,10 @@ function StaffRewardDetailContent() {
                     {targetUser.id === currentUser.id ? `${targetUser.fullName} (You)` : targetUser.fullName}
                   </h2>
                   <span
-                    className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-md ${
+                    className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded ${
                       isPm
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-[#4ade1d]/15 text-[#4ade1d]"
+                        ? "bg-blue-100 text-blue-800 border border-blue-200"
+                        : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
                     }`}
                   >
                     {isPm ? <Briefcase className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}

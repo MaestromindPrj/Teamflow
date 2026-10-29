@@ -99,7 +99,8 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
       name: fileName.trim(),
       type: fileType,
       size: calculatedSize || (selectedFile ? formatFileSize(selectedFile.size) : "Cloud Asset"),
-      url: fileUrl.trim() || (selectedFile ? URL.createObjectURL(selectedFile) : "#")
+      url: fileUrl.trim() || (selectedFile ? URL.createObjectURL(selectedFile) : "#"),
+      rawFile: selectedFile
     });
 
     setSelectedFile(null);

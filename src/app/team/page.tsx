@@ -243,7 +243,7 @@ function TeamDirectoryContent() {
                               <h3 className="text-[15px] font-bold text-slate-900 leading-tight group-hover:text-[#0084d4] transition-colors">
                                 {pm.fullName}
                               </h3>
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium bg-blue-100 text-blue-800 border border-blue-200">
                                 PM
                               </span>
                             </div>

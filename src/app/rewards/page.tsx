@@ -293,10 +293,10 @@ export default function RewardsPage() {
                         </td>
                         <td className="py-3 px-3">
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
                               user.role === "Project Manager"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-[#4ade1d]/15 text-[#4ade1d]"
+                                ? "bg-blue-100 text-blue-800 border border-blue-200"
+                                : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
                             }`}
                           >
                             {user.role}
