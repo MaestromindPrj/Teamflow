@@ -179,7 +179,7 @@ export default function ProjectManagerDashboard() {
             </p>
             <button
               onClick={() => setIsNewProjectOpen(true)}
-              className="mt-4 px-4 py-2 bg-[#0084d4] hover:bg-[#0277bd] text-white rounded-lg text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="mt-4 h-9 px-4 bg-[#0084d4] hover:bg-[#0277bd] text-white rounded-lg text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
               <Plus className="w-4 h-4" />
               <span>Create New Project</span>

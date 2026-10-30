@@ -30,7 +30,8 @@ export async function GET() {
         // Tables might not be initialized yet
       }
     } catch (err: unknown) {
-      dbError = err instanceof Error ? err.message : "Database connection failed";
+      console.error("Health check DB connection error:", err);
+      dbError = "Database connection error (details logged server-side)";
     }
   }
 

@@ -199,7 +199,7 @@ export default function SettingsPage() {
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-50 text-[12px] font-medium transition-colors shadow-2xs shrink-0 cursor-pointer self-start lg:self-center"
+                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-50 text-[12px] font-medium transition-colors shadow-2xs shrink-0 cursor-pointer self-start lg:self-center"
               >
                 <Pencil className="w-3.5 h-3.5 text-slate-500" />
                 <span>Edit Profile</span>
@@ -290,7 +290,7 @@ export default function SettingsPage() {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                className="h-9 px-4 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-2xs inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Save Profile</span>
@@ -345,7 +345,7 @@ export default function SettingsPage() {
           <div className="pt-2 flex items-center gap-3">
             <button
               onClick={handleSaveNotifications}
-              className="px-4 py-2 bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold rounded-lg transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              className="h-9 px-4 bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold rounded-lg transition-colors shadow-2xs inline-flex items-center gap-1.5 cursor-pointer"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Save Preferences</span>

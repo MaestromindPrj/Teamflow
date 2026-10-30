@@ -96,7 +96,7 @@ export default function MediaHubPage() {
             <div className="pt-2">
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs"
+                className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs"
               >
                 <span>Return to Executive Dashboard</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -169,7 +169,7 @@ export default function MediaHubPage() {
 
                 <button
                   onClick={() => setIsUploadModalOpen(true)}
-                  className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                  className="h-9 px-4 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs inline-flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
                   <UploadCloud className="w-4 h-4" />
                   <span>Upload Asset</span>

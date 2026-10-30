@@ -138,7 +138,7 @@ export default function AttendancePage() {
               <div className="mt-3">
                 <button
                   onClick={toggleClockInOut}
-                  className={`w-full py-2 rounded-lg text-[12px] font-semibold transition-colors cursor-pointer shadow-xs ${
+                  className={`w-full h-9 rounded-lg text-[12px] font-semibold transition-colors cursor-pointer shadow-xs inline-flex items-center justify-center ${
                     isClockedIn
                       ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
                       : "bg-[#0084d4] text-white hover:bg-[#0277bd]"

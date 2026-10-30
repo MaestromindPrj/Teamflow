@@ -89,7 +89,7 @@ export default function DepartmentsPage() {
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs"
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs"
           >
             <span>Return to Workspace</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -131,7 +131,7 @@ export default function DepartmentsPage() {
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="h-9 px-4 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs inline-flex items-center gap-1.5 cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>Add Job Role</span>
