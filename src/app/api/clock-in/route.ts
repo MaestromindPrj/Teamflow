@@ -70,7 +70,7 @@ export async function GET() {
     await initDatabase();
     const sql = getDb();
     const rows = await sql`
-      SELECT user_id, is_clocked_in, clock_in_timestamp, clock_in_time_string, clock_out_time_string, elapsed_seconds
+      SELECT user_id, is_clocked_in, clock_in_timestamp, clock_in_time_string, clock_out_time_string, elapsed_seconds, clock_in_date
       FROM clock_in_status;
     `;
 
@@ -83,6 +83,7 @@ export async function GET() {
         clockInTimeString: (r.clock_in_time_string as string) || null,
         clockOutTimeString: (r.clock_out_time_string as string) || null,
         elapsedSeconds: Number(r.elapsed_seconds || 0),
+        clockInDate: (r.clock_in_date as string) || undefined,
       };
     });
 
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
   try {
     await initDatabase();
     const body = await req.json();
-    const { userId, isClockedIn, clockInTimestamp, clockInTimeString, clockOutTimeString, elapsedSeconds } = body;
+    const { userId, isClockedIn, clockInTimestamp, clockInTimeString, clockOutTimeString, elapsedSeconds, clockInDate } = body;
 
     if (!userId) {
       return NextResponse.json({ error: "userId is required" }, { status: 400 });
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
     const sql = getDb();
     await sql`
       INSERT INTO clock_in_status (
-        user_id, is_clocked_in, clock_in_timestamp, clock_in_time_string, clock_out_time_string, elapsed_seconds, updated_at
+        user_id, is_clocked_in, clock_in_timestamp, clock_in_time_string, clock_out_time_string, elapsed_seconds, clock_in_date, updated_at
       )
       VALUES (
         ${userId},
@@ -119,6 +120,7 @@ export async function POST(req: NextRequest) {
         ${clockInTimeString || null},
         ${clockOutTimeString || null},
         ${Number(elapsedSeconds || 0)},
+        ${clockInDate || null},
         CURRENT_TIMESTAMP
       )
       ON CONFLICT (user_id) DO UPDATE SET
@@ -127,6 +129,7 @@ export async function POST(req: NextRequest) {
         clock_in_time_string = EXCLUDED.clock_in_time_string,
         clock_out_time_string = EXCLUDED.clock_out_time_string,
         elapsed_seconds = EXCLUDED.elapsed_seconds,
+        clock_in_date = EXCLUDED.clock_in_date,
         updated_at = CURRENT_TIMESTAMP;
     `;
 

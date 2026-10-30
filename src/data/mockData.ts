@@ -758,7 +758,6 @@ export const REWARDS_DATA = {
       role: "Employer",
       points: 460,
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      isCurrentUser: true,
     },
     {
       rank: 5,
@@ -788,9 +787,10 @@ export const REWARDS_DATA = {
 export const CURRENT_USER = {
   name: "Ajay",
   fullName: "Ajay Shanmugam",
-  email: "ajay@teamflow.com",
-  role: "Lead Product Designer & Frontend Dev",
-  department: "Product Design & Technology",
+  email: "ajay@maestrominds.co.in",
+  role: "employer",
+  jobTitle: "UI/UX Designer",
+  department: "UI/UX Designer",
   employeeId: "TF-8402",
   joinDate: "March 15, 2023",
   avatar: "/avatars/ajay.jpg",

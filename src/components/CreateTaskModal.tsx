@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { X, CheckSquare } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, CheckSquare, UploadCloud, Paperclip } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { Project } from "@/data/teamflowData";
 
@@ -11,8 +11,32 @@ interface CreateTaskModalProps {
   onClose: () => void;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function detectFileType(fileName: string, mimeType?: string): "image" | "pdf" | "figma" | "zip" | "doc" {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext || "") || mimeType?.startsWith("image/")) {
+    return "image";
+  }
+  if (ext === "pdf" || mimeType === "application/pdf") {
+    return "pdf";
+  }
+  if (["zip", "rar", "7z", "tar", "gz"].includes(ext || "")) {
+    return "zip";
+  }
+  if (ext === "fig") {
+    return "figma";
+  }
+  return "doc";
+}
+
 export default function CreateTaskModal({ project, isOpen, onClose }: CreateTaskModalProps) {
-  const { users, createTask, currentUser } = useTeamFlow();
+  const { users, createTask, uploadTaskMedia, currentUser } = useTeamFlow();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const projectMembers = users.filter((u) => project.teamMemberIds.includes(u.id));
 
@@ -22,14 +46,47 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
   const [priority, setPriority] = useState<"High" | "Medium" | "Low">("Medium");
   const [deadline, setDeadline] = useState("2026-10-31");
   const [status, setStatus] = useState<"To Do" | "In Progress" | "Review" | "Completed">("To Do");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [calculatedSize, setCalculatedSize] = useState("");
+  const [mediaType, setMediaType] = useState<"image" | "pdf" | "figma" | "zip" | "doc">("figma");
 
   if (!isOpen) return null;
+
+  const handleFileSelect = (file: File | undefined) => {
+    if (!file) return;
+    setSelectedFile(file);
+    setCalculatedSize(formatFileSize(file.size));
+    setMediaType(detectFileType(file.name, file.type));
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setCalculatedSize("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setSelectedFile(null);
+    setCalculatedSize("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !assignedTo) return;
 
-    createTask({
+    const newTask = createTask({
       projectId: project.id,
       title: title.trim(),
       description: description.trim(),
@@ -39,12 +96,23 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
       status
     });
 
+    if (selectedFile) {
+      uploadTaskMedia(newTask.id, {
+        name: selectedFile.name,
+        size: calculatedSize || formatFileSize(selectedFile.size),
+        type: mediaType,
+        url: URL.createObjectURL(selectedFile),
+        rawFile: selectedFile
+      });
+    }
+
+    resetForm();
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col max-h-[92vh]">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100">
@@ -60,14 +128,14 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-[12px] font-semibold text-slate-700 mb-1">
               Task Title *
@@ -107,7 +175,7 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
             >
               {projectMembers.map((member) => (
                 <option key={member.id} value={member.id}>
-                  {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.jobTitle}) {member.id === project.teamLeadId ? "• [Team Lead]" : ""}
+                  {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.department}) {member.id === project.teamLeadId ? "• [Team Lead]" : ""}
                 </option>
               ))}
             </select>
@@ -159,10 +227,68 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
             </div>
           </div>
 
+          <div>
+            <label className="block text-[12px] font-semibold text-slate-700 mb-1">
+              Add Media <span className="text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => handleFileSelect(e.target.files?.[0])}
+              className="hidden"
+            />
+            {selectedFile ? (
+              <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center shrink-0 border border-sky-100">
+                    <Paperclip className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-slate-900 truncate">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-[10px] text-slate-500">
+                      {calculatedSize} &bull; {mediaType.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-[11px] font-medium text-[#0084d4] hover:underline cursor-pointer"
+                  >
+                    Change
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRemoveFile}
+                    className="text-[11px] font-medium text-[#de2d1d] hover:underline cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border border-dashed border-slate-200 hover:border-[#0084d4] bg-slate-50/50 hover:bg-sky-50/20 rounded-lg p-3 text-center cursor-pointer transition-all group flex items-center justify-center gap-2"
+              >
+                <UploadCloud className="w-4 h-4 text-[#0084d4] group-hover:scale-110 transition-transform" />
+                <span className="text-[12px] font-medium text-slate-600 group-hover:text-[#0084d4]">
+                  Upload media attachment
+                </span>
+                <span className="text-[11px] text-slate-400 hidden sm:inline">
+                  (.png, .jpg, .pdf, .fig, .zip)
+                </span>
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[12px] font-medium transition-colors cursor-pointer"
             >
               Cancel

@@ -13,7 +13,7 @@ export async function GET() {
     const rows = await sql`
       SELECT id, name, code, description, project_manager_id, team_lead_id, team_member_ids, status, priority, start_date, deadline, category, budget
       FROM projects
-      ORDER BY created_at DESC, id ASC;
+      ORDER BY id ASC;
     `;
 
     const projects: Project[] = rows.map((r) => ({

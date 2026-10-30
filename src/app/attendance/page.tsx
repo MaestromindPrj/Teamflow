@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import { StatusBadge } from "@/components/Badges";
-import { useTeamFlow } from "@/context/TeamFlowContext";
+import { useTeamFlow, getLocalDateString } from "@/context/TeamFlowContext";
 import AttendanceDetailModal from "@/components/AttendanceDetailModal";
 import { AttendanceRecord } from "@/data/teamflowData";
 import InPageSubTabs, { SubTabItem } from "@/components/InPageSubTabs";
@@ -84,24 +84,23 @@ export default function AttendancePage() {
   const pmRecordsCount = baseAttendance.filter((r) => r.userRole === "project_manager").length;
   const employerRecordsCount = baseAttendance.filter((r) => r.userRole === "employer").length;
 
-  const currentlyActiveCount = baseAttendance.filter((r) => {
-    const state = userClockInData[r.userId];
-    if (state) return state.isClockedIn;
-    return r.clockOut === "—" && r.status !== "Leave";
+  const relevantStaff = users.filter((u) => u.role !== "ceo" && (isCeo || pmAllowedUserIds.has(u.id)));
+
+  const currentlyActiveCount = relevantStaff.filter((u) => {
+    return userClockInData[u.id]?.isClockedIn === true;
   }).length;
 
-  const checkedOutCount = baseAttendance.filter((r) => {
-    const state = userClockInData[r.userId];
-    if (state) return !state.isClockedIn && state.clockOutTimeString !== null;
-    return r.clockOut !== "—" && r.status !== "Leave";
+  const checkedOutCount = relevantStaff.filter((u) => {
+    const state = userClockInData[u.id];
+    return !state?.isClockedIn && state?.clockOutTimeString !== null;
   }).length;
 
   const lateCount = baseAttendance.filter((r) => r.status === "Late").length;
   const leaveCount = baseAttendance.filter((r) => r.status === "Leave").length;
   const attendanceRate =
-    totalStaffRecords.length > 0
-      ? Math.round(((totalStaffRecords.length - leaveCount) / totalStaffRecords.length) * 100)
-      : 100;
+    relevantStaff.length > 0
+      ? Math.round((currentlyActiveCount / relevantStaff.length) * 100)
+      : 0;
 
   return (
     <div className="flex-1 flex flex-col pb-12">
@@ -145,7 +144,7 @@ export default function AttendancePage() {
                       : "bg-[#0084d4] text-white hover:bg-[#0277bd]"
                   }`}
                 >
-                  {isClockedIn ? "Punch Out" : "Punch Clock In"}
+                  {isClockedIn ? "Check Out" : "Check In"}
                 </button>
               </div>
             </div>
@@ -153,7 +152,7 @@ export default function AttendancePage() {
 
           <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
             <span className="text-[12px] font-medium text-slate-500">Currently Active</span>
-            <div className="mt-1 text-[24px] font-bold text-[#4ade1d] leading-none flex items-center gap-2">
+            <div className="mt-1 text-[24px] font-bold text-[#4ade1d] leading-none flex items-center gap-2" suppressHydrationWarning>
               <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#4ade1d] animate-ping" />
               <span>{currentlyActiveCount} Working</span>
             </div>
@@ -162,7 +161,7 @@ export default function AttendancePage() {
 
           <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
             <span className="text-[12px] font-medium text-slate-500">Checked Out</span>
-            <div className="mt-1 text-[24px] font-bold text-slate-700 leading-none">
+            <div className="mt-1 text-[24px] font-bold text-slate-700 leading-none" suppressHydrationWarning>
               {checkedOutCount} Completed
             </div>
             <p className="mt-2 text-[11px] text-slate-400">Logged out after shift</p>
@@ -170,7 +169,7 @@ export default function AttendancePage() {
 
           <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
             <span className="text-[12px] font-medium text-slate-500">Late Arrivals</span>
-            <div className="mt-1 text-[24px] font-bold text-[#ffa500] leading-none">
+            <div className="mt-1 text-[24px] font-bold text-[#ffa500] leading-none" suppressHydrationWarning>
               {lateCount} Members
             </div>
             <p className="mt-2 text-[11px] text-slate-400">Clocked after 09:30 AM</p>
@@ -260,7 +259,7 @@ export default function AttendancePage() {
               <thead>
                 <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                   <th className="pb-3 pr-3">Employee</th>
-                  <th className="pb-3 px-3">Role &amp; Department</th>
+                  <th className="pb-3 px-3">Job Role</th>
                   <th className="pb-3 px-3">Date</th>
                   <th className="pb-3 px-3">Check-In Time</th>
                   <th className="pb-3 px-3">Check-Out Time</th>
@@ -269,77 +268,110 @@ export default function AttendancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-[13px]">
-                {visibleAttendance.map((row) => {
-                  const staffUser = users.find((u) => u.id === row.userId);
-                  const clockState = userClockInData[row.userId];
+                {(() => {
+                  const todayString = getLocalDateString(new Date());
+                  const sortedAttendance = [...visibleAttendance].sort((a, b) => {
+                    // Today's records always appear at the top (first row)
+                    if (a.date === todayString && b.date !== todayString) return -1;
+                    if (b.date === todayString && a.date !== todayString) return 1;
+                    // Otherwise sort by date descending (latest first)
+                    const dateComp = b.date.localeCompare(a.date);
+                    if (dateComp !== 0) return dateComp;
+                    return b.id.localeCompare(a.id);
+                  });
 
-                  const isWorkingNow = clockState
-                    ? clockState.isClockedIn
-                    : row.clockOut === "—" && row.status !== "Leave";
+                  return sortedAttendance.map((row) => {
+                    const staffUser = users.find((u) => u.id === row.userId);
+                    const clockState = userClockInData[row.userId];
+                    const isToday = row.date === todayString;
 
-                  const checkInTime = clockState?.clockInTimeString || row.clockIn;
-                  const checkOutTime = isWorkingNow
-                    ? null
-                    : clockState?.clockOutTimeString || (row.clockOut !== "—" ? row.clockOut : null);
+                    // ONLY today's row can ever be "Working Now"
+                    const isWorkingNow = isToday && (clockState ? clockState.isClockedIn : row.clockOut === "—" && row.status !== "Leave");
 
-                  let liveDurationStr = row.duration;
-                  if (row.status === "Leave") {
-                    liveDurationStr = "—";
-                  } else if (isWorkingNow && clockState?.clockInTimestamp) {
-                    const elapsed =
-                      (clockState.elapsedSeconds || 0) +
-                      Math.max(0, Math.floor((currentTime - clockState.clockInTimestamp) / 1000));
-                    const h = Math.floor(elapsed / 3600);
-                    const m = Math.floor((elapsed % 3600) / 60);
-                    const s = elapsed % 60;
-                    liveDurationStr = `${String(h).padStart(2, "0")}h ${String(m).padStart(
-                      2,
-                      "0"
-                    )}m ${String(s).padStart(2, "0")}s`;
-                  } else if (clockState?.elapsedSeconds) {
-                    const elapsed = clockState.elapsedSeconds;
-                    const h = Math.floor(elapsed / 3600);
-                    const m = Math.floor((elapsed % 3600) / 60);
-                    const s = elapsed % 60;
-                    liveDurationStr = `${String(h).padStart(2, "0")}h ${String(m).padStart(
-                      2,
-                      "0"
-                    )}m ${String(s).padStart(2, "0")}s`;
-                  }
+                    // Check-in punch:
+                    // For today, use active live clockInTimeString if present; for past days, strictly use the stored historical punch
+                    const checkInTime = isToday && (clockState?.isClockedIn || clockState?.clockInTimeString)
+                      ? (clockState.clockInTimeString || row.clockIn)
+                      : row.clockIn;
 
-                  return (
-                    <tr
-                      key={row.id}
-                      onClick={() => setSelectedRecord(row)}
-                      className="hover:bg-sky-50/60 transition-colors cursor-pointer group"
-                      title="Click to view complete workday attendance dossier"
-                    >
-                      <td className="py-3.5 pr-3">
-                        <div className="flex items-center gap-2.5">
-                          {staffUser?.avatar ? (
-                            <img
-                              src={staffUser.avatar}
-                              alt={row.userName}
-                              className="w-[34px] h-[34px] rounded-full object-cover border border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
-                            />
-                          ) : (
-                            <div className="w-[34px] h-[34px] rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700 text-[11px] shrink-0">
-                              {row.userName.substring(0, 2)}
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-semibold text-slate-900 leading-tight group-hover:text-[#0084d4] transition-colors">
-                              {row.userName}
-                            </div>
-                            <div className="text-[11px] text-slate-400">
-                              {staffUser?.jobTitle || staffUser?.email || "TeamFlow Staff"}
+                    // Check-out punch:
+                    // If working now today -> null (shows "Working Now" badge)
+                    // If checked out today -> today's checkout time
+                    // For past days -> ALWAYS use stored historical clockOut (never null/working now)
+                    const checkOutTime = isWorkingNow
+                      ? null
+                      : isToday && clockState?.clockOutTimeString
+                      ? clockState.clockOutTimeString
+                      : row.clockOut !== "—"
+                      ? row.clockOut
+                      : null;
+
+                    // Work duration:
+                    let liveDurationStr = row.duration;
+                    if (row.status === "Leave") {
+                      liveDurationStr = "—";
+                    } else if (isToday && isWorkingNow && clockState?.clockInTimestamp) {
+                      const elapsed =
+                        (clockState.elapsedSeconds || 0) +
+                        Math.max(0, Math.floor((currentTime - clockState.clockInTimestamp) / 1000));
+                      const h = Math.floor(elapsed / 3600);
+                      const m = Math.floor((elapsed % 3600) / 60);
+                      const s = elapsed % 60;
+                      liveDurationStr = `${String(h).padStart(2, "0")}h ${String(m).padStart(
+                        2,
+                        "0"
+                      )}m ${String(s).padStart(2, "0")}s`;
+                    } else if (isToday && clockState?.elapsedSeconds && !isWorkingNow) {
+                      const elapsed = clockState.elapsedSeconds;
+                      const h = Math.floor(elapsed / 3600);
+                      const m = Math.floor((elapsed % 3600) / 60);
+                      const s = elapsed % 60;
+                      liveDurationStr = `${String(h).padStart(2, "0")}h ${String(m).padStart(
+                        2,
+                        "0"
+                      )}m ${String(s).padStart(2, "0")}s`;
+                    } else {
+                      // Historical logs strictly preserve their recorded duration
+                      liveDurationStr = row.duration;
+                    }
+
+                    const rowStatus = isToday
+                      ? isWorkingNow
+                        ? "Present"
+                        : clockState?.clockOutTimeString
+                        ? "Checked Out"
+                        : row.status
+                      : row.status;
+
+                    return (
+                      <tr
+                        key={row.id}
+                        onClick={() => setSelectedRecord(row)}
+                        className="hover:bg-sky-50/60 transition-colors cursor-pointer group"
+                        title="Click to view complete workday attendance dossier"
+                      >
+                        <td className="py-3.5 pr-3">
+                          <div className="flex items-center gap-2.5">
+                            {staffUser?.avatar ? (
+                              <img
+                                src={staffUser.avatar}
+                                alt={row.userName}
+                                className="w-[34px] h-[34px] rounded-full object-cover border border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
+                              />
+                            ) : (
+                              <div className="w-[34px] h-[34px] rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700 text-[11px] shrink-0">
+                                {row.userName.substring(0, 2)}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-semibold text-slate-900 leading-tight group-hover:text-[#0084d4] transition-colors">
+                                {row.userName}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="py-3.5 px-3">
-                        <div>
+                        <td className="py-3.5 px-3">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
                               row.userRole === "project_manager"
@@ -347,70 +379,67 @@ export default function AttendancePage() {
                                 : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
                             }`}
                           >
-                            {row.userRole === "project_manager" ? "Project Manager" : "Employer"}
+                            {staffUser?.jobTitle || (row.userRole === "project_manager" ? "Project Manager" : row.department || "Employer")}
                           </span>
-                          <span className="block text-[11px] text-slate-400 font-normal mt-0.5">
-                            {row.department}
-                          </span>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="py-3.5 px-3 text-slate-600 text-[12px] whitespace-nowrap">
-                        {row.date}
-                      </td>
+                        <td className="py-3.5 px-3 text-slate-600 text-[12px] whitespace-nowrap">
+                          {row.date}
+                        </td>
 
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        {checkInTime && checkInTime !== "—" ? (
-                          <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-800">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#4ade1d]" />
-                            <span>{checkInTime}</span>
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          {checkInTime && checkInTime !== "—" ? (
+                            <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-800">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#4ade1d]" />
+                              <span>{checkInTime}</span>
+                            </div>
+                          ) : (
+                            <span className="text-[12px] text-slate-400">—</span>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          {isWorkingNow ? (
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#4ade1d]/15 border border-[#4ade1d]/30 text-[11px] font-bold text-[#4ade1d]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#4ade1d] animate-ping" />
+                              <span>Working Now</span>
+                            </div>
+                          ) : checkOutTime ? (
+                            <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-700">
+                              <LogOut className="w-3 h-3 text-slate-400" />
+                              <span>{checkOutTime}</span>
+                            </div>
+                          ) : (
+                            <span className="text-[12px] text-slate-400">—</span>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          {isWorkingNow ? (
+                            <span className="font-mono font-bold text-[12px] text-[#4ade1d] bg-[#4ade1d]/15 px-2.5 py-1 rounded-md border border-[#4ade1d]/30">
+                              {liveDurationStr}
+                            </span>
+                          ) : row.status === "Leave" ? (
+                            <span className="text-[12px] text-slate-400">—</span>
+                          ) : (
+                            <span className="font-mono font-bold text-[12px] text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
+                              {liveDurationStr}
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 pl-3 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-2.5">
+                            <StatusBadge status={rowStatus} />
+                            <span className="text-[11px] font-semibold text-slate-400 group-hover:text-[#0084d4] transition-colors">
+                              Details &rarr;
+                            </span>
                           </div>
-                        ) : (
-                          <span className="text-[12px] text-slate-400">—</span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        {isWorkingNow ? (
-                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#4ade1d]/15 border border-[#4ade1d]/30 text-[11px] font-bold text-[#4ade1d]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#4ade1d] animate-ping" />
-                            <span>Working Now</span>
-                          </div>
-                        ) : checkOutTime ? (
-                          <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-700">
-                            <LogOut className="w-3 h-3 text-slate-400" />
-                            <span>{checkOutTime}</span>
-                          </div>
-                        ) : (
-                          <span className="text-[12px] text-slate-400">—</span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        {isWorkingNow ? (
-                          <span className="font-mono font-bold text-[12px] text-[#4ade1d] bg-[#4ade1d]/15 px-2.5 py-1 rounded-md border border-[#4ade1d]/30">
-                            {liveDurationStr}
-                          </span>
-                        ) : row.status === "Leave" ? (
-                          <span className="text-[12px] text-slate-400">—</span>
-                        ) : (
-                          <span className="font-mono font-bold text-[12px] text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
-                            {liveDurationStr}
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 pl-3 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2.5">
-                          <StatusBadge status={row.status} />
-                          <span className="text-[11px] font-semibold text-slate-400 group-hover:text-[#0084d4] transition-colors">
-                            Details &rarr;
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>

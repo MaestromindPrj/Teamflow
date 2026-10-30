@@ -28,13 +28,14 @@ import NewProjectModal from "@/components/NewProjectModal";
 import RewardLeaderboardWidget from "@/components/RewardLeaderboardWidget";
 
 export default function CeoDashboard() {
-  const { users, projects, tasks, attendance, currentUser } = useTeamFlow();
+  const { users, projects, tasks, attendance, userClockInData, currentUser } = useTeamFlow();
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
 
   const projectManagers = users.filter((u) => u.role === "project_manager");
   const employers = users.filter((u) => u.role === "employer");
+  const totalWorkforce = users.filter((u) => u.role !== "ceo");
 
   const totalProjects = projects.length;
   const activeProjects = projects.filter((p) => p.status === "In Progress" || p.status === "Planning").length;
@@ -42,9 +43,11 @@ export default function CeoDashboard() {
   const completedTasks = tasks.filter((t) => t.status === "Completed").length;
   const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const todayAttendance = attendance;
-  const presentCount = todayAttendance.filter((a) => a.status === "Present" || a.status === "Remote").length;
-  const attendanceRate = todayAttendance.length > 0 ? Math.round((presentCount / todayAttendance.length) * 100) : 100;
+  const presentCount = totalWorkforce.filter((u) => {
+    const clockState = userClockInData[u.id];
+    return clockState?.isClockedIn === true;
+  }).length;
+  const attendanceRate = totalWorkforce.length > 0 ? Math.round((presentCount / totalWorkforce.length) * 100) : 0;
 
   return (
     <div className="px-7 py-6 space-y-6">
@@ -56,10 +59,10 @@ export default function CeoDashboard() {
               <FolderKanban className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
+          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none" suppressHydrationWarning>
             {totalProjects}
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium flex items-center gap-1">
+          <div className="mt-2 text-[11px] text-slate-400 font-medium flex items-center gap-1" suppressHydrationWarning>
             <span className="text-[#4ade1d] font-semibold">{activeProjects} active</span>
             <span>&bull;</span>
             <span>{totalProjects - activeProjects} closed/review</span>
@@ -73,10 +76,10 @@ export default function CeoDashboard() {
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
+          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none" suppressHydrationWarning>
             {users.length}
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
+          <div className="mt-2 text-[11px] text-slate-400 font-medium" suppressHydrationWarning>
             {projectManagers.length} PMs &bull; {employers.length} Employers
           </div>
         </div>
@@ -88,10 +91,10 @@ export default function CeoDashboard() {
               <Calendar className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
+          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none" suppressHydrationWarning>
             {attendanceRate}%
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
+          <div className="mt-2 text-[11px] text-slate-400 font-medium" suppressHydrationWarning>
             {presentCount} checked in today
           </div>
         </div>
@@ -103,10 +106,10 @@ export default function CeoDashboard() {
               <Shield className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
+          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none" suppressHydrationWarning>
             {projectManagers.length}
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
+          <div className="mt-2 text-[11px] text-slate-400 font-medium" suppressHydrationWarning>
             Overseeing {projects.length} initiatives
           </div>
         </div>
@@ -118,10 +121,10 @@ export default function CeoDashboard() {
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
+          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none" suppressHydrationWarning>
             {overallProgress}%
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
+          <div className="mt-2 text-[11px] text-slate-400 font-medium" suppressHydrationWarning>
             {completedTasks}/{totalTasks} total tasks done
           </div>
         </div>
@@ -177,11 +180,8 @@ export default function CeoDashboard() {
                           ID: {pm.employeeId}
                         </span>
                       </div>
-                      <p className="text-[12px] text-slate-500 font-medium">
-                        {pm.jobTitle} &bull; {pm.department}
-                      </p>
-                      <p className="text-[11px] text-slate-400">
-                        {pm.email} &bull; {pm.location}
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {pm.email}
                       </p>
                     </div>
                   </div>
@@ -228,9 +228,12 @@ export default function CeoDashboard() {
                           onClick={() => setSelectedProjectId(proj.id)}
                           className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs hover:border-[#0084d4] transition-all space-y-3 cursor-pointer group"
                         >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                          <div className="space-y-1" suppressHydrationWarning>
+                            <div className="flex items-center gap-2 flex-wrap" suppressHydrationWarning>
+                              <span
+                                suppressHydrationWarning
+                                className="font-bold text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded"
+                              >
                                 {proj.code}
                               </span>
                               <h4
@@ -266,7 +269,7 @@ export default function CeoDashboard() {
                                       </p>
                                     </div>
                                     <p className="text-[11px] text-slate-500 truncate">
-                                      {lead.jobTitle}
+                                      {lead.jobTitle || lead.department}
                                     </p>
                                   </div>
                                 </div>
@@ -284,7 +287,7 @@ export default function CeoDashboard() {
                                   <div
                                     key={member.id}
                                     className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-md border border-slate-200 shadow-2xs"
-                                    title={`${member.fullName} (${member.jobTitle})`}
+                                    title={`${member.fullName} (${member.jobTitle || member.department})`}
                                   >
                                     <img
                                       src={member.avatar}
@@ -295,7 +298,7 @@ export default function CeoDashboard() {
                                       {member.fullName}
                                     </span>
                                     <span className="text-[9px] text-slate-400">
-                                      ({member.department.split(" ")[0]})
+                                      ({member.jobTitle || member.department})
                                     </span>
                                   </div>
                                 ))}
@@ -477,7 +480,7 @@ export default function CeoDashboard() {
               <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                 <th className="pb-3 pr-3">Staff Member</th>
                 <th className="pb-3 px-3">Role</th>
-                <th className="pb-3 px-3">Department</th>
+                <th className="pb-3 px-3">Job Role</th>
                 <th className="pb-3 px-3">Clock In</th>
                 <th className="pb-3 px-3">Clock Out</th>
                 <th className="pb-3 px-3">Worked Duration</th>
@@ -485,31 +488,41 @@ export default function CeoDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-[13px]">
-              {todayAttendance.slice(0, 5).map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="py-3 pr-3">
-                    <span className="font-semibold text-slate-900">{row.userName}</span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
-                        row.userRole === "project_manager"
-                          ? "bg-blue-100 text-blue-800 border border-blue-200"
-                          : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
-                      }`}
-                    >
-                      {row.userRole === "project_manager" ? "Project Manager" : "Employer"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-[12px] text-slate-500">{row.department}</td>
-                  <td className="py-3 px-3 text-[12px] text-slate-800 font-medium">{row.clockIn}</td>
-                  <td className="py-3 px-3 text-[12px] text-slate-500">{row.clockOut}</td>
-                  <td className="py-3 px-3 text-[12px] font-bold text-[#0084d4]">{row.duration}</td>
-                  <td className="py-3 pl-3 text-right">
-                    <StatusBadge status={row.status} />
-                  </td>
-                </tr>
-              ))}
+              {totalWorkforce.map((staff) => {
+                const clockState = userClockInData[staff.id];
+                const isUserIn = clockState?.isClockedIn ?? false;
+                const clockInTime = isUserIn || clockState?.clockInTimeString ? (clockState?.clockInTimeString || "—") : "—";
+                const clockOutTime = isUserIn ? "—" : (clockState?.clockOutTimeString || "—");
+                const elapsed = clockState?.elapsedSeconds || 0;
+                const durationStr = isUserIn || elapsed > 0 ? `${Math.floor(elapsed / 3600)}h ${Math.floor((elapsed % 3600) / 60)}m` : "0h 00m";
+                const status = isUserIn ? "Present" : clockState?.clockOutTimeString ? "Checked Out" : "Checked Out";
+
+                return (
+                  <tr key={staff.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="py-3 pr-3">
+                      <span className="font-semibold text-slate-900">{staff.fullName}</span>
+                    </td>
+                    <td className="py-3 px-3">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
+                          staff.role === "project_manager"
+                            ? "bg-blue-100 text-blue-800 border border-blue-200"
+                            : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
+                        }`}
+                      >
+                        {staff.role === "project_manager" ? "Project Manager" : "Employer"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-[12px] text-slate-500">{staff.jobTitle || staff.department}</td>
+                    <td className="py-3 px-3 text-[12px] text-slate-800 font-medium" suppressHydrationWarning>{clockInTime}</td>
+                    <td className="py-3 px-3 text-[12px] text-slate-500" suppressHydrationWarning>{clockOutTime}</td>
+                    <td className="py-3 px-3 text-[12px] font-bold text-[#0084d4]" suppressHydrationWarning>{durationStr}</td>
+                    <td className="py-3 pl-3 text-right">
+                      <StatusBadge status={status as any} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

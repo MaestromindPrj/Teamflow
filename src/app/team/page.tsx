@@ -10,7 +10,6 @@ import {
   Briefcase,
   Mail,
   Phone,
-  MapPin,
   ArrowUpRight,
   ArrowRight,
   FolderKanban,
@@ -20,12 +19,14 @@ import {
   CheckCircle2,
   Clock,
   Layers,
-  Sparkles
+  Sparkles,
+  UserPlus
 } from "lucide-react";
 import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
+import CreateMemberModal from "@/components/CreateMemberModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
 
 function TeamDirectoryContent() {
@@ -39,6 +40,7 @@ function TeamDirectoryContent() {
 
   const [pmSearch, setPmSearch] = useState("");
   const [empSearch, setEmpSearch] = useState("");
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
 
   const isPm = currentUser.role === "project_manager";
   const isCeo = currentUser.role === "ceo";
@@ -109,8 +111,7 @@ function TeamDirectoryContent() {
     return (
       pm.fullName.toLowerCase().includes(q) ||
       pm.jobTitle.toLowerCase().includes(q) ||
-      pm.department.toLowerCase().includes(q) ||
-      pm.location.toLowerCase().includes(q)
+      pm.department.toLowerCase().includes(q)
     );
   });
 
@@ -133,8 +134,7 @@ function TeamDirectoryContent() {
       return (
         emp.fullName.toLowerCase().includes(q) ||
         emp.jobTitle.toLowerCase().includes(q) ||
-        emp.department.toLowerCase().includes(q) ||
-        emp.location.toLowerCase().includes(q)
+        emp.department.toLowerCase().includes(q)
       );
     });
 
@@ -206,15 +206,27 @@ function TeamDirectoryContent() {
                   </p>
                 </div>
 
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={pmSearch}
-                    onChange={(e) => setPmSearch(e.target.value)}
-                    placeholder="Search project managers..."
-                    className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60"
-                  />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={pmSearch}
+                      onChange={(e) => setPmSearch(e.target.value)}
+                      placeholder="Search project managers..."
+                      className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60"
+                    />
+                  </div>
+
+                  {isCeo && (
+                    <button
+                      onClick={() => setIsAddMemberOpen(true)}
+                      className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Add Team Member</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -239,16 +251,14 @@ function TeamDirectoryContent() {
                             className="w-12 h-12 rounded-full object-cover border-2 border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
                           />
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="text-[15px] font-bold text-slate-900 leading-tight group-hover:text-[#0084d4] transition-colors">
                                 {pm.fullName}
                               </h3>
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                                PM
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                Project Manager
                               </span>
                             </div>
-                            <p className="text-[12px] text-slate-500 font-medium mt-0.5">{pm.jobTitle}</p>
-                            <p className="text-[11px] text-slate-400">{pm.department}</p>
                           </div>
                         </div>
 
@@ -266,7 +276,7 @@ function TeamDirectoryContent() {
                           <span>&bull;</span>
                           <span>{tCount} Tasks</span>
                         </div>
-                        <span className="text-slate-400 truncate max-w-[170px]">{pm.location}</span>
+                        <span className="text-slate-400">ID: {pm.employeeId}</span>
                       </div>
                     </Link>
                   );
@@ -289,15 +299,27 @@ function TeamDirectoryContent() {
                 </p>
               </div>
 
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={empSearch}
-                  onChange={(e) => setEmpSearch(e.target.value)}
-                  placeholder="Search employers, roles..."
-                  className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60"
-                />
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={empSearch}
+                    onChange={(e) => setEmpSearch(e.target.value)}
+                    placeholder="Search employers, roles..."
+                    className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60"
+                  />
+                </div>
+
+                {(isCeo || isPm) && (
+                  <button
+                    onClick={() => setIsAddMemberOpen(true)}
+                    className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Add Team Member</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -337,15 +359,14 @@ function TeamDirectoryContent() {
                           className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0"
                         />
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-[14px] font-bold text-slate-900 truncate">
-                            {emp.id === currentUser.id ? `${emp.fullName} (You)` : emp.fullName}
-                          </h3>
-                          <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                            {emp.jobTitle}
-                          </p>
-                          <p className="text-[10px] text-slate-400 truncate">
-                            {emp.department}
-                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-[14px] font-bold text-slate-900 truncate">
+                              {emp.id === currentUser.id ? `${emp.fullName} (You)` : emp.fullName}
+                            </h3>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              {emp.jobTitle || emp.department}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -402,7 +423,6 @@ function TeamDirectoryContent() {
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                       <span>ID: {emp.employeeId}</span>
-                      <span>{emp.location.split("(")[0]}</span>
                     </div>
                   </div>
                 );
@@ -415,6 +435,11 @@ function TeamDirectoryContent() {
       <ProjectDetailModal
         projectId={selectedProjectId}
         onClose={() => setSelectedProjectId(null)}
+      />
+
+      <CreateMemberModal
+        isOpen={isAddMemberOpen}
+        onClose={() => setIsAddMemberOpen(false)}
       />
     </div>
   );

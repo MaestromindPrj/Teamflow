@@ -14,8 +14,9 @@ import {
   Share2,
 } from "lucide-react";
 import Header from "@/components/Header";
-import { TaskItem, RewardLog } from "@/data/mockData";
+import { TaskItem } from "@/data/mockData";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
+import { useTeamFlow } from "@/context/TeamFlowContext";
 
 function FigmaIcon({ className }: { className?: string }) {
   return (
@@ -38,6 +39,7 @@ function FigmaIcon({ className }: { className?: string }) {
 }
 
 export default function TaskDetailClient({ task }: { task: TaskItem }) {
+  const { currentUser } = useTeamFlow();
   const [taskStatus, setTaskStatus] = useState<TaskItem["status"]>(task.status);
   const [comments, setComments] = useState(task.discussion || []);
   const [replyText, setReplyText] = useState("");
@@ -49,8 +51,8 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
 
     const newComment = {
       id: `c_${Date.now()}`,
-      author: "Ajay",
-      avatar: "/avatars/ajay.jpg",
+      author: currentUser.fullName,
+      avatar: currentUser.avatar,
       timeAgo: "Just now",
       message: replyText.trim(),
     };
@@ -64,8 +66,8 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
     const newActivity = {
       id: `act_${Date.now()}`,
       title: "Submitted for review",
-      detail: "Ajay submitted task for approval",
-      date: "Sep 20, 2026",
+      detail: `${currentUser.fullName} submitted task for approval`,
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
     };
     setActivities([newActivity, ...activities]);
   };

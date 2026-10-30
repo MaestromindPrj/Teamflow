@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, Check, ShieldCheck, Briefcase, UserCheck, Clock } from "lucide-react";
+import { Bell, ChevronDown, Check, ShieldCheck, Briefcase, UserCheck, Clock, LogOut } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 
 interface HeaderProps {
@@ -13,23 +13,62 @@ interface HeaderProps {
 
 export default function Header({ title, subtitle, actionButton }: HeaderProps) {
   const router = useRouter();
-  const { currentUser, users, setCurrentUserId, isClockedIn, toggleClockInOut } = useTeamFlow();
+  const { currentUser, users, projects, tasks, setCurrentUserId, isClockedIn, toggleClockInOut, logout } = useTeamFlow();
+  const [mounted, setMounted] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: "notif-1",
-      title: "Project Milestone Updated",
-      detail: "NextGen Web Experience Revamp reached 85% progress",
-      time: "15 minutes ago"
-    },
-    {
-      id: "notif-2",
-      title: "New Deliverable Uploaded",
-      detail: "Devon Lane added lottie-pack-revamp.zip for review",
-      time: "1 hour ago"
+
+  const dynamicNotifications = useMemo(() => {
+    const list: Array<{ id: string; title: string; detail: string; time: string }> = [];
+
+    const reviewTasks = tasks.filter((t) => t.status === "Review");
+    const completedTasks = tasks.filter((t) => t.status === "Completed");
+
+    if (reviewTasks.length > 0) {
+      const topReview = reviewTasks[0];
+      const assignee = users.find((u) => u.id === topReview.assignedTo);
+      list.push({
+        id: `notif-rev-${topReview.id}`,
+        title: "Deliverable Ready for Review",
+        detail: `${assignee?.fullName || "Team Member"} submitted "${topReview.title}"`,
+        time: "Recent"
+      });
     }
-  ]);
+
+    if (completedTasks.length > 0) {
+      const topCompleted = completedTasks[0];
+      list.push({
+        id: `notif-comp-${topCompleted.id}`,
+        title: "Task Milestone Completed",
+        detail: `"${topCompleted.title}" completed and approved`,
+        time: "1 hour ago"
+      });
+    }
+
+    if (projects.length > 0) {
+      const topProj = projects[0];
+      list.push({
+        id: `notif-proj-${topProj.id}`,
+        title: "Active Project Initiative",
+        detail: `${topProj.name} (${topProj.code}) on track`,
+        time: "Today"
+      });
+    }
+
+    return list;
+  }, [tasks, projects, users]);
+
+  const [notifications, setNotifications] = useState<Array<{ id: string; title: string; detail: string; time: string }>>([]);
+
+  useEffect(() => {
+    if (dynamicNotifications.length > 0) {
+      setNotifications(dynamicNotifications);
+    }
+  }, [dynamicNotifications]);
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -95,7 +134,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
       <div className="flex items-center gap-3 flex-wrap">
         {actionButton}
 
-        {currentUser.role !== "ceo" && (
+        {mounted && currentUser.role !== "ceo" && (
           <button
             onClick={toggleClockInOut}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors cursor-pointer shadow-2xs ${
@@ -110,24 +149,25 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           </button>
         )}
 
-        <div className="relative" ref={menuRef}>
+        <div className="relative" ref={menuRef} suppressHydrationWarning>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
+            suppressHydrationWarning
             className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200/90 hover:border-slate-300 transition-all shadow-2xs cursor-pointer"
           >
             <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
               <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
+                src={mounted ? currentUser.avatar : "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"}
+                alt={mounted ? currentUser.name : "Elena"}
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="text-left hidden md:block">
               <p className="text-[12px] font-semibold text-slate-800 leading-tight">
-                {currentUser.name}
+                {mounted ? currentUser.name : "Elena"}
               </p>
               <p className="text-[10px] text-slate-400 capitalize leading-tight">
-                {currentUser.role.replace("_", " ")}
+                {mounted ? currentUser.role.replace("_", " ") : "ceo"}
               </p>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -136,9 +176,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           {showUserMenu && (
             <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="max-h-80 overflow-y-auto py-1">
-                {users
-                  .filter((u) => u.role !== "employer" || ["u-emp-1", "u-emp-2", "u-emp-3"].includes(u.id))
-                  .map((u) => {
+                {users.map((u) => {
                   const isSelected = u.id === currentUser.id;
                   const badge = getRoleBadge(u.role);
                   return (
@@ -178,6 +216,20 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="pt-1.5 border-t border-slate-100 px-2 pb-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    setShowUserMenu(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           )}

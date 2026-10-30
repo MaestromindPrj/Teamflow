@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -9,10 +10,8 @@ import {
   FolderKanban,
   Award,
   Settings,
-  ShieldCheck,
-  Briefcase,
-  UserCheck,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Building2
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 
@@ -21,41 +20,37 @@ const NAV_ITEMS = [
   { name: "Projects", href: "/projects", icon: FolderKanban },
   { name: "Attendance", href: "/attendance", icon: Calendar },
   { name: "Team Directory", href: "/team", icon: Users },
+  { name: "Job Roles", href: "/departments", icon: Building2 },
   { name: "Media & Assets", href: "/media", icon: ImageIcon },
-  { name: "Rewards", href: "/rewards", icon: Award }
+  { name: "Rewards", href: "/rewards", icon: Award },
+  { name: "Settings", href: "/settings", icon: Settings }
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { currentUser } = useTeamFlow();
+  const [mounted, setMounted] = useState(false);
 
-  const getRoleIcon = () => {
-    switch (currentUser.role) {
-      case "ceo":
-        return <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />;
-      case "project_manager":
-        return <Briefcase className="w-3.5 h-3.5 text-blue-600" />;
-      default:
-        return <UserCheck className="w-3.5 h-3.5 text-[#4ade1d]" />;
-    }
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const getRoleBadgeText = () => {
-    switch (currentUser.role) {
-      case "ceo":
-        return "CEO";
-      case "project_manager":
-        return "Project Manager";
-      default:
-        return "Employer";
-    }
-  };
+  if (pathname === "/login") {
+    return null;
+  }
+
+  // Use initial server default values during SSR and initial hydration pass
+  const role = mounted ? currentUser.role : "ceo";
+  const isCeoOrPm = role === "ceo" || role === "project_manager";
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if (currentUser.role === "ceo" && item.href === "/media") {
+    if (item.href === "/departments" && !isCeoOrPm) {
       return false;
     }
-    if (currentUser.role === "employer" && item.href === "/team") {
+    if (role === "ceo" && item.href === "/media") {
+      return false;
+    }
+    if (role === "employer" && item.href === "/team") {
       return false;
     }
     return true;
@@ -96,7 +91,7 @@ export default function Sidebar() {
           </Link>
         </div>
 
-        <nav className="p-3 space-y-1">
+        <nav className="p-3 space-y-1" suppressHydrationWarning>
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -124,48 +119,6 @@ export default function Sidebar() {
             );
           })}
         </nav>
-      </div>
-
-      <div className="p-3 border-t border-slate-100">
-        <Link
-          href="/settings"
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13px] transition-colors mb-2 ${
-            pathname === "/settings"
-              ? "bg-[#0084d4] text-white font-medium shadow-xs"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-normal"
-          }`}
-        >
-          <Settings
-            className={`w-4 h-4 shrink-0 stroke-[2] ${
-              pathname === "/settings" ? "text-white" : "text-slate-500"
-            }`}
-          />
-          <span>Settings</span>
-        </Link>
-
-        <Link
-          href="/profile"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors border border-slate-100 bg-slate-50/50"
-        >
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-            <img
-              src={currentUser.avatar}
-              alt={currentUser.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <p className="text-[12px] font-semibold text-slate-900 leading-tight truncate">
-                {currentUser.name}
-              </p>
-              {getRoleIcon()}
-            </div>
-            <p className="text-[10px] text-slate-500 leading-tight truncate mt-0.5">
-              {getRoleBadgeText()}
-            </p>
-          </div>
-        </Link>
       </div>
     </aside>
   );

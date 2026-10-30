@@ -27,6 +27,8 @@ import { Task } from "@/data/teamflowData";
 import CreateTaskModal from "@/components/CreateTaskModal";
 import EditTaskModal from "@/components/EditTaskModal";
 import UploadMediaModal from "@/components/UploadMediaModal";
+import UploadProjectMediaModal from "@/components/UploadProjectMediaModal";
+import AddTeamMemberModal from "@/components/AddTeamMemberModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
 
 interface ProjectDetailModalProps {
@@ -50,6 +52,8 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
 
   const [activeTab, setActiveTab] = useState<"tasks" | "media" | "team">("tasks");
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [isAddMediaOpen, setIsAddMediaOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [uploadTaskTarget, setUploadTaskTarget] = useState<{ id: string; title: string } | null>(null);
   const [selectedTaskFilter, setSelectedTaskFilter] = useState<string>("All");
@@ -78,6 +82,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
   const isLead = isUserTeamLead(currentUser.id, project.id);
   const isRegularEmployer = currentUser.role === "employer" && !isLead;
   const canDeleteProject = isCeo || isPm;
+  const canAddTeamMember = isCeo || isPm;
 
   const allProjectTasks = tasks.filter((t) => t.projectId === project.id);
 
@@ -244,6 +249,22 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Task</span>
+                </button>
+              ) : activeTab === "media" ? (
+                <button
+                  onClick={() => setIsAddMediaOpen(true)}
+                  className="px-3.5 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Media</span>
+                </button>
+              ) : activeTab === "team" && canAddTeamMember ? (
+                <button
+                  onClick={() => setIsAddMemberOpen(true)}
+                  className="px-3.5 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Team Member</span>
                 </button>
               ) : null
             }
@@ -563,7 +584,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                       <h4 className="text-[13px] font-bold text-slate-900 mt-0.5">
                         {teamLead.id === currentUser.id ? "(You)" : teamLead.fullName}
                       </h4>
-                      <p className="text-[11px] text-slate-500">{teamLead.jobTitle}</p>
+                      <p className="text-[11px] text-slate-500">{teamLead.department}</p>
                     </div>
                   </div>
                 )}
@@ -602,7 +623,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                               )}
                             </div>
                             <p className="text-[10px] text-slate-400 truncate">
-                              {member.jobTitle}
+                              {member.department}
                             </p>
                           </div>
                         </div>
@@ -626,6 +647,18 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
           project={project}
           isOpen={isCreateTaskOpen}
           onClose={() => setIsCreateTaskOpen(false)}
+        />
+
+        <AddTeamMemberModal
+          project={project}
+          isOpen={isAddMemberOpen}
+          onClose={() => setIsAddMemberOpen(false)}
+        />
+
+        <UploadProjectMediaModal
+          project={project}
+          isOpen={isAddMediaOpen}
+          onClose={() => setIsAddMediaOpen(false)}
         />
 
         <EditTaskModal

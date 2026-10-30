@@ -21,19 +21,38 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
-import { USER_REWARDS_DATA, BadgeItem } from "@/data/mockData";
+import { computeUserRewards } from "@/lib/rewards";
+import AwardPointsModal from "@/components/AwardPointsModal";
 
 function StaffRewardDetailContent() {
   const params = useParams();
   const userId = params?.id as string;
 
-  const { users, projects, currentUser } = useTeamFlow();
+  const { users, projects, tasks, rewardsLedger, currentUser } = useTeamFlow();
   const targetUser = users.find((u) => u.id === userId) || users.find((u) => u.role !== "ceo");
-  const profile = (targetUser && USER_REWARDS_DATA[targetUser.id]) || USER_REWARDS_DATA["u-pm-1"];
+  const profile = targetUser
+    ? computeUserRewards(targetUser, tasks, projects, rewardsLedger)
+    : computeUserRewards(currentUser, tasks, projects, rewardsLedger);
 
   const [ledgerSearch, setLedgerSearch] = useState("");
+  const [isAwardModalOpen, setIsAwardModalOpen] = useState(false);
+  const [awardToastMessage, setAwardToastMessage] = useState<string | null>(null);
 
-  const renderBadgeIcon = (type: BadgeItem["type"]) => {
+  const isCurrentCeo = currentUser.role === "ceo";
+  const isCurrentPm = currentUser.role === "project_manager";
+  const canAward =
+    targetUser &&
+    targetUser.id !== currentUser.id &&
+    (isCurrentCeo ||
+      (isCurrentPm &&
+        targetUser.role === "employer" &&
+        projects.some(
+          (p) =>
+            p.projectManagerId === currentUser.id &&
+            (p.teamMemberIds.includes(targetUser.id) || p.teamLeadId === targetUser.id)
+        )));
+
+  const renderBadgeIcon = (type: "check" | "zap" | "smile" | "award") => {
     switch (type) {
       case "check":
         return <CheckCircle2 className="w-4 h-4 text-[#4ade1d] stroke-[2]" />;
@@ -164,14 +183,39 @@ function StaffRewardDetailContent() {
       />
 
       <div className="px-7 py-6 space-y-6">
-        <div>
+        {awardToastMessage && (
+          <div className="p-3 bg-[#4ade1d]/15 border border-[#4ade1d]/30 text-[#4ade1d] rounded-lg text-[12px] font-medium flex items-center justify-between shadow-2xs animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#4ade1d] shrink-0" />
+              <span>{awardToastMessage}</span>
+            </div>
+            <button
+              onClick={() => setAwardToastMessage(null)}
+              className="text-[#4ade1d] hover:opacity-80 cursor-pointer"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <Link
             href="/rewards"
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors text-[12px] font-semibold shadow-2xs cursor-pointer"
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors text-[12px] font-semibold shadow-2xs cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
             <span>Back to All Rewards</span>
           </Link>
+
+          {canAward && (
+            <button
+              onClick={() => setIsAwardModalOpen(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs cursor-pointer shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Grant Performance Award</span>
+            </button>
+          )}
         </div>
 
         <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-5">
@@ -195,17 +239,14 @@ function StaffRewardDetailContent() {
                     }`}
                   >
                     {isPm ? <Briefcase className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
-                    {isPm ? "Project Manager" : "Employer"}
+                    {isPm ? "Project Manager" : targetUser.jobTitle || targetUser.department}
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
                     ID: {targetUser.employeeId}
                   </span>
                 </div>
-                <p className="text-[13px] text-slate-600 font-medium mt-0.5">
-                  {targetUser.jobTitle} &bull; {targetUser.department}
-                </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {targetUser.email} &bull; {targetUser.phone} &bull; {targetUser.location}
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {targetUser.email} &bull; {targetUser.phone}
                 </p>
               </div>
             </div>
@@ -370,6 +411,16 @@ function StaffRewardDetailContent() {
           </div>
         </div>
       </div>
+
+      <AwardPointsModal
+        isOpen={isAwardModalOpen}
+        onClose={() => setIsAwardModalOpen(false)}
+        preselectedUserId={targetUser.id}
+        onAwardSuccess={(name, pts) => {
+          setAwardToastMessage(`Successfully awarded +${pts} points to ${name}!`);
+          setTimeout(() => setAwardToastMessage(null), 4000);
+        }}
+      />
     </div>
   );
 }

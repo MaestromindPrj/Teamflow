@@ -12,6 +12,7 @@ import {
   INITIAL_TASKS_DATA,
   INITIAL_ATTENDANCE_DATA
 } from "@/data/teamflowData";
+import { RewardLedgerEntry } from "@/app/api/rewards/route";
 
 export interface UserClockInState {
   isClockedIn: boolean;
@@ -19,6 +20,25 @@ export interface UserClockInState {
   clockInTimeString: string | null;
   clockOutTimeString: string | null;
   elapsedSeconds?: number;
+  clockInDate?: string;
+}
+
+export function getLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function getStartOfTodayTimestamp(d: Date = new Date()): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+}
+
+export function formatSecondsToDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours}h ${minutes}m ${seconds}s`;
 }
 
 const DEFAULT_CLOCK_IN_DATA: Record<string, UserClockInState> = {
@@ -27,56 +47,64 @@ const DEFAULT_CLOCK_IN_DATA: Record<string, UserClockInState> = {
     clockInTimestamp: null,
     clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 0
+    elapsedSeconds: 0,
+    clockInDate: undefined
   },
   "u-pm-1": {
     isClockedIn: false,
     clockInTimestamp: null,
     clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 0
+    elapsedSeconds: 0,
+    clockInDate: undefined
   },
   "u-pm-2": {
     isClockedIn: false,
     clockInTimestamp: null,
     clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 0
+    elapsedSeconds: 0,
+    clockInDate: undefined
   },
   "u-emp-1": {
     isClockedIn: false,
     clockInTimestamp: null,
     clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 0
+    elapsedSeconds: 0,
+    clockInDate: undefined
   },
   "u-emp-2": {
     isClockedIn: false,
     clockInTimestamp: null,
     clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 0
+    elapsedSeconds: 0,
+    clockInDate: undefined
   },
   "u-emp-3": {
     isClockedIn: false,
     clockInTimestamp: null,
     clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 0
+    elapsedSeconds: 0,
+    clockInDate: undefined
   },
   "u-emp-4": {
     isClockedIn: false,
     clockInTimestamp: null,
     clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 0
+    elapsedSeconds: 0,
+    clockInDate: undefined
   },
   "u-emp-5": {
     isClockedIn: false,
     clockInTimestamp: null,
     clockInTimeString: null,
     clockOutTimeString: null,
-    elapsedSeconds: 0
+    elapsedSeconds: 0,
+    clockInDate: undefined
   }
 };
 
@@ -89,6 +117,7 @@ interface TeamFlowContextType {
   userClockInData: Record<string, UserClockInState>;
   currentUserClockIn: UserClockInState;
   setCurrentUserId: (id: string) => void;
+  updateUserProfile: (updates: Partial<User>) => void;
   createProject: (projectData: {
     name: string;
     code?: string;
@@ -134,9 +163,38 @@ interface TeamFlowContextType {
   isUserTeamLead: (userId: string, projectId: string) => boolean;
   getAllMedia: () => Array<TaskAttachment & { projectTitle: string; taskTitle: string; projectId: string }>;
   getProjectMedia: (projectId: string) => Array<TaskAttachment & { taskTitle: string }>;
+  departments: { id: string; name: string }[];
+  createDepartment: (name: string) => Promise<boolean>;
+  updateDepartment: (id: string, name: string, oldName?: string) => Promise<boolean>;
+  deleteDepartment: (id: string) => Promise<boolean>;
+  addTeamMember: (userData: {
+    fullName: string;
+    email: string;
+    role: "employer" | "project_manager";
+    department?: string;
+    jobTitle?: string;
+    initialPassword?: string;
+  }) => Promise<User>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  rewardsLedger: RewardLedgerEntry[];
+  awardRewardPoints: (params: {
+    userId: string;
+    points: number;
+    action: string;
+    reason: string;
+  }) => Promise<boolean>;
 }
 
 const TeamFlowContext = createContext<TeamFlowContextType | undefined>(undefined);
+
+const DEFAULT_DEPARTMENTS: { id: string; name: string }[] = [
+  { id: "dept-ui-ux-designer", name: "UI/UX Designer" },
+  { id: "dept-software-developer", name: "Software Developer" },
+  { id: "dept-junior-software-developer", name: "Junior Software Developer" },
+  { id: "dept-ai-engineer", name: "AI Engineer" },
+  { id: "dept-project-manager", name: "Project Manager" },
+];
 
 export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
@@ -145,6 +203,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS_DATA);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE_DATA);
   const [userClockInData, setUserClockInData] = useState<Record<string, UserClockInState>>(DEFAULT_CLOCK_IN_DATA);
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>(DEFAULT_DEPARTMENTS);
+  const [rewardsLedger, setRewardsLedger] = useState<RewardLedgerEntry[]>([]);
   const [hasHydrated, setHasHydrated] = useState(false);
 
   // Initial local hydration from localStorage
@@ -154,35 +214,64 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       const savedProjects = localStorage.getItem("teamflow_projects");
       const savedTasks = localStorage.getItem("teamflow_tasks");
       const savedAttendance = localStorage.getItem("teamflow_attendance");
-      localStorage.removeItem("teamflow_user_clock_in");
-      const savedUserClockIn = localStorage.getItem("teamflow_user_clock_in_v2");
 
       const validUserIds = new Set(INITIAL_USERS.map((u) => u.id));
-
       if (savedUser && validUserIds.has(savedUser)) {
         setCurrentUserIdState(savedUser);
       } else {
         setCurrentUserIdState("u-ceo-1");
       }
 
+      const savedUsers = localStorage.getItem("teamflow_users");
+      if (savedUsers) {
+        try {
+          const parsed = JSON.parse(savedUsers);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setUsers(parsed);
+          }
+        } catch {}
+      }
+
       if (savedProjects) {
-        const parsed = JSON.parse(savedProjects);
-        setProjects(parsed);
+        try {
+          const parsed = JSON.parse(savedProjects);
+          if (Array.isArray(parsed)) setProjects(parsed);
+        } catch {}
       }
 
       if (savedTasks) {
-        const parsed = JSON.parse(savedTasks);
-        setTasks(parsed);
+        try {
+          const parsed = JSON.parse(savedTasks);
+          if (Array.isArray(parsed)) setTasks(parsed);
+        } catch {}
       }
 
-      if (savedAttendance) {
-        const parsed = JSON.parse(savedAttendance);
-        setAttendance(parsed);
+      const hasAttendanceCleaned = localStorage.getItem("teamflow_attendance_v4_reset");
+      if (!hasAttendanceCleaned) {
+        localStorage.removeItem("teamflow_attendance");
+        localStorage.setItem("teamflow_attendance_v4_reset", "true");
+      } else if (savedAttendance) {
+        try {
+          const parsed = JSON.parse(savedAttendance);
+          if (Array.isArray(parsed)) setAttendance(parsed);
+        } catch {}
       }
 
-      if (savedUserClockIn) {
-        const parsed = JSON.parse(savedUserClockIn);
-        setUserClockInData(parsed);
+      localStorage.removeItem("teamflow_user_clock_in");
+      const hasResetToCheckedOut = localStorage.getItem("teamflow_clock_v3_reset");
+      if (!hasResetToCheckedOut) {
+        localStorage.removeItem("teamflow_user_clock_in_v2");
+        localStorage.removeItem("teamflow_user_clock_in_v3");
+        localStorage.setItem("teamflow_clock_v3_reset", "true");
+        setUserClockInData(DEFAULT_CLOCK_IN_DATA);
+      } else {
+        const savedUserClockIn = localStorage.getItem("teamflow_user_clock_in_v3");
+        if (savedUserClockIn) {
+          try {
+            const parsed = JSON.parse(savedUserClockIn);
+            setUserClockInData(parsed);
+          } catch {}
+        }
       }
     } catch {
       // Fallback silently
@@ -194,18 +283,23 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   // Fetch initial data from backend Neon PostgreSQL API
   const refreshFromBackend = useCallback(async () => {
     try {
-      const [usersRes, projectsRes, tasksRes, attendanceRes, clockInRes] = await Promise.all([
+      const [usersRes, projectsRes, tasksRes, attendanceRes, clockInRes, deptsRes, rewardsRes] = await Promise.all([
         fetch("/api/users").catch(() => null),
         fetch("/api/projects").catch(() => null),
         fetch("/api/tasks").catch(() => null),
         fetch("/api/attendance").catch(() => null),
         fetch("/api/clock-in").catch(() => null),
+        fetch("/api/departments").catch(() => null),
+        fetch("/api/rewards").catch(() => null),
       ]);
 
       if (usersRes && usersRes.ok) {
         const data = await usersRes.json();
         if (Array.isArray(data.users) && data.users.length > 0) {
           setUsers(data.users);
+          try {
+            localStorage.setItem("teamflow_users", JSON.stringify(data.users));
+          } catch {}
         }
       }
 
@@ -236,6 +330,20 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           setUserClockInData(data.clockInData);
         }
       }
+
+      if (deptsRes && deptsRes.ok) {
+        const data = await deptsRes.json();
+        if (Array.isArray(data.departments) && data.departments.length > 0) {
+          setDepartments(data.departments);
+        }
+      }
+
+      if (rewardsRes && rewardsRes.ok) {
+        const data = await rewardsRes.json();
+        if (Array.isArray(data.ledger)) {
+          setRewardsLedger(data.ledger);
+        }
+      }
     } catch (err) {
       console.warn("Backend sync notice (using local state):", err);
     }
@@ -253,7 +361,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("teamflow_projects", JSON.stringify(projects));
       localStorage.setItem("teamflow_tasks", JSON.stringify(tasks));
       localStorage.setItem("teamflow_attendance", JSON.stringify(attendance));
-      localStorage.setItem("teamflow_user_clock_in_v2", JSON.stringify(userClockInData));
+      localStorage.setItem("teamflow_user_clock_in_v3", JSON.stringify(userClockInData));
     } catch {
       // ignore storage quota errors
     }
@@ -263,6 +371,232 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
   const setCurrentUserId = (id: string) => {
     setCurrentUserIdState(id);
+  };
+
+  const updateUserProfile = (updates: Partial<User>) => {
+    setUsers((prev) => {
+      const nextUsers = prev.map((u) => {
+        if (u.id === currentUserId) {
+          const updated = { ...u, ...updates };
+          fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updated),
+          }).catch((err) => console.warn("Failed to persist user profile:", err));
+          return updated;
+        }
+        return u;
+      });
+      try {
+        localStorage.setItem("teamflow_users", JSON.stringify(nextUsers));
+      } catch {}
+      return nextUsers;
+    });
+  };
+
+  const createDepartment = async (name: string): Promise<boolean> => {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    const newDept = {
+      id: `dept-${Date.now()}`,
+      name: trimmed,
+    };
+    setDepartments((prev) => [...prev, newDept]);
+
+    try {
+      await fetch("/api/departments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newDept),
+      });
+      return true;
+    } catch (err) {
+      console.warn("Failed to create department on backend:", err);
+      return false;
+    }
+  };
+
+  const updateDepartment = async (id: string, name: string, oldName?: string): Promise<boolean> => {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+
+    setDepartments((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, name: trimmed } : d))
+    );
+
+    if (oldName && oldName !== trimmed) {
+      setUsers((prev) =>
+        prev.map((u) => (u.department === oldName ? { ...u, department: trimmed } : u))
+      );
+    }
+
+    try {
+      await fetch("/api/departments", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: trimmed, oldName }),
+      });
+      return true;
+    } catch (err) {
+      console.warn("Failed to update department on backend:", err);
+      return false;
+    }
+  };
+
+  const deleteDepartment = async (id: string): Promise<boolean> => {
+    setDepartments((prev) => prev.filter((d) => d.id !== id));
+    try {
+      await fetch(`/api/departments?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      return true;
+    } catch (err) {
+      console.warn("Failed to delete department on backend:", err);
+      return false;
+    }
+  };
+
+  const addTeamMember = async (memberData: {
+    fullName: string;
+    email: string;
+    role: "employer" | "project_manager";
+    department?: string;
+    jobTitle?: string;
+    initialPassword?: string;
+  }): Promise<User> => {
+    const isPm = memberData.role === "project_manager";
+    const timestamp = Date.now();
+    const id = isPm ? `u-pm-${timestamp}` : `u-emp-${timestamp}`;
+    const employeeId = isPm
+      ? `TF-PM-${Math.floor(100 + Math.random() * 900)}`
+      : `TF-EMP-${Math.floor(200 + Math.random() * 800)}`;
+    const firstName = memberData.fullName.trim().split(" ")[0] || "Staff";
+    const dept = isPm ? "Project Management" : memberData.department || "General";
+    const title = memberData.jobTitle || (isPm ? "Project Manager" : dept);
+
+    const avatars = [
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80"
+    ];
+    const avatar = avatars[Math.floor(Math.random() * avatars.length)];
+
+    const newUser: User = {
+      id,
+      name: firstName,
+      fullName: memberData.fullName.trim(),
+      email: memberData.email.trim(),
+      role: memberData.role,
+      jobTitle: title,
+      department: dept,
+      avatar,
+      phone: "+91 98" + Math.floor(10000000 + Math.random() * 90000000),
+      location: "MaestroMinds Tech Hub",
+      employeeId,
+    };
+
+    setUsers((prev) => [...prev, newUser]);
+
+    setUserClockInData((prev) => ({
+      ...prev,
+      [newUser.id]: {
+        isClockedIn: false,
+        clockInTimestamp: null,
+        clockInTimeString: null,
+        clockOutTimeString: null,
+        elapsedSeconds: 0,
+      },
+    }));
+
+    // Persist to backend Neon PostgreSQL
+    fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...newUser,
+        initialPassword: memberData.initialPassword,
+      }),
+    }).catch((err) => console.warn("Failed to persist new team member to database:", err));
+
+    return newUser;
+  };
+
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || "Authentication failed." };
+      }
+
+      if (data.user) {
+        setCurrentUserId(data.user.id);
+        setUsers((prev) => {
+          const exists = prev.some((u) => u.id === data.user.id);
+          return exists ? prev.map((u) => (u.id === data.user.id ? data.user : u)) : [...prev, data.user];
+        });
+      }
+
+      return { success: true };
+    } catch (err: unknown) {
+      return { success: false, error: err instanceof Error ? err.message : "Network error" };
+    }
+  };
+
+  const logout = async (): Promise<void> => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    }
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+  };
+
+  const awardRewardPoints = async (params: {
+    userId: string;
+    points: number;
+    action: string;
+    reason: string;
+  }): Promise<boolean> => {
+    const numericPoints = Math.max(1, Number(params.points) || 50);
+    const newEntry: RewardLedgerEntry = {
+      id: `rw-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      userId: params.userId,
+      points: numericPoints,
+      action: params.action.trim() || "Performance Award",
+      reason: params.reason.trim() || "Exemplary contribution to team initiatives",
+      awardedById: currentUser.id,
+      awardedByName: `${currentUser.fullName} (${currentUser.role === "ceo" ? "CEO" : "Project Manager"})`,
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+    };
+
+    setRewardsLedger((prev) => [newEntry, ...prev]);
+
+    try {
+      await fetch("/api/rewards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newEntry),
+      });
+      return true;
+    } catch (err) {
+      console.warn("Failed to persist reward to backend:", err);
+      return false;
+    }
   };
 
   const createProject = (projectData: {
@@ -531,6 +865,103 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const checkAndHandleMidnightRollover = useCallback(() => {
+    const now = new Date();
+    const todayString = getLocalDateString(now);
+    const midnightTimestamp = getStartOfTodayTimestamp(now);
+
+    setUserClockInData((prevData) => {
+      let hasChanges = false;
+      const nextData = { ...prevData };
+
+      Object.entries(prevData).forEach(([userId, state]) => {
+        if (state.isClockedIn && state.clockInDate && state.clockInDate !== todayString) {
+          hasChanges = true;
+          const targetUser = users.find((u) => u.id === userId);
+          const previousClockInTimestamp = state.clockInTimestamp || (midnightTimestamp - 1000);
+          const secondsBeforeMidnight = Math.max(
+            1,
+            Math.floor((midnightTimestamp - previousClockInTimestamp) / 1000)
+          );
+          const totalDay1Seconds = (state.elapsedSeconds || 0) + secondsBeforeMidnight;
+          const day1Duration = formatSecondsToDuration(totalDay1Seconds);
+
+          // Close previous day record at midnight
+          const prevDate = state.clockInDate;
+          setAttendance((prevAtt) => {
+            const existingYesterday = prevAtt.find((r) => r.userId === userId && r.date === prevDate);
+            let updatedList = [...prevAtt];
+            if (existingYesterday) {
+              const closedYesterday: AttendanceRecord = {
+                ...existingYesterday,
+                clockOut: "12:00 AM",
+                duration: day1Duration,
+                status: "Checked Out",
+              };
+              updatedList = updatedList.map((r) => (r.id === existingYesterday.id ? closedYesterday : r));
+              fetch("/api/attendance", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(closedYesterday),
+              }).catch(() => null);
+            }
+
+            // Create Day 2 record starting at 12:00 AM
+            const existingToday = updatedList.find((r) => r.userId === userId && r.date === todayString);
+            if (!existingToday && targetUser) {
+              const newTodayRecord: AttendanceRecord = {
+                id: `att-rec-${Date.now()}-${userId}`,
+                userId: targetUser.id,
+                userName: targetUser.fullName,
+                userRole: targetUser.role,
+                department: targetUser.department,
+                date: todayString,
+                clockIn: "12:00 AM",
+                clockOut: "—",
+                duration: "00h 00m 01s",
+                status: "Present",
+              };
+              updatedList = [newTodayRecord, ...updatedList];
+              fetch("/api/attendance", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newTodayRecord),
+              }).catch(() => null);
+            }
+
+            return updatedList;
+          });
+
+          // Rollover user state for today starting from 12:00 AM
+          const secondsSinceMidnight = Math.max(0, Math.floor((Date.now() - midnightTimestamp) / 1000));
+          const rolledState: UserClockInState = {
+            isClockedIn: true,
+            clockInTimestamp: midnightTimestamp,
+            clockInTimeString: "12:00 AM",
+            clockOutTimeString: null,
+            elapsedSeconds: secondsSinceMidnight,
+            clockInDate: todayString,
+          };
+          nextData[userId] = rolledState;
+
+          fetch("/api/clock-in", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, ...rolledState }),
+          }).catch(() => null);
+        }
+      });
+
+      return hasChanges ? nextData : prevData;
+    });
+  }, [users]);
+
+  useEffect(() => {
+    checkAndHandleMidnightRollover();
+    const interval = setInterval(checkAndHandleMidnightRollover, 5000);
+    return () => clearInterval(interval);
+  }, [checkAndHandleMidnightRollover]);
+
   const toggleUserClockIn = (userId: string) => {
     const targetUser = users.find((u) => u.id === userId);
     if (!targetUser) return;
@@ -546,31 +977,173 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     const nextClockedIn = !userState.isClockedIn;
     const now = new Date();
     const timeString = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    const todayString = now.toISOString().split("T")[0];
+    const todayString = getLocalDateString(now);
 
-    let newElapsed = userState.elapsedSeconds || 0;
     let nextState: UserClockInState;
 
     if (nextClockedIn) {
+      const prevElapsedToday = userState.clockInDate === todayString ? (userState.elapsedSeconds || 0) : 0;
       nextState = {
         isClockedIn: true,
         clockInTimestamp: Date.now(),
         clockInTimeString: timeString,
         clockOutTimeString: null,
-        elapsedSeconds: newElapsed
+        elapsedSeconds: prevElapsedToday,
+        clockInDate: todayString,
       };
+
+      setAttendance((prev) => {
+        const existingToday = prev.find((r) => r.userId === userId && r.date === todayString);
+        if (existingToday) {
+          const updatedRecord: AttendanceRecord = {
+            ...existingToday,
+            clockIn: existingToday.clockIn && existingToday.clockIn !== "—" ? existingToday.clockIn : timeString,
+            clockOut: "—",
+            status: "Present"
+          };
+          fetch("/api/attendance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedRecord),
+          }).catch(() => null);
+          return prev.map((r) => (r.id === existingToday.id ? updatedRecord : r));
+        } else {
+          const newRecord: AttendanceRecord = {
+            id: `att-rec-${Date.now()}-${userId}`,
+            userId: targetUser.id,
+            userName: targetUser.fullName,
+            userRole: targetUser.role,
+            department: targetUser.department,
+            date: todayString,
+            clockIn: timeString,
+            clockOut: "—",
+            duration: "00h 00m 01s",
+            status: "Present"
+          };
+          fetch("/api/attendance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newRecord),
+          }).catch(() => null);
+          return [newRecord, ...prev];
+        }
+      });
     } else {
-      const sessionSeconds = userState.clockInTimestamp
-        ? Math.max(1, Math.floor((Date.now() - userState.clockInTimestamp) / 1000))
-        : 0;
-      newElapsed += sessionSeconds;
-      nextState = {
-        isClockedIn: false,
-        clockInTimestamp: null,
-        clockInTimeString: userState.clockInTimeString,
-        clockOutTimeString: timeString,
-        elapsedSeconds: newElapsed
-      };
+      // Clock out
+      const clockInDate = userState.clockInDate || todayString;
+      if (clockInDate !== todayString && userState.clockInTimestamp) {
+        // Crossed midnight! Day 1 is closed at 12:00 AM, Day 2 has duration from midnight to now
+        const midnightToday = getStartOfTodayTimestamp(now);
+        const day1Seconds = Math.max(0, Math.floor((midnightToday - userState.clockInTimestamp) / 1000));
+        const day1Duration = formatSecondsToDuration(day1Seconds);
+
+        // Close Day 1 record
+        setAttendance((prev) => {
+          const prevRec = prev.find((r) => r.userId === userId && r.date === clockInDate);
+          if (prevRec) {
+            const closedPrev: AttendanceRecord = {
+              ...prevRec,
+              clockOut: "12:00 AM",
+              duration: day1Duration,
+              status: "Checked Out",
+            };
+            fetch("/api/attendance", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(closedPrev),
+            }).catch(() => null);
+            return prev.map((r) => (r.id === prevRec.id ? closedPrev : r));
+          }
+          return prev;
+        });
+
+        const todaySeconds = Math.max(1, Math.floor((Date.now() - midnightToday) / 1000));
+        const todayDuration = formatSecondsToDuration(todaySeconds);
+
+        nextState = {
+          isClockedIn: false,
+          clockInTimestamp: null,
+          clockInTimeString: "12:00 AM",
+          clockOutTimeString: timeString,
+          elapsedSeconds: todaySeconds,
+          clockInDate: todayString,
+        };
+
+        setAttendance((prev) => {
+          const existingToday = prev.find((r) => r.userId === userId && r.date === todayString);
+          const closedToday: AttendanceRecord = {
+            id: existingToday ? existingToday.id : `att-rec-${Date.now()}-${userId}`,
+            userId: targetUser.id,
+            userName: targetUser.fullName,
+            userRole: targetUser.role,
+            department: targetUser.department,
+            date: todayString,
+            clockIn: "12:00 AM",
+            clockOut: timeString,
+            duration: todayDuration,
+            status: "Checked Out",
+          };
+          fetch("/api/attendance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(closedToday),
+          }).catch(() => null);
+          return existingToday ? prev.map((r) => (r.id === existingToday.id ? closedToday : r)) : [closedToday, ...prev];
+        });
+      } else {
+        // Same-day check out
+        const sessionSeconds = userState.clockInTimestamp
+          ? Math.max(1, Math.floor((Date.now() - userState.clockInTimestamp) / 1000))
+          : 0;
+        const totalElapsed = (userState.elapsedSeconds || 0) + sessionSeconds;
+        const formattedDuration = formatSecondsToDuration(totalElapsed);
+
+        nextState = {
+          isClockedIn: false,
+          clockInTimestamp: null,
+          clockInTimeString: userState.clockInTimeString || timeString,
+          clockOutTimeString: timeString,
+          elapsedSeconds: totalElapsed,
+          clockInDate: todayString,
+        };
+
+        setAttendance((prev) => {
+          const existingToday = prev.find((r) => r.userId === userId && r.date === todayString);
+          if (existingToday) {
+            const updatedRecord: AttendanceRecord = {
+              ...existingToday,
+              clockOut: timeString,
+              duration: formattedDuration,
+              status: "Checked Out",
+            };
+            fetch("/api/attendance", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updatedRecord),
+            }).catch(() => null);
+            return prev.map((r) => (r.id === existingToday.id ? updatedRecord : r));
+          } else {
+            const newRecord: AttendanceRecord = {
+              id: `att-rec-${Date.now()}-${userId}`,
+              userId: targetUser.id,
+              userName: targetUser.fullName,
+              userRole: targetUser.role,
+              department: targetUser.department,
+              date: todayString,
+              clockIn: userState.clockInTimeString || timeString,
+              clockOut: timeString,
+              duration: formattedDuration,
+              status: "Checked Out",
+            };
+            fetch("/api/attendance", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(newRecord),
+            }).catch(() => null);
+            return [newRecord, ...prev];
+          }
+        });
+      }
     }
 
     setUserClockInData((prev) => ({
@@ -587,56 +1160,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         ...nextState,
       }),
     }).catch((err) => console.warn("Failed to persist clock-in to backend:", err));
-
-    const hours = Math.floor(newElapsed / 3600);
-    const minutes = Math.floor((newElapsed % 3600) / 60);
-    const seconds = newElapsed % 60;
-    const formattedDuration = `${hours}h ${minutes}m ${seconds}s`;
-
-    setAttendance((prev) => {
-      const existingToday = prev.find((r) => r.userId === userId && r.date === todayString);
-
-      if (existingToday) {
-        const updatedRecord: AttendanceRecord = {
-          ...existingToday,
-          clockIn: existingToday.clockIn && existingToday.clockIn !== "—" ? existingToday.clockIn : timeString,
-          clockOut: nextClockedIn ? "—" : timeString,
-          duration: nextClockedIn ? existingToday.duration : formattedDuration,
-          status: nextClockedIn ? "Present" : existingToday.status
-        };
-
-        // Async persist to attendance API
-        fetch("/api/attendance", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatedRecord),
-        }).catch((err) => console.warn("Failed to persist attendance update:", err));
-
-        return prev.map((r) => (r.id === existingToday.id ? updatedRecord : r));
-      } else {
-        const newRecord: AttendanceRecord = {
-          id: `att-rec-${Date.now()}`,
-          userId: targetUser.id,
-          userName: targetUser.fullName,
-          userRole: targetUser.role,
-          department: targetUser.department,
-          date: todayString,
-          clockIn: timeString,
-          clockOut: nextClockedIn ? "—" : timeString,
-          duration: nextClockedIn ? "00h 00m 01s" : formattedDuration,
-          status: "Present"
-        };
-
-        // Async persist to attendance API
-        fetch("/api/attendance", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newRecord),
-        }).catch((err) => console.warn("Failed to persist new attendance:", err));
-
-        return [newRecord, ...prev];
-      }
-    });
   };
 
   const currentUserClockIn: UserClockInState = userClockInData[currentUserId] || {
@@ -725,6 +1248,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         userClockInData,
         currentUserClockIn,
         setCurrentUserId,
+        updateUserProfile,
         createProject,
         updateProject,
         deleteProject,
@@ -741,7 +1265,16 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         getProjectManager,
         isUserTeamLead,
         getAllMedia,
-        getProjectMedia
+        getProjectMedia,
+        departments,
+        createDepartment,
+        updateDepartment,
+        deleteDepartment,
+        addTeamMember,
+        login,
+        logout,
+        rewardsLedger,
+        awardRewardPoints
       }}
     >
       {children}

@@ -24,27 +24,27 @@ export async function GET(req: NextRequest) {
         SELECT id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity
         FROM tasks
         WHERE project_id = ${projectId} AND assigned_to = ${assignedTo}
-        ORDER BY created_at DESC, id ASC;
+        ORDER BY id ASC;
       `;
     } else if (projectId) {
       rows = await sql`
         SELECT id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity
         FROM tasks
         WHERE project_id = ${projectId}
-        ORDER BY created_at DESC, id ASC;
+        ORDER BY id ASC;
       `;
     } else if (assignedTo) {
       rows = await sql`
         SELECT id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity
         FROM tasks
         WHERE assigned_to = ${assignedTo}
-        ORDER BY created_at DESC, id ASC;
+        ORDER BY id ASC;
       `;
     } else {
       rows = await sql`
         SELECT id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity
         FROM tasks
-        ORDER BY created_at DESC, id ASC;
+        ORDER BY id ASC;
       `;
     }
 

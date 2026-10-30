@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Trophy, ArrowRight, Sparkles } from "lucide-react";
-import { REWARDS_DATA } from "@/data/mockData";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import { computeLeaderboard } from "@/lib/rewards";
 
 export default function RewardLeaderboardWidget() {
   const router = useRouter();
-  const { currentUser, users, projects } = useTeamFlow();
+  const { currentUser, users, projects, tasks, rewardsLedger } = useTeamFlow();
   const isPm = currentUser.role === "project_manager";
   const isCeo = currentUser.role === "ceo";
   const isEmployer = currentUser.role === "employer";
@@ -21,30 +21,28 @@ export default function RewardLeaderboardWidget() {
     myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
   );
 
-  const visibleLeaderboard = REWARDS_DATA.leaderboard.filter((item) => {
+  const dynamicLeaderboard = computeLeaderboard(users, tasks, projects, rewardsLedger);
+
+  const visibleLeaderboard = dynamicLeaderboard.filter((item) => {
     if (isCeo || isEmployer) return true;
     if (isPm) {
-      const matched = users.find((u) => u.fullName === item.name);
-      if (!matched) return false;
       return (
-        matched.id === currentUser.id ||
-        (matched.role === "employer" && myEmployerIds.has(matched.id))
+        item.id === currentUser.id ||
+        myEmployerIds.has(item.id)
       );
     }
     return true;
   });
 
-  const handleRowClick = (name: string) => {
-    const matched = users.find((u) => u.fullName === name);
-    if (!matched) return;
+  const handleRowClick = (userId: string) => {
     if (isCeo) {
-      router.push(`/rewards/${matched.id}`);
+      router.push(`/rewards/${userId}`);
     } else if (isPm) {
-      if (matched.id === currentUser.id || (matched.role === "employer" && myEmployerIds.has(matched.id))) {
-        router.push(`/rewards/${matched.id}`);
+      if (userId === currentUser.id || myEmployerIds.has(userId)) {
+        router.push(`/rewards/${userId}`);
       }
     } else if (isEmployer) {
-      if (matched.id === currentUser.id) {
+      if (userId === currentUser.id) {
         router.push(`/rewards/${currentUser.id}`);
       }
     }
@@ -79,23 +77,22 @@ export default function RewardLeaderboardWidget() {
             <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
               <th className="pb-2.5 pr-3 w-16">Rank</th>
               <th className="pb-2.5 px-3">Team Member</th>
-              <th className="pb-2.5 px-3">Role &amp; Department</th>
+              <th className="pb-2.5 px-3">Job Role</th>
               <th className="pb-2.5 pl-3 text-right">Points</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-[13px]">
             {visibleLeaderboard.map((user) => {
-              const matchedStaff = users.find((u) => u.fullName === user.name);
-              const isCurrent = matchedStaff?.id === currentUser.id;
+              const isCurrent = user.id === currentUser.id;
               const isClickable =
                 isCeo ||
-                (isPm && (isCurrent || (matchedStaff?.role === "employer" && myEmployerIds.has(matchedStaff.id)))) ||
+                (isPm && (isCurrent || myEmployerIds.has(user.id))) ||
                 (isEmployer && isCurrent);
 
               return (
                 <tr
-                  key={user.name}
-                  onClick={() => isClickable && handleRowClick(user.name)}
+                  key={user.id}
+                  onClick={() => isClickable && handleRowClick(user.id)}
                   className={`transition-colors ${
                     isClickable ? "cursor-pointer" : ""
                   } ${
@@ -131,30 +128,20 @@ export default function RewardLeaderboardWidget() {
                         <span className="font-semibold text-slate-900 leading-tight">
                           {isCurrent ? `${user.name} (You)` : user.name}
                         </span>
-                        {isCurrent && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-100 text-[#0084d4]">
-                            YOU
-                          </span>
-                        )}
                       </div>
                     </div>
                   </td>
 
                   <td className="py-2.5 px-3">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
-                          user.role === "Project Manager"
-                            ? "bg-blue-100 text-blue-800 border border-blue-200"
-                            : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
-                        }`}
-                      >
-                        {user.role}
-                      </span>
-                      <span className="text-[11px] text-slate-400 hidden sm:inline">
-                        {matchedStaff?.department || "Operations"}
-                      </span>
-                    </div>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
+                        user.role === "Project Manager"
+                          ? "bg-blue-100 text-blue-800 border border-blue-200"
+                          : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
+                      }`}
+                    >
+                      {user.role}
+                    </span>
                   </td>
 
                   <td className="py-2.5 pl-3 text-right">

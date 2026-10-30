@@ -116,7 +116,7 @@ export default function EmployerDashboard() {
             {teamLeadProjects.length}
           </div>
           <div className="mt-2 text-[11px] text-[#ffa500] font-medium">
-            Full lead visibility unlocked
+            Leading the projects
           </div>
         </div>
       </div>
@@ -179,7 +179,7 @@ export default function EmployerDashboard() {
                     {isLead ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium bg-[#ffa500]/15 text-[#ffa500] border border-[#ffa500]/30 shadow-2xs">
                         <Crown className="w-3.5 h-3.5 text-[#ffa500]" />
-                        <span>Team Lead (You)</span>
+                        <span>Team Lead</span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200/60">
@@ -280,13 +280,19 @@ export default function EmployerDashboard() {
                     </h4>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
-                    <PriorityBadge priority={task.priority} />
-                    <span className="text-[11px] text-slate-500 font-medium">
+                  <div className="grid grid-cols-[72px_116px_98px_20px] items-center gap-3 sm:gap-4 shrink-0 text-left">
+                    <div className="flex items-center justify-start">
+                      <PriorityBadge priority={task.priority} />
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-medium whitespace-nowrap">
                       Due: {task.deadline}
                     </span>
-                    <StatusBadge status={task.status} />
-                    <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#0084d4]" />
+                    <div className="flex items-center justify-start">
+                      <StatusBadge status={task.status} />
+                    </div>
+                    <div className="flex items-center justify-end">
+                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#0084d4] transition-colors" />
+                    </div>
                   </div>
                 </div>
               );

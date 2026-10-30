@@ -7,18 +7,15 @@ import {
   Calendar,
   CheckCircle2,
   AlertCircle,
-  Briefcase,
   Shield,
   UserCheck,
-  Building2,
-  MapPin,
   Mail,
   FolderKanban,
   Activity,
   LogOut,
   Sparkles
 } from "lucide-react";
-import { useTeamFlow } from "@/context/TeamFlowContext";
+import { useTeamFlow, getLocalDateString } from "@/context/TeamFlowContext";
 import { StatusBadge } from "@/components/Badges";
 import { AttendanceRecord } from "@/data/teamflowData";
 
@@ -44,22 +41,31 @@ export default function AttendanceDetailModal({
 
   if (!record) return null;
 
+  const todayString = getLocalDateString(new Date());
+  const isToday = record.date === todayString;
+
   const staffUser = users.find((u) => u.id === record.userId);
   const clockState = userClockInData[record.userId];
 
-  const isWorkingNow = clockState
-    ? clockState.isClockedIn
-    : record.clockOut === "—" && record.status !== "Leave";
+  // ONLY today's record can be "Working Now"
+  const isWorkingNow = isToday && (clockState ? clockState.isClockedIn : record.clockOut === "—" && record.status !== "Leave");
 
-  const checkInTime = clockState?.clockInTimeString || record.clockIn;
+  const checkInTime = isToday && (clockState?.isClockedIn || clockState?.clockInTimeString)
+    ? (clockState.clockInTimeString || record.clockIn)
+    : record.clockIn;
+
   const checkOutTime = isWorkingNow
     ? null
-    : clockState?.clockOutTimeString || (record.clockOut !== "—" ? record.clockOut : null);
+    : isToday && clockState?.clockOutTimeString
+    ? clockState.clockOutTimeString
+    : record.clockOut !== "—"
+    ? record.clockOut
+    : null;
 
   let liveDurationStr = record.duration;
   if (record.status === "Leave") {
     liveDurationStr = "00h 00m 00s (On Leave)";
-  } else if (isWorkingNow && clockState?.clockInTimestamp) {
+  } else if (isToday && isWorkingNow && clockState?.clockInTimestamp) {
     const elapsed =
       (clockState.elapsedSeconds || 0) +
       Math.max(0, Math.floor((currentTime - clockState.clockInTimestamp) / 1000));
@@ -70,7 +76,7 @@ export default function AttendanceDetailModal({
       2,
       "0"
     )}m ${String(s).padStart(2, "0")}s`;
-  } else if (clockState?.elapsedSeconds) {
+  } else if (isToday && clockState?.elapsedSeconds && !isWorkingNow) {
     const elapsed = clockState.elapsedSeconds;
     const h = Math.floor(elapsed / 3600);
     const m = Math.floor((elapsed % 3600) / 60);
@@ -79,7 +85,18 @@ export default function AttendanceDetailModal({
       2,
       "0"
     )}m ${String(s).padStart(2, "0")}s`;
+  } else {
+    // Historical records preserve their exact logged duration
+    liveDurationStr = record.duration;
   }
+
+  const modalStatus = isToday
+    ? isWorkingNow
+      ? "Present"
+      : clockState?.clockOutTimeString
+      ? "Checked Out"
+      : record.status
+    : record.status;
 
   const userProjects = projects.filter(
     (p) =>
@@ -134,20 +151,17 @@ export default function AttendanceDetailModal({
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-[16px] font-bold text-slate-900 truncate">
-                  {record.userName}
-                </h3>
-                <StatusBadge status={record.status} />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-[16px] font-bold text-slate-900 truncate">
+                    {record.userName}
+                  </h3>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-[#0084d4] border border-sky-200/70">
+                    {staffUser?.jobTitle || (record.userRole === "project_manager" ? "Project Manager" : record.department || "Employer")}
+                  </span>
+                </div>
+                <StatusBadge status={modalStatus} />
               </div>
-              <p className="text-[12px] text-slate-500 font-medium">
-                {staffUser?.jobTitle || record.department}
-              </p>
               <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400">
-                <span className="inline-flex items-center gap-1">
-                  <Building2 className="w-3 h-3" />
-                  {record.department}
-                </span>
-                <span>&bull;</span>
                 <span className="inline-flex items-center gap-1">
                   <Mail className="w-3 h-3" />
                   {staffUser?.email || "staff@teamflow.internal"}

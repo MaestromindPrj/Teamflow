@@ -23,7 +23,7 @@ export function PriorityBadge({ priority }: { priority: "High" | "Medium" | "Low
 export function StatusBadge({
   status,
 }: {
-  status: "In Progress" | "Review" | "In Review" | "To Do" | "Completed" | "Present" | "Late" | "Leave" | "Remote" | "Planning";
+  status: "In Progress" | "Review" | "In Review" | "To Do" | "Completed" | "Present" | "Late" | "Leave" | "Remote" | "Planning" | "Checked Out" | "Not Clocked In";
 }) {
   switch (status) {
     case "In Progress":
@@ -79,6 +79,18 @@ export function StatusBadge({
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-semibold bg-[#de2d1d]/15 text-[#de2d1d] border border-[#de2d1d]/30">
           Leave
+        </span>
+      );
+    case "Checked Out":
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+          Checked Out
+        </span>
+      );
+    case "Not Clocked In":
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200/80">
+          Not Clocked In
         </span>
       );
   }

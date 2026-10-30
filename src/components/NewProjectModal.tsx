@@ -74,7 +74,7 @@ export default function NewProjectModal({
   );
 
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(
-    employers.slice(0, 3).map((e) => e.id)
+    employers.map((e) => e.id)
   );
 
   const [selectedLeadId, setSelectedLeadId] = useState<string>(
@@ -84,16 +84,19 @@ export default function NewProjectModal({
   if (!isOpen) return null;
 
   const handleToggleMember = (empId: string) => {
-    if (selectedMemberIds.includes(empId)) {
-      if (selectedMemberIds.length === 1) return;
-      setSelectedMemberIds(selectedMemberIds.filter((id) => id !== empId));
-      if (selectedLeadId === empId) {
-        const remaining = selectedMemberIds.filter((id) => id !== empId);
-        if (remaining.length > 0) setSelectedLeadId(remaining[0]);
+    setSelectedMemberIds((prev) => {
+      const exists = prev.includes(empId);
+      if (exists) {
+        if (prev.length === 1) return prev;
+        const updated = prev.filter((id) => id !== empId);
+        if (selectedLeadId === empId && updated.length > 0) {
+          setSelectedLeadId(updated[0]);
+        }
+        return updated;
+      } else {
+        return [...prev, empId];
       }
-    } else {
-      setSelectedMemberIds([...selectedMemberIds, empId]);
-    }
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -265,7 +268,7 @@ export default function NewProjectModal({
               >
                 {projectManagers.map((pm) => (
                   <option key={pm.id} value={pm.id}>
-                    {pm.fullName} ({pm.jobTitle})
+                    {pm.fullName} (Project Manager)
                   </option>
                 ))}
               </select>
@@ -286,7 +289,7 @@ export default function NewProjectModal({
               {employers.map((emp) => {
                 const isSelected = selectedMemberIds.includes(emp.id);
                 return (
-                  <label
+                  <div
                     key={emp.id}
                     onClick={() => handleToggleMember(emp.id)}
                     className={`flex items-center gap-3 p-2 rounded-lg border text-[12px] transition-all cursor-pointer ${
@@ -298,8 +301,8 @@ export default function NewProjectModal({
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => {}}
-                      className="w-4 h-4 accent-[#0084d4] rounded"
+                      readOnly
+                      className="w-4 h-4 accent-[#0084d4] rounded pointer-events-none"
                     />
                     <img
                       src={emp.avatar}
@@ -311,10 +314,10 @@ export default function NewProjectModal({
                         {emp.fullName}
                       </p>
                       <p className="text-[10px] text-slate-400 truncate">
-                        {emp.jobTitle}
+                        {emp.department}
                       </p>
                     </div>
-                  </label>
+                  </div>
                 );
               })}
             </div>
@@ -338,7 +341,7 @@ export default function NewProjectModal({
             >
               {eligibleLeads.map((lead) => (
                 <option key={lead.id} value={lead.id}>
-                  {lead.id === currentUser.id ? `${lead.fullName} (You)` : lead.fullName} — {lead.jobTitle}
+                  {lead.id === currentUser.id ? `${lead.fullName} (You)` : lead.fullName} — {lead.department}
                 </option>
               ))}
             </select>

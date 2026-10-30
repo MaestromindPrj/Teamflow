@@ -164,11 +164,8 @@ function ProjectManagerDetailContent() {
                     ID: {pm.employeeId}
                   </span>
                 </div>
-                <p className="text-[13px] text-slate-600 font-medium mt-0.5">
-                  {pm.jobTitle} &bull; {pm.department}
-                </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {pm.email} &bull; {pm.phone} &bull; {pm.location}
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {pm.email} &bull; {pm.phone}
                 </p>
               </div>
             </div>
@@ -269,7 +266,7 @@ function ProjectManagerDetailContent() {
                   return (
                     <div
                       key={project.id}
-                      className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs hover:border-[#0084d4] transition-all space-y-4"
+                      className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs hover:border-[#0084d4] transition-all space-y-4 group"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                         <div className="space-y-1">
@@ -279,7 +276,7 @@ function ProjectManagerDetailContent() {
                             </span>
                             <h4
                               onClick={() => setSelectedProjectId(project.id)}
-                              className="text-[16px] font-bold text-slate-900 hover:text-[#0084d4] cursor-pointer transition-colors"
+                              className="text-[16px] font-bold text-slate-900 group-hover:text-[#0084d4] cursor-pointer transition-colors"
                             >
                               {project.name}
                             </h4>
@@ -296,10 +293,10 @@ function ProjectManagerDetailContent() {
 
                         <button
                           onClick={() => setSelectedProjectId(project.id)}
-                          className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12px] font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-auto"
+                          className="px-3.5 py-1.5 rounded-lg bg-slate-100 group-hover:bg-[#0084d4] group-hover:text-white hover:bg-[#0277bd] text-slate-700 text-[12px] font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-auto"
                         >
                           <span>Inspect Project Board</span>
-                          <ArrowUpRight className="w-3.5 h-3.5" />
+                          <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                         </button>
                       </div>
 
@@ -326,7 +323,7 @@ function ProjectManagerDetailContent() {
                                   </span>
                                 </div>
                                 <p className="text-[11px] text-slate-500 truncate">
-                                  {lead.jobTitle} &bull; {lead.department}
+                                  {lead.department}
                                 </p>
                                 <p className="text-[10px] text-slate-400">{lead.email}</p>
                               </div>
@@ -362,7 +359,7 @@ function ProjectManagerDetailContent() {
                                         {member.fullName}
                                       </p>
                                       <p className="text-[10px] text-slate-400 truncate">
-                                        {member.jobTitle}
+                                        {member.jobTitle || member.department}
                                       </p>
                                     </div>
                                   </div>
@@ -440,7 +437,7 @@ function ProjectManagerDetailContent() {
                         <h4 className="text-[13px] font-bold text-slate-900 truncate">
                           {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName}
                         </h4>
-                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{member.jobTitle}</p>
+                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{member.jobTitle || member.department}</p>
                         <p className="text-[10px] text-slate-400 truncate">{member.email}</p>
                       </div>
                     </div>

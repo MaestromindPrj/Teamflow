@@ -120,7 +120,7 @@ export default function EditTaskModal({ task, project, isOpen, onClose }: EditTa
             >
               {projectMembers.map((member) => (
                 <option key={member.id} value={member.id}>
-                  {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.jobTitle})
+                  {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.department})
                   {member.id === project.teamLeadId ? " — [Team Lead]" : ""}
                 </option>
               ))}

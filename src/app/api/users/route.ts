@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDbConfigured, initDatabase, getDb } from "@/lib/db";
 import { INITIAL_USERS, User } from "@/data/teamflowData";
+import { hashPassword, generateInitialPassword } from "@/lib/auth";
 
 export async function GET() {
   if (!isDbConfigured()) {
@@ -51,10 +52,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields (id, email, fullName)" }, { status: 400 });
     }
 
+    const initialPassword = body.password || body.initialPassword || generateInitialPassword();
+    const passwordHash = hashPassword(initialPassword);
+
     const sql = getDb();
     await sql`
-      INSERT INTO users (id, name, full_name, email, role, job_title, department, avatar, phone, location, employee_id)
-      VALUES (${id}, ${name || fullName.split(" ")[0]}, ${fullName}, ${email}, ${role || "employer"}, ${jobTitle || ""}, ${department || ""}, ${avatar || ""}, ${phone || ""}, ${location || ""}, ${employeeId || ""})
+      INSERT INTO users (id, name, full_name, email, role, job_title, department, avatar, phone, location, employee_id, password_hash, initial_password)
+      VALUES (${id}, ${name || fullName.split(" ")[0]}, ${fullName}, ${email}, ${role || "employer"}, ${jobTitle || ""}, ${department || ""}, ${avatar || ""}, ${phone || ""}, ${location || ""}, ${employeeId || ""}, ${passwordHash}, ${initialPassword})
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         full_name = EXCLUDED.full_name,
@@ -65,10 +69,16 @@ export async function POST(req: NextRequest) {
         avatar = EXCLUDED.avatar,
         phone = EXCLUDED.phone,
         location = EXCLUDED.location,
-        employee_id = EXCLUDED.employee_id;
+        employee_id = EXCLUDED.employee_id,
+        password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash),
+        initial_password = COALESCE(users.initial_password, EXCLUDED.initial_password);
     `;
 
-    return NextResponse.json({ success: true, user: body });
+    return NextResponse.json({
+      success: true,
+      user: body,
+      initialPassword,
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to create/update user";
     return NextResponse.json({ error: message }, { status: 500 });

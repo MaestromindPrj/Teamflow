@@ -169,7 +169,7 @@ export default function MediaHubPage() {
 
                 <button
                   onClick={() => setIsUploadModalOpen(true)}
-                  className="px-3.5 py-1.5 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                  className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
                   <UploadCloud className="w-4 h-4" />
                   <span>Upload Asset</span>
