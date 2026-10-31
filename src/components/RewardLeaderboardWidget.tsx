@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trophy, ArrowRight, Sparkles } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { computeLeaderboard } from "@/lib/rewards";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function RewardLeaderboardWidget() {
   const router = useRouter();
@@ -119,10 +120,11 @@ export default function RewardLeaderboardWidget() {
 
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2.5">
-                      <img
+                      <UserAvatar
                         src={user.avatar}
-                        alt={user.name}
-                        className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
+                        name={user.name}
+                        className="w-7 h-7 rounded-full border border-slate-200 shrink-0"
+                        textClassName="text-[10px]"
                       />
                       <div className="flex items-center gap-1.5">
                         <span className="font-semibold text-slate-900 leading-tight">

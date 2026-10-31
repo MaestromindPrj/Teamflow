@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
       progress: Number(r.progress || 0),
       attachments: (r.attachments as Task["attachments"]) || [],
       activity: (r.activity as Task["activity"]) || [],
+      discussion: (r.discussion as Task["discussion"]) || [],
     }));
 
     return NextResponse.json({ tasks, source: "database" });
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {
@@ -109,9 +110,10 @@ export async function POST(req: NextRequest) {
     ];
 
     const sql = getDb();
+    const taskDiscussion = body.discussion || [];
     await sql`
       INSERT INTO tasks (
-        id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity
+        id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity, discussion
       )
       VALUES (
         ${id},
@@ -125,7 +127,8 @@ export async function POST(req: NextRequest) {
         ${deadline || ""},
         ${taskProgress},
         ${JSON.stringify(attachments || [])}::jsonb,
-        ${JSON.stringify(initialActivity)}::jsonb
+        ${JSON.stringify(initialActivity)}::jsonb,
+        ${JSON.stringify(taskDiscussion)}::jsonb
       )
       ON CONFLICT (id) DO UPDATE SET
         project_id = EXCLUDED.project_id,
@@ -138,7 +141,8 @@ export async function POST(req: NextRequest) {
         deadline = EXCLUDED.deadline,
         progress = EXCLUDED.progress,
         attachments = EXCLUDED.attachments,
-        activity = EXCLUDED.activity;
+        activity = EXCLUDED.activity,
+        discussion = COALESCE(EXCLUDED.discussion, tasks.discussion);
     `;
 
     const newTask: Task = {
@@ -154,6 +158,7 @@ export async function POST(req: NextRequest) {
       progress: taskProgress,
       attachments: attachments || [],
       activity: initialActivity,
+      discussion: taskDiscussion,
     };
 
     return NextResponse.json({ success: true, task: newTask }, { status: 201 });

@@ -23,6 +23,7 @@ import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { computeUserRewards } from "@/lib/rewards";
 import AwardPointsModal from "@/components/AwardPointsModal";
+import UserAvatar from "@/components/UserAvatar";
 
 function StaffRewardDetailContent() {
   const params = useParams();
@@ -221,10 +222,12 @@ function StaffRewardDetailContent() {
         <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-4">
-              <img
+              <UserAvatar
                 src={targetUser.avatar}
-                alt={targetUser.fullName}
-                className="w-16 h-16 rounded-full object-cover border-2 border-slate-200 shrink-0"
+                name={targetUser.fullName}
+                role={targetUser.role}
+                className="w-16 h-16 rounded-full border-2 border-slate-200 shrink-0"
+                textClassName="text-[18px]"
               />
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -246,7 +249,7 @@ function StaffRewardDetailContent() {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  {targetUser.email} &bull; {targetUser.phone}
+                  {targetUser.email}{targetUser.phone?.trim() ? ` \u2022 ${targetUser.phone}` : ""}
                 </p>
               </div>
             </div>

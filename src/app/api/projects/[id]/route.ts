@@ -9,7 +9,7 @@ export async function GET(
   const { id } = await context.params;
 
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {
@@ -57,7 +57,7 @@ export async function PUT(
   const { id } = await context.params;
 
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {
@@ -65,7 +65,6 @@ export async function PUT(
     const updates = await req.json();
     const sql = getDb();
 
-    // Fetch existing
     const existing = await sql`SELECT * FROM projects WHERE id = ${id} LIMIT 1;`;
     if (existing.length === 0) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
@@ -115,13 +114,12 @@ export async function DELETE(
   const { id } = await context.params;
 
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {
     await initDatabase();
     const sql = getDb();
-    // Delete project and related tasks
     await sql`DELETE FROM tasks WHERE project_id = ${id};`;
     await sql`DELETE FROM projects WHERE id = ${id};`;
 

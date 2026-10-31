@@ -13,6 +13,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +114,13 @@ export default function LoginPage() {
                 <label className="block text-[12px] font-semibold text-slate-700">
                   Password
                 </label>
+                <button
+                  type="button"
+                  onClick={() => setIsForgotModalOpen(true)}
+                  className="text-[11px] font-semibold text-[#0084d4] hover:text-[#0277bd] transition-colors cursor-pointer"
+                >
+                  Forgot password?
+                </button>
               </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -150,7 +159,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick Demo Login Helpers */}
           <div className="pt-4 border-t border-slate-100 space-y-2.5">
             <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
               <span className="flex items-center gap-1.5">
@@ -203,6 +211,12 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      <ForgotPasswordModal
+        isOpen={isForgotModalOpen}
+        onClose={() => setIsForgotModalOpen(false)}
+        initialEmail={email}
+      />
     </div>
   );
 }

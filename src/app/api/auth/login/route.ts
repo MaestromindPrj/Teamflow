@@ -15,7 +15,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Support both username (e.g. "elena") and full email ("elena.rostova@maestrominds.co.in")
     const normalizedEmail = rawEmail.includes("@")
       ? rawEmail
       : `${rawEmail}@maestrominds.co.in`;
@@ -23,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     if (!isDbConfigured()) {
       return NextResponse.json(
-        { error: "Database is not configured." },
+        { error: "Authentication service is currently unavailable. Please try again later." },
         { status: 500 }
       );
     }
@@ -31,9 +30,8 @@ export async function POST(req: NextRequest) {
     await initDatabase();
     const sql = getDb();
 
-    // Query user by email or username prefix
     const rows = await sql`
-      SELECT id, name, full_name, email, role, job_title, department, avatar, phone, location, employee_id, password_hash, initial_password
+      SELECT id, name, full_name, email, role, job_title, department, avatar, phone, employee_id, bio, password_hash, initial_password
       FROM users
       WHERE LOWER(email) = LOWER(${normalizedEmail})
          OR LOWER(split_part(email, '@', 1)) = LOWER(${usernamePrefix})
@@ -62,7 +60,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate signed session token
     const token = signSessionToken(dbUser.id as string);
 
     const userProfile = {
@@ -75,8 +72,8 @@ export async function POST(req: NextRequest) {
       department: dbUser.department as string,
       avatar: dbUser.avatar as string,
       phone: dbUser.phone as string,
-      location: dbUser.location as string,
       employeeId: dbUser.employee_id as string,
+      bio: (dbUser.bio as string) || undefined,
     };
 
     const response = NextResponse.json({
@@ -84,12 +81,11 @@ export async function POST(req: NextRequest) {
       user: userProfile,
     });
 
-    // Set HTTP-only session cookie
     response.cookies.set("teamflow_session", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7, 
       sameSite: "lax",
     });
 

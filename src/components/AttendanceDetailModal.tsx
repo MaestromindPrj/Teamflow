@@ -18,6 +18,7 @@ import {
 import { useTeamFlow, getLocalDateString } from "@/context/TeamFlowContext";
 import { StatusBadge } from "@/components/Badges";
 import { AttendanceRecord } from "@/data/teamflowData";
+import UserAvatar from "@/components/UserAvatar";
 
 interface AttendanceDetailModalProps {
   record: AttendanceRecord | null;
@@ -47,7 +48,6 @@ export default function AttendanceDetailModal({
   const staffUser = users.find((u) => u.id === record.userId);
   const clockState = userClockInData[record.userId];
 
-  // ONLY today's record can be "Working Now"
   const isWorkingNow = isToday && (clockState ? clockState.isClockedIn : record.clockOut === "—" && record.status !== "Leave");
 
   const checkInTime = isToday && (clockState?.isClockedIn || clockState?.clockInTimeString)
@@ -86,7 +86,6 @@ export default function AttendanceDetailModal({
       "0"
     )}m ${String(s).padStart(2, "0")}s`;
   } else {
-    // Historical records preserve their exact logged duration
     liveDurationStr = record.duration;
   }
 
@@ -138,17 +137,13 @@ export default function AttendanceDetailModal({
 
         <div className="p-6 overflow-y-auto space-y-5">
           <div className="flex items-center gap-4 bg-slate-50/80 p-4 rounded-lg border border-slate-100">
-            {staffUser?.avatar ? (
-              <img
-                src={staffUser.avatar}
-                alt={record.userName}
-                className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-2xs shrink-0"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700 text-[16px] shrink-0">
-                {record.userName.substring(0, 2)}
-              </div>
-            )}
+            <UserAvatar
+              src={staffUser?.avatar}
+              name={record.userName}
+              role={staffUser?.role || record.userRole}
+              className="w-14 h-14 rounded-full border-2 border-white shadow-2xs shrink-0"
+              textClassName="text-[16px]"
+            />
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-wrap">

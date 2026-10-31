@@ -82,7 +82,6 @@ export default function CreateDepartmentModal({
         onClick={(e) => e.stopPropagation()}
         className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150"
       >
-        {/* Modal Header */}
         <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100">
@@ -106,7 +105,6 @@ export default function CreateDepartmentModal({
           </button>
         </div>
 
-        {/* Modal Body */}
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">
             {errorMessage && (
@@ -135,7 +133,6 @@ export default function CreateDepartmentModal({
             </div>
           </div>
 
-          {/* Modal Footer */}
           <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
             <button
               type="button"

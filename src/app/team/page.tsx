@@ -20,21 +20,26 @@ import {
   Clock,
   Layers,
   Sparkles,
-  UserPlus
+  UserPlus,
+  Trash2
 } from "lucide-react";
 import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
+import { User } from "@/data/teamflowData";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import CreateMemberModal from "@/components/CreateMemberModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
+import UserAvatar from "@/components/UserAvatar";
 
 function TeamDirectoryContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
 
-  const { users, projects, tasks, currentUser } = useTeamFlow();
+  const { users, projects, tasks, currentUser, deleteUser } = useTeamFlow();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"project_managers" | "employers">("project_managers");
 
@@ -245,10 +250,12 @@ function TeamDirectoryContent() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <img
+                          <UserAvatar
                             src={pm.avatar}
-                            alt={pm.fullName}
-                            className="w-12 h-12 rounded-full object-cover border-2 border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
+                            name={pm.fullName}
+                            role={pm.role}
+                            className="w-12 h-12 rounded-full border-2 border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
+                            textClassName="text-[14px]"
                           />
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -353,10 +360,12 @@ function TeamDirectoryContent() {
                   >
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <img
+                        <UserAvatar
                           src={emp.avatar}
-                          alt={emp.fullName}
-                          className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0"
+                          name={emp.fullName}
+                          role={emp.role}
+                          className="w-12 h-12 rounded-full border border-slate-200 shrink-0"
+                          textClassName="text-[14px]"
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -423,6 +432,17 @@ function TeamDirectoryContent() {
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                       <span>ID: {emp.employeeId}</span>
+                      {isCeo && emp.id !== currentUser.id && (
+                        <button
+                          type="button"
+                          onClick={() => setDeletingUser(emp)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 font-medium"
+                          title="Remove team member"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Remove</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -441,6 +461,44 @@ function TeamDirectoryContent() {
         isOpen={isAddMemberOpen}
         onClose={() => setIsAddMemberOpen(false)}
       />
+
+      {deletingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-100">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <div className="text-center space-y-1">
+              <h3 className="text-[15px] font-bold text-slate-900">Remove Team Member?</h3>
+              <p className="text-[12px] text-slate-500">
+                Are you sure you want to remove <strong>{deletingUser.fullName}</strong> ({deletingUser.email}) from the organization? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingUser(null)}
+                className="h-9 px-4 rounded-lg text-[12px] font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={async () => {
+                  setIsDeleting(true);
+                  await deleteUser(deletingUser.id);
+                  setIsDeleting(false);
+                  setDeletingUser(null);
+                }}
+                className="h-9 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[12px] font-semibold transition-colors shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+              >
+                {isDeleting ? "Removing..." : "Confirm Removal"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

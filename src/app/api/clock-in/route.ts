@@ -96,7 +96,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {

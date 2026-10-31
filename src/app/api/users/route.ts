@@ -12,7 +12,7 @@ export async function GET() {
     await initDatabase();
     const sql = getDb();
     const rows = await sql`
-      SELECT id, name, full_name, email, role, job_title, department, avatar, phone, location, employee_id
+      SELECT id, name, full_name, email, role, job_title, department, avatar, phone, employee_id, bio
       FROM users
       ORDER BY id ASC;
     `;
@@ -27,8 +27,8 @@ export async function GET() {
       department: r.department as string,
       avatar: r.avatar as string,
       phone: r.phone as string,
-      location: r.location as string,
       employeeId: r.employee_id as string,
+      bio: (r.bio as string) || undefined,
     }));
 
     return NextResponse.json({ users, source: "database" });
@@ -40,13 +40,13 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {
     await initDatabase();
     const body = await req.json();
-    const { id, name, fullName, email, role, jobTitle, department, avatar, phone, location, employeeId } = body;
+    const { id, name, fullName, email, role, jobTitle, department, avatar, phone, employeeId, bio } = body;
 
     if (!id || !email || !fullName) {
       return NextResponse.json({ error: "Missing required fields (id, email, fullName)" }, { status: 400 });
@@ -57,8 +57,8 @@ export async function POST(req: NextRequest) {
 
     const sql = getDb();
     await sql`
-      INSERT INTO users (id, name, full_name, email, role, job_title, department, avatar, phone, location, employee_id, password_hash, initial_password)
-      VALUES (${id}, ${name || fullName.split(" ")[0]}, ${fullName}, ${email}, ${role || "employer"}, ${jobTitle || ""}, ${department || ""}, ${avatar || ""}, ${phone || ""}, ${location || ""}, ${employeeId || ""}, ${passwordHash}, ${initialPassword})
+      INSERT INTO users (id, name, full_name, email, role, job_title, department, avatar, phone, employee_id, bio, password_hash, initial_password)
+      VALUES (${id}, ${name || fullName.split(" ")[0]}, ${fullName}, ${email}, ${role || "employer"}, ${jobTitle || ""}, ${department || ""}, ${avatar || ""}, ${phone || ""}, ${employeeId || ""}, ${bio || null}, ${passwordHash}, ${initialPassword})
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         full_name = EXCLUDED.full_name,
@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
         department = EXCLUDED.department,
         avatar = EXCLUDED.avatar,
         phone = EXCLUDED.phone,
-        location = EXCLUDED.location,
         employee_id = EXCLUDED.employee_id,
+        bio = COALESCE(EXCLUDED.bio, users.bio),
         password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash),
         initial_password = COALESCE(users.initial_password, EXCLUDED.initial_password);
     `;
@@ -81,6 +81,34 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to create/update user";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  if (!isDbConfigured()) {
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
+  }
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("id");
+
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+    }
+
+    if (userId === "u-ceo-1") {
+      return NextResponse.json({ error: "The primary CEO account cannot be deleted." }, { status: 403 });
+    }
+
+    await initDatabase();
+    const sql = getDb();
+    await sql`DELETE FROM users WHERE id = ${userId};`;
+
+    return NextResponse.json({ success: true, message: "User deleted successfully." });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to delete user";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

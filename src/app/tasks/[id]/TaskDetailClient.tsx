@@ -17,6 +17,7 @@ import Header from "@/components/Header";
 import { TaskItem } from "@/data/mockData";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import UserAvatar from "@/components/UserAvatar";
 
 function FigmaIcon({ className }: { className?: string }) {
   return (
@@ -168,15 +169,12 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
               <div className="space-y-4 pt-1">
                 {comments.map((comment) => (
                   <div key={comment.id} className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0 mt-0.5">
-                      <img
-                        src={comment.avatar}
-                        alt={comment.author}
-                        width={28}
-                        height={28}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    <UserAvatar
+                      src={comment.avatar}
+                      name={comment.author}
+                      className="w-7 h-7 rounded-full border border-slate-200 shrink-0 mt-0.5"
+                      textClassName="text-[10px]"
+                    />
                     <div className="flex-1">
                       <div className="flex items-baseline gap-2">
                         <span className="text-[13px] font-medium text-slate-900">

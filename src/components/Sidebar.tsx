@@ -39,7 +39,6 @@ export default function Sidebar() {
     return null;
   }
 
-  // Use initial server default values during SSR and initial hydration pass
   const role = mounted ? currentUser.role : "ceo";
   const isCeoOrPm = role === "ceo" || role === "project_manager";
 

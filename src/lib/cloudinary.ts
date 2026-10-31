@@ -1,6 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
 
-// Initialize Cloudinary config
 function configureCloudinary() {
   const cloudinaryUrl = process.env.CLOUDINARY_URL;
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
@@ -47,9 +46,6 @@ export interface CloudinaryUploadResult {
   original_filename?: string;
 }
 
-/**
- * Uploads a file buffer directly to Cloudinary (documents, images, zip, etc.)
- */
 export async function uploadToCloudinary(
   buffer: Buffer,
   options: {
@@ -62,18 +58,16 @@ export async function uploadToCloudinary(
   const configured = configureCloudinary();
   if (!configured) {
     throw new Error(
-      "Cloudinary credentials are not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET (or CLOUDINARY_URL) in your environment variables."
+      "Database credentials are not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET (or CLOUDINARY_URL) in your environment variables."
     );
   }
 
-  // Determine resource type: images get "image", documents/pdf/zips get "raw" or "auto"
   let resourceType: "image" | "raw" | "auto" | "video" = options.resourceType || "auto";
   if (!options.resourceType && options.mimeType) {
     if (options.mimeType.startsWith("image/")) {
       resourceType = "image";
     } else {
-      // For PDFs, ZIPs, DOCs, Figma files, raw ensures they are stored intact with original bytes
-      resourceType = "auto";
+      resourceType = "raw";
     }
   }
 

@@ -8,8 +8,8 @@ export interface User {
   department: string;
   avatar: string;
   phone: string;
-  location: string;
   employeeId: string;
+  bio?: string;
 }
 
 export interface TaskAttachment {
@@ -43,6 +43,7 @@ export interface Task {
   progress: number;
   attachments: TaskAttachment[];
   activity: TaskActivityItem[];
+  discussion?: Array<{ id: string; author: string; avatar: string; timeAgo: string; message: string }>;
 }
 
 export interface Project {
@@ -85,7 +86,6 @@ export const INITIAL_USERS: User[] = [
     department: "Executive Leadership",
     avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
     phone: "+1 (555) 234-9811",
-    location: "Global HQ - Executive Suite",
     employeeId: "TF-CEO-001"
   },
   {
@@ -98,7 +98,6 @@ export const INITIAL_USERS: User[] = [
     department: "Project Manager",
     avatar: "/avatars/marcus.jpg",
     phone: "+1 (555) 438-1209",
-    location: "San Francisco Engineering Hub",
     employeeId: "TF-PM-101"
   },
   {
@@ -111,7 +110,6 @@ export const INITIAL_USERS: User[] = [
     department: "Project Manager",
     avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
     phone: "+1 (555) 782-3401",
-    location: "New York Innovation Center",
     employeeId: "TF-PM-102"
   },
   {
@@ -124,7 +122,6 @@ export const INITIAL_USERS: User[] = [
     department: "UI/UX Designer",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
     phone: "+1 (555) 890-4412",
-    location: "San Francisco Tech Hub",
     employeeId: "TF-EMP-201"
   },
   {
@@ -137,7 +134,6 @@ export const INITIAL_USERS: User[] = [
     department: "Software Developer",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
     phone: "+1 (555) 912-8834",
-    location: "Austin Tech Center",
     employeeId: "TF-EMP-202"
   },
   {
@@ -150,7 +146,6 @@ export const INITIAL_USERS: User[] = [
     department: "AI Engineer",
     avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
     phone: "+1 (555) 674-1928",
-    location: "Seattle Development Campus",
     employeeId: "TF-EMP-203"
   },
   {
@@ -163,7 +158,6 @@ export const INITIAL_USERS: User[] = [
     department: "Junior Software Developer",
     avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
     phone: "+1 (555) 321-7788",
-    location: "Chicago Regional Office",
     employeeId: "TF-EMP-204"
   },
   {
@@ -176,7 +170,6 @@ export const INITIAL_USERS: User[] = [
     department: "UI/UX Designer",
     avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80",
     phone: "+1 (555) 443-8821",
-    location: "San Francisco Tech Hub",
     employeeId: "TF-EMP-205"
   }
 ];

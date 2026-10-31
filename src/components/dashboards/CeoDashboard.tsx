@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
+import UserAvatar from "@/components/UserAvatar";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import NewProjectModal from "@/components/NewProjectModal";
 import RewardLeaderboardWidget from "@/components/RewardLeaderboardWidget";
@@ -163,10 +164,12 @@ export default function CeoDashboard() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200/70">
                   <div className="flex items-center gap-3.5">
-                    <img
+                    <UserAvatar
                       src={pm.avatar}
-                      alt={pm.fullName}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-purple-300 shrink-0"
+                      name={pm.fullName}
+                      role={pm.role}
+                      className="w-12 h-12 rounded-full border-2 border-purple-300 shrink-0"
+                      textClassName="text-[14px]"
                     />
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -256,10 +259,12 @@ export default function CeoDashboard() {
                               </span>
                               {lead ? (
                                 <div className="flex items-center gap-2.5 bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
-                                  <img
+                                  <UserAvatar
                                     src={lead.avatar}
-                                    alt={lead.fullName}
-                                    className="w-8 h-8 rounded-full object-cover border border-[#ffa500] shrink-0"
+                                    name={lead.fullName}
+                                    role={lead.role}
+                                    className="w-8 h-8 rounded-full border border-[#ffa500] shrink-0"
+                                    textClassName="text-[11px]"
                                   />
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-1.5">
@@ -289,10 +294,11 @@ export default function CeoDashboard() {
                                     className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-md border border-slate-200 shadow-2xs"
                                     title={`${member.fullName} (${member.jobTitle || member.department})`}
                                   >
-                                    <img
+                                    <UserAvatar
                                       src={member.avatar}
-                                      alt={member.fullName}
-                                      className="w-5 h-5 rounded-full object-cover"
+                                      name={member.fullName}
+                                      role={member.role}
+                                      className="w-5 h-5 rounded-full"
                                     />
                                     <span className="text-[11px] font-medium text-slate-800">
                                       {member.fullName}
@@ -392,7 +398,7 @@ export default function CeoDashboard() {
                     <td className="py-3.5 px-3">
                       {pm && (
                         <div className="flex items-center gap-1.5">
-                          <img src={pm.avatar} alt={pm.name} className="w-5 h-5 rounded-full object-cover" />
+                          <UserAvatar src={pm.avatar} name={pm.name} role={pm.role} className="w-5 h-5 rounded-full" />
                           <span className="text-[12px] font-medium text-slate-800">{pm.fullName}</span>
                         </div>
                       )}
@@ -412,12 +418,13 @@ export default function CeoDashboard() {
                     <td className="py-3.5 px-3">
                       <div className="flex items-center -space-x-1.5">
                         {members.slice(0, 4).map((m) => (
-                          <img
+                          <UserAvatar
                             key={m.id}
                             src={m.avatar}
-                            alt={m.name}
+                            name={m.name}
+                            role={m.role}
                             title={m.fullName}
-                            className="w-6 h-6 rounded-full border-2 border-white object-cover"
+                            className="w-6 h-6 rounded-full border-2 border-white"
                           />
                         ))}
                         {members.length > 4 && (

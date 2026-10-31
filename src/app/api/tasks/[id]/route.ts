@@ -9,14 +9,14 @@ export async function GET(
   const { id } = await context.params;
 
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {
     await initDatabase();
     const sql = getDb();
     const rows = await sql`
-      SELECT id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity
+      SELECT id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity, discussion
       FROM tasks
       WHERE id = ${id}
       LIMIT 1;
@@ -40,6 +40,7 @@ export async function GET(
       progress: Number(r.progress || 0),
       attachments: (r.attachments as Task["attachments"]) || [],
       activity: (r.activity as Task["activity"]) || [],
+      discussion: (r.discussion as Task["discussion"]) || [],
     };
 
     return NextResponse.json({ task });
@@ -56,7 +57,7 @@ export async function PUT(
   const { id } = await context.params;
 
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {
@@ -83,8 +84,8 @@ export async function PUT(
 
     let attachments = updates.attachments !== undefined ? updates.attachments : current.attachments;
     let activity = updates.activity !== undefined ? updates.activity : current.activity;
+    let discussion = updates.discussion !== undefined ? updates.discussion : (current.discussion || []);
 
-    // If status changed and no explicit activity provided, append activity item
     if (updates.status && updates.status !== current.status && !updates.activity) {
       const newAct = {
         id: `act-${Date.now()}`,
@@ -106,7 +107,8 @@ export async function PUT(
         deadline = ${deadline},
         progress = ${progress},
         attachments = ${JSON.stringify(attachments || [])}::jsonb,
-        activity = ${JSON.stringify(activity || [])}::jsonb
+        activity = ${JSON.stringify(activity || [])}::jsonb,
+        discussion = ${JSON.stringify(discussion || [])}::jsonb
       WHERE id = ${id};
     `;
 
@@ -124,7 +126,7 @@ export async function DELETE(
   const { id } = await context.params;
 
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {

@@ -23,6 +23,7 @@ import { useTeamFlow } from "@/context/TeamFlowContext";
 import { computeUserRewards, computeLeaderboard, DynamicRewardProfile } from "@/lib/rewards";
 import InPageSubTabs from "@/components/InPageSubTabs";
 import AwardPointsModal from "@/components/AwardPointsModal";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function RewardsPage() {
   const router = useRouter();
@@ -185,10 +186,12 @@ export default function RewardsPage() {
                         </td>
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2.5">
-                            <img
+                            <UserAvatar
                               src={user.avatar}
-                              alt={user.name}
-                              className="w-7 h-7 rounded-full object-cover border border-slate-200"
+                              name={user.name}
+                              role={user.role === "Project Manager" ? "project_manager" : "employer"}
+                              className="w-7 h-7 rounded-full border border-slate-200"
+                              textClassName="text-[10px]"
                             />
                             <span className="font-semibold text-slate-900">{user.name}</span>
                           </div>
@@ -271,10 +274,12 @@ export default function RewardsPage() {
                       className="bg-white border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50 p-3.5 rounded-lg transition-all shadow-2xs flex flex-col justify-between space-y-3"
                     >
                       <div className="flex items-start gap-2.5">
-                        <img
+                        <UserAvatar
                           src={user.avatar}
-                          alt={user.fullName}
-                          className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                          name={user.fullName}
+                          role={user.role}
+                          className="w-10 h-10 rounded-full border border-slate-200 shrink-0"
+                          textClassName="text-[12px]"
                         />
                         <div className="min-w-0 flex-1">
                           <h3 className="text-[13px] font-bold text-slate-900 truncate">
@@ -459,10 +464,12 @@ export default function RewardsPage() {
                             className="bg-white border border-slate-200/90 hover:border-[#0084d4] p-4 rounded-lg transition-all shadow-2xs flex flex-col justify-between space-y-3 group"
                           >
                             <div className="flex items-start gap-3">
-                              <img
+                              <UserAvatar
                                 src={emp.avatar}
-                                alt={emp.fullName}
-                                className="w-11 h-11 rounded-full object-cover border border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
+                                name={emp.fullName}
+                                role={emp.role}
+                                className="w-11 h-11 rounded-full border border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
+                                textClassName="text-[13px]"
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -594,13 +601,12 @@ export default function RewardsPage() {
                           >
                             {user.rank}
                           </span>
-                          <div className="w-6 h-6 rounded-full overflow-hidden bg-slate-200 shrink-0 border border-white/40">
-                            <img
-                              src={user.avatar}
-                              alt={user.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
+                          <UserAvatar
+                            src={user.avatar}
+                            name={user.name}
+                            className="w-6 h-6 rounded-full border border-white/40 shrink-0"
+                            textClassName="text-[9px]"
+                          />
                           <span className="truncate text-[13px]">
                             {isCurrent ? `${user.name} (You)` : user.name}
                           </span>

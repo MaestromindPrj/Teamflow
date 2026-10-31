@@ -29,6 +29,7 @@ import EditTaskModal from "@/components/EditTaskModal";
 import UploadMediaModal from "@/components/UploadMediaModal";
 import UploadProjectMediaModal from "@/components/UploadProjectMediaModal";
 import AddTeamMemberModal from "@/components/AddTeamMemberModal";
+import UserAvatar from "@/components/UserAvatar";
 import InPageSubTabs from "@/components/InPageSubTabs";
 
 interface ProjectDetailModalProps {
@@ -397,10 +398,12 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                             <span className="text-slate-400 text-[11px]">Assigned to:</span>
                             {assignee ? (
                               <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200/80">
-                                <img
+                                <UserAvatar
                                   src={assignee.avatar}
-                                  alt={assignee.name}
-                                  className="w-4.5 h-4.5 rounded-full object-cover"
+                                  name={assignee.name}
+                                  role={assignee.role}
+                                  className="w-4.5 h-4.5 rounded-full"
+                                  textClassName="text-[8px]"
                                 />
                                 <span className="text-[11px] font-semibold text-slate-800">
                                   {isAssignee ? `${assignee.fullName} (You)` : assignee.fullName}
@@ -547,10 +550,11 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {projectManager && (
                   <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
-                    <img
+                    <UserAvatar
                       src={projectManager.avatar}
-                      alt={projectManager.fullName}
-                      className="w-10 h-10 rounded-full object-cover border border-blue-300"
+                      name={projectManager.fullName}
+                      role={projectManager.role}
+                      className="w-10 h-10 rounded-full border border-blue-300"
                     />
                     <div>
                       <div className="flex items-center gap-1.5">
@@ -569,10 +573,11 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
 
                 {teamLead && (
                   <div className="bg-[#ffa500]/15 border border-[#ffa500]/30 rounded-lg p-4 flex items-center gap-3">
-                    <img
+                    <UserAvatar
                       src={teamLead.avatar}
-                      alt={teamLead.fullName}
-                      className="w-10 h-10 rounded-full object-cover border border-[#ffa500]"
+                      name={teamLead.fullName}
+                      role={teamLead.role}
+                      className="w-10 h-10 rounded-full border border-[#ffa500]"
                     />
                     <div>
                       <div className="flex items-center gap-1.5">
@@ -605,10 +610,11 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                         className="bg-white border border-slate-200/90 rounded-lg p-3 flex items-center justify-between"
                       >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                          <img
+                          <UserAvatar
                             src={member.avatar}
-                            alt={member.fullName}
-                            className="w-8 h-8 rounded-full object-cover"
+                            name={member.fullName}
+                            role={member.role}
+                            className="w-8 h-8 rounded-full"
                           />
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">

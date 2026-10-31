@@ -22,6 +22,7 @@ import { useTeamFlow } from "@/context/TeamFlowContext";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
+import UserAvatar from "@/components/UserAvatar";
 
 function ProjectManagerDetailContent() {
   const params = useParams();
@@ -147,10 +148,12 @@ function ProjectManagerDetailContent() {
         <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 bg-slate-50/70 p-4 rounded-lg">
             <div className="flex items-center gap-4">
-              <img
+              <UserAvatar
                 src={pm.avatar}
-                alt={pm.fullName}
-                className="w-16 h-16 rounded-full object-cover border-2 border-purple-400 shrink-0"
+                name={pm.fullName}
+                role={pm.role}
+                className="w-16 h-16 rounded-full border-2 border-purple-400 shrink-0"
+                textClassName="text-[18px]"
               />
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -165,7 +168,7 @@ function ProjectManagerDetailContent() {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  {pm.email} &bull; {pm.phone}
+                  {pm.email}{pm.phone?.trim() ? ` \u2022 ${pm.phone}` : ""}
                 </p>
               </div>
             </div>
@@ -307,10 +310,11 @@ function ProjectManagerDetailContent() {
                           </span>
                           {lead ? (
                             <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
-                              <img
+                              <UserAvatar
                                 src={lead.avatar}
-                                alt={lead.fullName}
-                                className="w-10 h-10 rounded-full object-cover border border-[#ffa500] shrink-0"
+                                name={lead.fullName}
+                                role={lead.role}
+                                className="w-10 h-10 rounded-full border border-[#ffa500] shrink-0"
                               />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
@@ -349,10 +353,11 @@ function ProjectManagerDetailContent() {
                                   className="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs"
                                 >
                                   <div className="flex items-center gap-2 min-w-0 pr-2">
-                                    <img
+                                    <UserAvatar
                                       src={member.avatar}
-                                      alt={member.fullName}
-                                      className="w-6 h-6 rounded-full object-cover shrink-0"
+                                      name={member.fullName}
+                                      role={member.role}
+                                      className="w-6 h-6 rounded-full shrink-0"
                                     />
                                     <div className="min-w-0">
                                       <p className="text-[12px] font-semibold text-slate-900 truncate leading-tight">
@@ -428,10 +433,11 @@ function ProjectManagerDetailContent() {
                     className="bg-white border border-slate-200/90 p-4 rounded-lg shadow-2xs hover:border-[#0084d4] transition-all space-y-3"
                   >
                     <div className="flex items-start gap-3">
-                      <img
+                      <UserAvatar
                         src={member.avatar}
-                        alt={member.fullName}
-                        className="w-11 h-11 rounded-full object-cover border border-slate-200 shrink-0"
+                        name={member.fullName}
+                        role={member.role}
+                        className="w-11 h-11 rounded-full border border-slate-200 shrink-0"
                       />
                       <div className="min-w-0 flex-1">
                         <h4 className="text-[13px] font-bold text-slate-900 truncate">
@@ -495,7 +501,12 @@ function ProjectManagerDetailContent() {
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
                             {assignee && (
-                              <img src={assignee.avatar} alt={assignee.fullName} className="w-5 h-5 rounded-full object-cover" />
+                              <UserAvatar
+                                src={assignee.avatar}
+                                name={assignee.fullName}
+                                role={assignee.role}
+                                className="w-5 h-5 rounded-full"
+                              />
                             )}
                             <span className="text-[12px] text-slate-700">{assignee?.fullName || "Unassigned"}</span>
                           </div>

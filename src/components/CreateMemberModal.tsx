@@ -47,7 +47,6 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
 
-  // Success summary screen state
   const [createdCredentials, setCreatedCredentials] = useState<{
     name: string;
     email: string;
@@ -108,18 +107,20 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
     setErrorMessage("");
 
     const trimmedName = fullName.trim();
-    const cleanUser = emailUsername.trim().toLowerCase().replace(/@.*$/, "");
+    const rawEmailInput = emailUsername.trim().toLowerCase();
 
     if (!trimmedName) {
       setErrorMessage("Please provide the full name.");
       return;
     }
-    if (!cleanUser) {
-      setErrorMessage("Please enter an email username prefix.");
+    if (!rawEmailInput) {
+      setErrorMessage("Please enter an email address or username.");
       return;
     }
 
-    const companyEmail = `${cleanUser}@maestrominds.co.in`;
+    const companyEmail = rawEmailInput.includes("@")
+      ? rawEmailInput
+      : `${rawEmailInput}@maestrominds.co.in`;
     const passwordToUse = initialPassword.trim() || generateInitialPassword();
 
     setIsSubmitting(true);
@@ -150,7 +151,6 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
-        {/* Modal Header */}
         <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100">
@@ -175,7 +175,6 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
         </div>
 
         {createdCredentials ? (
-          /* Credentials Successfully Created Screen */
           <div className="p-6 space-y-5">
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
@@ -233,7 +232,6 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
             </div>
           </div>
         ) : (
-          /* Input Form */
           <form onSubmit={handleSubmit} className="p-6 space-y-4 text-[13px]">
             {errorMessage && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-[12px] text-red-700 flex items-center gap-2">
@@ -242,7 +240,6 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
               </div>
             )}
 
-            {/* Role Choice */}
             <div>
               <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
                 Role Type *
@@ -276,7 +273,6 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
               </div>
             </div>
 
-            {/* Full Name */}
             <div>
               <label className="block text-[12px] font-semibold text-slate-700 mb-1">
                 Full Name *
@@ -291,35 +287,35 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
               />
             </div>
 
-            {/* Email with company domain */}
             <div>
               <label className="block text-[12px] font-semibold text-slate-700 mb-1">
                 Work Email Address *
               </label>
-              <div className="flex items-center rounded-lg border border-slate-200 bg-white overflow-hidden focus-within:border-[#0084d4] shadow-2xs">
-                <input
-                  type="text"
-                  required
-                  value={emailUsername}
-                  onChange={(e) => setEmailUsername(e.target.value)}
-                  placeholder="username"
-                  className="w-full px-3 py-2 text-[13px] bg-white text-slate-900 focus:outline-hidden"
-                />
-                <span className="px-3 py-2 bg-slate-50 border-l border-slate-200 text-slate-500 text-[12px] font-medium shrink-0 select-none">
-                  @maestrominds.co.in
-                </span>
-              </div>
+              <input
+                type="text"
+                required
+                value={emailUsername}
+                onChange={(e) => setEmailUsername(e.target.value)}
+                placeholder="e.g. employee@gmail.com or username"
+                className="w-full px-3.5 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900 shadow-2xs"
+              />
               <p className="text-[11px] text-slate-400 mt-1">
-                Assigned login identity:{" "}
-                <span className="font-mono text-slate-600">
+                Assigned login email:{" "}
+                <span className="font-mono text-slate-600 font-semibold">
                   {emailUsername.trim()
-                    ? `${emailUsername.trim().toLowerCase().replace(/@.*$/, "")}@maestrominds.co.in`
+                    ? emailUsername.trim().toLowerCase().includes("@")
+                      ? emailUsername.trim().toLowerCase()
+                      : `${emailUsername.trim().toLowerCase()}@maestrominds.co.in`
                     : "username@maestrominds.co.in"}
                 </span>
+                {!emailUsername.includes("@") && emailUsername.trim() && (
+                  <span className="text-slate-400 ml-1">
+                    (Tip: You can also enter a real email like @gmail.com)
+                  </span>
+                )}
               </p>
             </div>
 
-            {/* Department - only shown if Role is employer */}
             {role === "employer" ? (
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -347,7 +343,6 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
               </div>
             )}
 
-            {/* Initial Password (Option 1) */}
             <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[12px] font-semibold text-slate-800 flex items-center gap-1.5">

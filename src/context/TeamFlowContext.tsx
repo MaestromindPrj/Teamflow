@@ -118,6 +118,7 @@ interface TeamFlowContextType {
   currentUserClockIn: UserClockInState;
   setCurrentUserId: (id: string) => void;
   updateUserProfile: (updates: Partial<User>) => void;
+  deleteUser: (id: string) => Promise<boolean>;
   createProject: (projectData: {
     name: string;
     code?: string;
@@ -207,7 +208,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const [rewardsLedger, setRewardsLedger] = useState<RewardLedgerEntry[]>([]);
   const [hasHydrated, setHasHydrated] = useState(false);
 
-  // Initial local hydration from localStorage
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem("teamflow_current_user");
@@ -215,8 +215,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       const savedTasks = localStorage.getItem("teamflow_tasks");
       const savedAttendance = localStorage.getItem("teamflow_attendance");
 
-      const validUserIds = new Set(INITIAL_USERS.map((u) => u.id));
-      if (savedUser && validUserIds.has(savedUser)) {
+      if (savedUser) {
         setCurrentUserIdState(savedUser);
       } else {
         setCurrentUserIdState("u-ceo-1");
@@ -280,10 +279,9 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Fetch initial data from backend Neon PostgreSQL API
   const refreshFromBackend = useCallback(async () => {
     try {
-      const [usersRes, projectsRes, tasksRes, attendanceRes, clockInRes, deptsRes, rewardsRes] = await Promise.all([
+      const [usersRes, projectsRes, tasksRes, attendanceRes, clockInRes, deptsRes, rewardsRes, meRes] = await Promise.all([
         fetch("/api/users").catch(() => null),
         fetch("/api/projects").catch(() => null),
         fetch("/api/tasks").catch(() => null),
@@ -291,11 +289,12 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         fetch("/api/clock-in").catch(() => null),
         fetch("/api/departments").catch(() => null),
         fetch("/api/rewards").catch(() => null),
+        fetch("/api/auth/me").catch(() => null),
       ]);
 
       if (usersRes && usersRes.ok) {
         const data = await usersRes.json();
-        if (Array.isArray(data.users) && data.users.length > 0) {
+        if (Array.isArray(data.users)) {
           setUsers(data.users);
           try {
             localStorage.setItem("teamflow_users", JSON.stringify(data.users));
@@ -305,35 +304,35 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
       if (projectsRes && projectsRes.ok) {
         const data = await projectsRes.json();
-        if (Array.isArray(data.projects) && data.projects.length > 0) {
+        if (Array.isArray(data.projects)) {
           setProjects(data.projects);
         }
       }
 
       if (tasksRes && tasksRes.ok) {
         const data = await tasksRes.json();
-        if (Array.isArray(data.tasks) && data.tasks.length > 0) {
+        if (Array.isArray(data.tasks)) {
           setTasks(data.tasks);
         }
       }
 
       if (attendanceRes && attendanceRes.ok) {
         const data = await attendanceRes.json();
-        if (Array.isArray(data.attendance) && data.attendance.length > 0) {
+        if (Array.isArray(data.attendance)) {
           setAttendance(data.attendance);
         }
       }
 
       if (clockInRes && clockInRes.ok) {
         const data = await clockInRes.json();
-        if (data.clockInData && Object.keys(data.clockInData).length > 0) {
+        if (data.clockInData) {
           setUserClockInData(data.clockInData);
         }
       }
 
       if (deptsRes && deptsRes.ok) {
         const data = await deptsRes.json();
-        if (Array.isArray(data.departments) && data.departments.length > 0) {
+        if (Array.isArray(data.departments)) {
           setDepartments(data.departments);
         }
       }
@@ -342,6 +341,22 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         const data = await rewardsRes.json();
         if (Array.isArray(data.ledger)) {
           setRewardsLedger(data.ledger);
+        }
+      }
+
+      if (meRes && meRes.ok) {
+        const meData = await meRes.json();
+        if (meData?.user?.id) {
+          setCurrentUserIdState(meData.user.id);
+          try {
+            localStorage.setItem("teamflow_current_user", meData.user.id);
+          } catch {}
+          setUsers((prev) => {
+            const exists = prev.some((u) => u.id === meData.user.id);
+            return exists
+              ? prev.map((u) => (u.id === meData.user.id ? { ...u, ...meData.user } : u))
+              : [meData.user, ...prev];
+          });
         }
       }
     } catch (err) {
@@ -353,7 +368,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     refreshFromBackend();
   }, [refreshFromBackend]);
 
-  // Synchronize with localStorage
   useEffect(() => {
     if (!hasHydrated) return;
     try {
@@ -362,9 +376,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("teamflow_tasks", JSON.stringify(tasks));
       localStorage.setItem("teamflow_attendance", JSON.stringify(attendance));
       localStorage.setItem("teamflow_user_clock_in_v3", JSON.stringify(userClockInData));
-    } catch {
-      // ignore storage quota errors
-    }
+    } catch {}
   }, [currentUserId, projects, tasks, attendance, userClockInData, hasHydrated]);
 
   const currentUser = users.find((u) => u.id === currentUserId) || users[0];
@@ -456,6 +468,27 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteUser = async (id: string): Promise<boolean> => {
+    if (id === "u-ceo-1") return false;
+    setUsers((prev) => {
+      const nextUsers = prev.filter((u) => u.id !== id);
+      try {
+        localStorage.setItem("teamflow_users", JSON.stringify(nextUsers));
+      } catch {}
+      return nextUsers;
+    });
+
+    try {
+      const res = await fetch(`/api/users?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      return res.ok;
+    } catch (err) {
+      console.warn("Failed to delete user on backend:", err);
+      return false;
+    }
+  };
+
   const addTeamMember = async (memberData: {
     fullName: string;
     email: string;
@@ -474,18 +507,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     const dept = isPm ? "Project Management" : memberData.department || "General";
     const title = memberData.jobTitle || (isPm ? "Project Manager" : dept);
 
-    const avatars = [
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80"
-    ];
-    const avatar = avatars[Math.floor(Math.random() * avatars.length)];
-
     const newUser: User = {
       id,
       name: firstName,
@@ -494,10 +515,10 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       role: memberData.role,
       jobTitle: title,
       department: dept,
-      avatar,
-      phone: "+91 98" + Math.floor(10000000 + Math.random() * 90000000),
-      location: "MaestroMinds Tech Hub",
+      avatar: "",
+      phone: "",
       employeeId,
+      bio: "",
     };
 
     setUsers((prev) => [...prev, newUser]);
@@ -513,7 +534,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       },
     }));
 
-    // Persist to backend Neon PostgreSQL
     fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -558,9 +578,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const logout = async (): Promise<void> => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-    } catch {
-      // ignore
-    }
+    } catch {}
     if (typeof window !== "undefined") {
       window.location.href = "/login";
     }
@@ -630,7 +648,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
     setProjects((prev) => [newProject, ...prev]);
 
-    // Async backend persist to Neon Postgres
     fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -655,7 +672,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       })
     );
 
-    // Async backend update to Neon Postgres
     fetch(`/api/projects/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -667,7 +683,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     setProjects((prev) => prev.filter((p) => p.id !== id));
     setTasks((prev) => prev.filter((t) => t.projectId !== id));
 
-    // Async backend delete
     fetch(`/api/projects/${id}`, {
       method: "DELETE",
     }).catch((err) => console.warn("Failed to delete project on backend:", err));
@@ -706,7 +721,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
     setTasks((prev) => [newTask, ...prev]);
 
-    // Async backend persist to Neon Postgres
     fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -741,7 +755,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       })
     );
 
-    // Async backend update to Neon Postgres
     fetch(`/api/tasks/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -755,7 +768,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const deleteTask = (id: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
 
-    // Async backend delete
     fetch(`/api/tasks/${id}`, {
       method: "DELETE",
     }).catch((err) => console.warn("Failed to delete task on backend:", err));
@@ -796,7 +808,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     };
 
-    // Optimistically update frontend state
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id === taskId) {
@@ -810,7 +821,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       })
     );
 
-    // If a physical file was provided, upload to Cloudinary via backend /api/upload
     if (file.rawFile) {
       try {
         const formData = new FormData();
@@ -829,7 +839,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           const uploadData = await uploadRes.json();
           if (uploadData?.attachment?.url) {
             const finalUrl = uploadData.attachment.url;
-            // Update attachment with genuine Cloudinary secure URL
             setTasks((prev) =>
               prev.map((t) => {
                 if (t.id === taskId) {
@@ -849,7 +858,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         console.warn("Could not upload to Cloudinary backend:", uploadErr);
       }
     } else {
-      // No raw file, sync updated attachments directly to backend
       const targetTask = tasks.find((t) => t.id === taskId);
       if (targetTask) {
         fetch(`/api/tasks/${taskId}`, {
@@ -886,7 +894,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           const totalDay1Seconds = (state.elapsedSeconds || 0) + secondsBeforeMidnight;
           const day1Duration = formatSecondsToDuration(totalDay1Seconds);
 
-          // Close previous day record at midnight
           const prevDate = state.clockInDate;
           setAttendance((prevAtt) => {
             const existingYesterday = prevAtt.find((r) => r.userId === userId && r.date === prevDate);
@@ -906,7 +913,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
               }).catch(() => null);
             }
 
-            // Create Day 2 record starting at 12:00 AM
             const existingToday = updatedList.find((r) => r.userId === userId && r.date === todayString);
             if (!existingToday && targetUser) {
               const newTodayRecord: AttendanceRecord = {
@@ -932,7 +938,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             return updatedList;
           });
 
-          // Rollover user state for today starting from 12:00 AM
           const secondsSinceMidnight = Math.max(0, Math.floor((Date.now() - midnightTimestamp) / 1000));
           const rolledState: UserClockInState = {
             isClockedIn: true,
@@ -1029,15 +1034,12 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         }
       });
     } else {
-      // Clock out
       const clockInDate = userState.clockInDate || todayString;
       if (clockInDate !== todayString && userState.clockInTimestamp) {
-        // Crossed midnight! Day 1 is closed at 12:00 AM, Day 2 has duration from midnight to now
         const midnightToday = getStartOfTodayTimestamp(now);
         const day1Seconds = Math.max(0, Math.floor((midnightToday - userState.clockInTimestamp) / 1000));
         const day1Duration = formatSecondsToDuration(day1Seconds);
 
-        // Close Day 1 record
         setAttendance((prev) => {
           const prevRec = prev.find((r) => r.userId === userId && r.date === clockInDate);
           if (prevRec) {
@@ -1091,7 +1093,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           return existingToday ? prev.map((r) => (r.id === existingToday.id ? closedToday : r)) : [closedToday, ...prev];
         });
       } else {
-        // Same-day check out
         const sessionSeconds = userState.clockInTimestamp
           ? Math.max(1, Math.floor((Date.now() - userState.clockInTimestamp) / 1000))
           : 0;
@@ -1151,7 +1152,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       [userId]: nextState
     }));
 
-    // Async persist clock-in status to Neon Postgres
     fetch("/api/clock-in", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1249,6 +1249,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         currentUserClockIn,
         setCurrentUserId,
         updateUserProfile,
+        deleteUser,
         createProject,
         updateProject,
         deleteProject,

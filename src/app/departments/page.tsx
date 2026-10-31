@@ -18,6 +18,7 @@ import {
 import Header from "@/components/Header";
 import CreateDepartmentModal from "@/components/CreateDepartmentModal";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function DepartmentsPage() {
   const { currentUser, users, departments, updateDepartment, deleteDepartment } = useTeamFlow();
@@ -121,7 +122,6 @@ export default function DepartmentsPage() {
           </div>
         )}
 
-        {/* Existing Departments Grid */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-[14px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
@@ -213,16 +213,16 @@ export default function DepartmentsPage() {
                     </div>
                   </div>
 
-                  {/* Staff Preview */}
                   <div className="pt-2.5 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-500">
                     <div className="flex items-center -space-x-1.5 overflow-hidden">
                       {assignedMembers.slice(0, 3).map((member) => (
-                        <img
+                        <UserAvatar
                           key={member.id}
                           src={member.avatar}
-                          alt={member.fullName}
+                          name={member.fullName}
+                          role={member.role}
                           title={`${member.fullName} (${member.department})`}
-                          className="w-6 h-6 rounded-full object-cover border-2 border-white ring-1 ring-slate-200"
+                          className="w-6 h-6 rounded-full border-2 border-white ring-1 ring-slate-200"
                         />
                       ))}
                     </div>

@@ -20,6 +20,7 @@ import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import NewProjectModal from "@/components/NewProjectModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function ProjectsPage() {
   const { users, projects, tasks, currentUser } = useTeamFlow();
@@ -202,7 +203,7 @@ export default function ProjectsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-100 text-[11px]">
                     {pm && (
                       <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                        <img src={pm.avatar} alt={pm.name} className="w-6 h-6 rounded-full object-cover" />
+                        <UserAvatar src={pm.avatar} name={pm.name} role={pm.role} className="w-6 h-6 rounded-full" />
                         <div className="min-w-0">
                           <span className="text-[9px] font-bold text-slate-400 uppercase block">Managing PM</span>
                           <span className="font-semibold text-slate-800 truncate block">{pm.fullName}</span>
@@ -212,7 +213,7 @@ export default function ProjectsPage() {
 
                     {lead && (
                       <div className="flex items-center gap-2 bg-[#ffa500]/15 p-2 rounded-lg border border-[#ffa500]/30">
-                        <img src={lead.avatar} alt={lead.name} className="w-6 h-6 rounded-full object-cover border border-[#ffa500]" />
+                        <UserAvatar src={lead.avatar} name={lead.name} role={lead.role} className="w-6 h-6 rounded-full border border-[#ffa500]" />
                         <div className="min-w-0">
                           <span className="text-[9px] font-bold text-[#ffa500] uppercase flex items-center gap-1">
                             <Crown className="w-3 h-3 text-[#ffa500]" />
@@ -230,12 +231,13 @@ export default function ProjectsPage() {
                     <div className="flex items-center gap-2">
                       <div className="flex items-center -space-x-1.5">
                         {members.slice(0, 4).map((m) => (
-                          <img
+                          <UserAvatar
                             key={m.id}
                             src={m.avatar}
-                            alt={m.name}
+                            name={m.name}
+                            role={m.role}
                             title={m.fullName}
-                            className="w-6 h-6 rounded-full border-2 border-white object-cover"
+                            className="w-6 h-6 rounded-full border-2 border-white"
                           />
                         ))}
                         {members.length > 4 && (

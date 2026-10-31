@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, Check, ShieldCheck, Briefcase, UserCheck, Clock, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Bell, ChevronDown, Check, ShieldCheck, Briefcase, UserCheck, Clock, LogOut, Settings, User } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import UserAvatar from "@/components/UserAvatar";
 
 interface HeaderProps {
   title: string;
@@ -13,7 +15,7 @@ interface HeaderProps {
 
 export default function Header({ title, subtitle, actionButton }: HeaderProps) {
   const router = useRouter();
-  const { currentUser, users, projects, tasks, setCurrentUserId, isClockedIn, toggleClockInOut, logout } = useTeamFlow();
+  const { currentUser, users, projects, tasks, isClockedIn, toggleClockInOut, logout } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -62,13 +64,36 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
     return list;
   }, [tasks, projects, users]);
 
-  const [notifications, setNotifications] = useState<Array<{ id: string; title: string; detail: string; time: string }>>([]);
+  const [dismissedNotifIds, setDismissedNotifIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (dynamicNotifications.length > 0) {
-      setNotifications(dynamicNotifications);
-    }
-  }, [dynamicNotifications]);
+    try {
+      const saved = localStorage.getItem("teamflow_dismissed_notifs");
+      if (saved) setDismissedNotifIds(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const notifications = useMemo(() => {
+    return dynamicNotifications.filter((n) => !dismissedNotifIds.includes(n.id));
+  }, [dynamicNotifications, dismissedNotifIds]);
+
+  const handleDismissNotification = (id: string) => {
+    setDismissedNotifIds((prev) => {
+      const updated = [...prev, id];
+      try {
+        localStorage.setItem("teamflow_dismissed_notifs", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const handleClearAllNotifications = () => {
+    const allIds = dynamicNotifications.map((n) => n.id);
+    setDismissedNotifIds(allIds);
+    try {
+      localStorage.setItem("teamflow_dismissed_notifs", JSON.stringify(allIds));
+    } catch {}
+  };
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -155,13 +180,13 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
             suppressHydrationWarning
             className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200/90 hover:border-slate-300 transition-all shadow-2xs cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-              <img
-                src={mounted ? currentUser.avatar : "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"}
-                alt={mounted ? currentUser.name : "Elena"}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <UserAvatar
+              src={mounted ? currentUser.avatar : ""}
+              name={mounted ? (currentUser.fullName || currentUser.name) : "Elena"}
+              role={mounted ? currentUser.role : "ceo"}
+              className="w-7 h-7 rounded-full border border-slate-200 shrink-0"
+              textClassName="text-[10px]"
+            />
             <div className="text-left hidden md:block">
               <p className="text-[12px] font-semibold text-slate-800 leading-tight">
                 {mounted ? currentUser.name : "Elena"}
@@ -174,60 +199,56 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="max-h-80 overflow-y-auto py-1">
-                {users.map((u) => {
-                  const isSelected = u.id === currentUser.id;
-                  const badge = getRoleBadge(u.role);
-                  return (
-                    <button
-                      key={u.id}
-                      onClick={() => {
-                        setCurrentUserId(u.id);
-                        setShowUserMenu(false);
-                        router.push("/");
-                      }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 text-left hover:bg-slate-50 transition-colors cursor-pointer ${
-                        isSelected ? "bg-sky-50/70" : ""
-                      }`}
+            <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200/90 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-4 py-3 border-b border-slate-100 flex items-start gap-3">
+                <UserAvatar
+                  src={currentUser.avatar}
+                  name={currentUser.fullName || currentUser.name}
+                  role={currentUser.role}
+                  className="w-10 h-10 rounded-full border border-slate-200 shrink-0"
+                  textClassName="text-[13px]"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-bold text-slate-900 truncate leading-snug">
+                    {currentUser.fullName}
+                  </p>
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                    {currentUser.email}
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                    <span
+                      className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded border ${getRoleBadge(currentUser.role).className}`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                        <img
-                          src={u.avatar}
-                          alt={u.fullName}
-                          className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-200"
-                        />
-                        <div className="min-w-0">
-                          <p className="text-[13px] font-semibold text-slate-900 truncate leading-tight">
-                            {u.fullName}
-                          </p>
-                          <div className="mt-0.5">
-                            <span
-                              className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded border ${badge.className}`}
-                            >
-                              {badge.label}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <Check className="w-4 h-4 text-[#0084d4] shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
+                      {getRoleBadge(currentUser.role).label}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {currentUser.employeeId}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="pt-1.5 border-t border-slate-100 px-2 pb-0.5">
+              <div className="py-1 px-1.5">
+                <Link
+                  href="/settings"
+                  onClick={() => setShowUserMenu(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Settings className="w-4 h-4 text-slate-400" />
+                  <span>Account &amp; Profile Settings</span>
+                </Link>
+              </div>
+
+              <div className="pt-1 border-t border-slate-100 px-1.5">
                 <button
                   type="button"
                   onClick={() => {
                     logout();
                     setShowUserMenu(false);
                   }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-4 h-4 text-red-500" />
                   <span>Sign Out</span>
                 </button>
               </div>
@@ -253,7 +274,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
                 <span className="font-semibold text-[13px]">Notifications ({notifications.length})</span>
                 {notifications.length > 0 && (
                   <button
-                    onClick={() => setNotifications([])}
+                    onClick={handleClearAllNotifications}
                     className="text-[11px] text-[#0084d4] hover:underline cursor-pointer"
                   >
                     Clear All
@@ -269,7 +290,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
                   {notifications.map((n) => (
                     <div
                       key={n.id}
-                      onClick={() => setNotifications((prev) => prev.filter((item) => item.id !== n.id))}
+                      onClick={() => handleDismissNotification(n.id)}
                       className="py-2.5 hover:bg-slate-50/80 -mx-1 px-1 rounded transition-colors cursor-pointer"
                       title="Click to dismiss notification"
                     >

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Award, Sparkles, Check, Heart, Shield, UserCheck, Briefcase } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import UserAvatar from "@/components/UserAvatar";
 
 interface AwardPointsModalProps {
   isOpen: boolean;
@@ -42,11 +43,8 @@ export default function AwardPointsModal({
     myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
   );
 
-  // Eligible recipients:
-  // - CEO can award any PM or employer
-  // - PM can award any employer under their projects
   const eligibleRecipients = users.filter((u) => {
-    if (u.id === currentUser.id) return false; // Cannot award self
+    if (u.id === currentUser.id) return false; 
     if (isCeo) return u.role !== "ceo";
     if (isPm) return u.role === "employer" && myEmployerIds.has(u.id);
     return false;
@@ -114,7 +112,7 @@ export default function AwardPointsModal({
         }
         onClose();
       } else {
-        setError("Failed to save reward to database. Please try again.");
+        setError("Failed to award points. Please try again.");
       }
     } catch {
       setError("An unexpected error occurred while awarding points.");
@@ -129,7 +127,6 @@ export default function AwardPointsModal({
         className="bg-white rounded-xl shadow-xl border border-slate-200/90 w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="px-6 py-4.5 bg-gradient-to-r from-sky-50 via-white to-blue-50/70 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-[#0084d4]/10 text-[#0084d4] flex items-center justify-center shrink-0 border border-[#0084d4]/20">
@@ -154,7 +151,6 @@ export default function AwardPointsModal({
           </button>
         </div>
 
-        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4.5 overflow-y-auto">
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-[12px] rounded-lg font-medium">
@@ -162,7 +158,6 @@ export default function AwardPointsModal({
             </div>
           )}
 
-          {/* Recipient Selection */}
           <div className="space-y-1.5">
             <label className="text-[12px] font-bold text-slate-700 flex items-center justify-between">
               <span>Recipient Team Member</span>
@@ -184,10 +179,12 @@ export default function AwardPointsModal({
             </select>
             {recipient && (
               <div className="flex items-center gap-2.5 p-2.5 bg-slate-50 rounded-lg border border-slate-100 text-[11px] text-slate-600">
-                <img
+                <UserAvatar
                   src={recipient.avatar}
-                  alt={recipient.fullName}
-                  className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
+                  name={recipient.fullName}
+                  role={recipient.role}
+                  className="w-7 h-7 rounded-full border border-slate-200 shrink-0"
+                  textClassName="text-[10px]"
                 />
                 <div className="min-w-0">
                   <span className="font-semibold text-slate-800">{recipient.fullName}</span>
@@ -198,7 +195,6 @@ export default function AwardPointsModal({
             )}
           </div>
 
-          {/* Points Preset & Custom */}
           <div className="space-y-1.5">
             <label className="text-[12px] font-bold text-slate-700 block">
               Points to Award
@@ -239,7 +235,6 @@ export default function AwardPointsModal({
             </div>
           </div>
 
-          {/* Category */}
           <div className="space-y-1.5">
             <label className="text-[12px] font-bold text-slate-700 block">
               Award Category / Recognition Title
@@ -257,7 +252,6 @@ export default function AwardPointsModal({
             </select>
           </div>
 
-          {/* Reason / Note */}
           <div className="space-y-1.5">
             <label className="text-[12px] font-bold text-slate-700 block">
               Reason / Citation
@@ -275,7 +269,6 @@ export default function AwardPointsModal({
             </p>
           </div>
 
-          {/* Footer Actions */}
           <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
             <button
               type="button"

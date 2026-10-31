@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, FolderPlus, Shield, Users, UserCheck, Crown, Sparkles } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import UserAvatar from "@/components/UserAvatar";
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -304,10 +305,11 @@ export default function NewProjectModal({
                       readOnly
                       className="w-4 h-4 accent-[#0084d4] rounded pointer-events-none"
                     />
-                    <img
+                    <UserAvatar
                       src={emp.avatar}
-                      alt={emp.name}
-                      className="w-6 h-6 rounded-full object-cover shrink-0"
+                      name={emp.name}
+                      role={emp.role}
+                      className="w-6 h-6 rounded-full shrink-0"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-slate-800 truncate leading-tight">

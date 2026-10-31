@@ -58,9 +58,7 @@ export default function UploadProjectMediaModal({ project, isOpen, onClose }: Up
     try {
       const objUrl = URL.createObjectURL(file);
       setUrl(objUrl);
-    } catch {
-      // Fallback
-    }
+    } catch {}
   };
 
   const handleRemoveFile = () => {
@@ -92,7 +90,6 @@ export default function UploadProjectMediaModal({ project, isOpen, onClose }: Up
 
     let targetTaskId = selectedTaskId;
 
-    // If project has no tasks, create a default media task to hold the deliverable
     if (!targetTaskId || !projectTasks.some((t) => t.id === targetTaskId)) {
       if (projectTasks.length > 0) {
         targetTaskId = projectTasks[0].id;

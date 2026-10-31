@@ -22,6 +22,7 @@ import ProjectDetailModal from "@/components/ProjectDetailModal";
 import NewProjectModal from "@/components/NewProjectModal";
 import CheckInStatusBar from "@/components/CheckInStatusBar";
 import RewardLeaderboardWidget from "@/components/RewardLeaderboardWidget";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function ProjectManagerDashboard() {
   const { currentUser, users, projects, tasks } = useTeamFlow();
@@ -224,10 +225,11 @@ export default function ProjectManagerDashboard() {
                     {lead && (
                       <div className="p-2.5 rounded-lg bg-[#ffa500]/15 border border-[#ffa500]/30 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <img
+                          <UserAvatar
                             src={lead.avatar}
-                            alt={lead.fullName}
-                            className="w-6 h-6 rounded-full object-cover border border-[#ffa500]"
+                            name={lead.fullName}
+                            role={lead.role}
+                            className="w-6 h-6 rounded-full border border-[#ffa500]"
                           />
                           <div>
                             <span className="text-[10px] font-bold text-[#ffa500] uppercase tracking-wider flex items-center gap-1">
@@ -248,12 +250,13 @@ export default function ProjectManagerDashboard() {
                       <div className="flex items-center gap-2">
                         <div className="flex items-center -space-x-1.5">
                           {members.slice(0, 3).map((m) => (
-                            <img
+                            <UserAvatar
                               key={m.id}
                               src={m.avatar}
-                              alt={m.name}
+                              name={m.name}
+                              role={m.role}
                               title={m.fullName}
-                              className="w-6 h-6 rounded-full border-2 border-white object-cover"
+                              className="w-6 h-6 rounded-full border-2 border-white"
                             />
                           ))}
                           {members.length > 3 && (

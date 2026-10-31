@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import UserAvatar from "@/components/UserAvatar";
 import {
   Bell,
   Mail,
@@ -11,7 +12,14 @@ import {
   Pencil,
   Check,
   X,
-  Save
+  Save,
+  Lock,
+  Eye,
+  EyeOff,
+  KeyRound,
+  AlertCircle,
+  Loader2,
+  ShieldCheck
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -19,14 +27,22 @@ export default function SettingsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("Profile details updated successfully.");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Notification state
-  const [emailNotifs, setEmailNotifs] = useState(true);
   const [taskAlerts, setTaskAlerts] = useState(true);
   const [savedNotifs, setSavedNotifs] = useState(false);
 
-  // Profile Form state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: currentUser.name,
     fullName: currentUser.fullName,
@@ -34,9 +50,9 @@ export default function SettingsPage() {
     role: currentUser.jobTitle || (currentUser.role === "project_manager" ? "Project Manager" : currentUser.department || "Employer"),
     department: currentUser.department,
     employeeId: currentUser.employeeId,
-    phone: currentUser.phone,
-    avatar: currentUser.avatar,
-    bio: "Passionate about building scalable applications, team synchronization, and agile engineering workflows."
+    phone: currentUser.phone || "",
+    avatar: currentUser.avatar || "",
+    bio: currentUser.bio || ""
   });
 
   useEffect(() => {
@@ -47,19 +63,50 @@ export default function SettingsPage() {
       role: currentUser.jobTitle || (currentUser.role === "project_manager" ? "Project Manager" : currentUser.department || "Employer"),
       department: currentUser.department,
       employeeId: currentUser.employeeId,
-      phone: currentUser.phone,
-      avatar: currentUser.avatar,
-      bio: "Passionate about building scalable applications, team synchronization, and agile engineering workflows."
+      phone: currentUser.phone || "",
+      avatar: currentUser.avatar || "",
+      bio: currentUser.bio || ""
     });
   }, [currentUser]);
 
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
       alert("Please select a valid image file (PNG, JPG, WebP).");
       return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+      uploadFormData.append("name", `${currentUser.id}_avatar_${file.name}`);
+      uploadFormData.append("uploadedBy", currentUser.id);
+      uploadFormData.append("uploadedByName", currentUser.fullName);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const avatarUrl = data.attachment?.url || data.url;
+        if (avatarUrl) {
+          setFormData((prev) => ({ ...prev, avatar: avatarUrl }));
+          updateUserProfile({ avatar: avatarUrl });
+          setToastMessage("Profile photo updated successfully!");
+          setShowSuccessToast(true);
+          setTimeout(() => setShowSuccessToast(false), 3000);
+          setIsUploadingAvatar(false);
+          return;
+        }
+      }
+    } catch (uploadErr) {
+      console.warn("Cloudinary upload failed, falling back to local preview:", uploadErr);
     }
 
     const reader = new FileReader();
@@ -72,6 +119,7 @@ export default function SettingsPage() {
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 3000);
       }
+      setIsUploadingAvatar(false);
     };
     reader.readAsDataURL(file);
   };
@@ -79,15 +127,63 @@ export default function SettingsPage() {
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     updateUserProfile({
-      fullName: formData.fullName,
-      email: currentUser.email,
+      fullName: formData.fullName.trim() || currentUser.fullName,
+      email: formData.email.trim() || currentUser.email,
       phone: formData.phone,
       avatar: formData.avatar || currentUser.avatar,
+      bio: formData.bio,
     });
     setIsEditing(false);
     setToastMessage("Profile details updated successfully.");
     setShowSuccessToast(true);
     setTimeout(() => setShowSuccessToast(false), 3000);
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!currentPassword) {
+      setPasswordError("Please enter your current password.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("New password must be at least 6 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to change password.");
+      }
+
+      setPasswordSuccess("Password updated successfully!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setPasswordSuccess(null), 4000);
+    } catch (err: unknown) {
+      setPasswordError(err instanceof Error ? err.message : "Error changing password.");
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   const handleSaveNotifications = () => {
@@ -125,16 +221,17 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Profile Card */}
         <div className="bg-white rounded-lg border border-slate-200/80 p-6 shadow-2xs w-full">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="flex items-center gap-5 shrink-0">
               <div className="relative group/avatar">
                 <div className="w-18 h-18 rounded-full overflow-hidden bg-slate-100 border-2 border-[#0084d4]/40 shrink-0 shadow-2xs">
-                  <img
+                  <UserAvatar
                     src={formData.avatar || currentUser.avatar}
-                    alt={currentUser.name}
-                    className="w-full h-full object-cover"
+                    name={currentUser.fullName || currentUser.name}
+                    role={currentUser.role}
+                    className="w-full h-full rounded-full"
+                    textClassName="text-[20px]"
                   />
                 </div>
                 <input
@@ -147,12 +244,19 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
                   title="Click to update profile photo dynamically"
-                  className="absolute inset-0 rounded-full bg-slate-900/60 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white transition-opacity cursor-pointer backdrop-blur-2xs"
+                  className="absolute inset-0 rounded-full bg-slate-900/60 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white transition-opacity cursor-pointer backdrop-blur-2xs disabled:cursor-not-allowed"
                 >
                   <Camera className="w-5 h-5 mb-0.5" />
                   <span className="text-[9px] font-bold">Change</span>
                 </button>
+                {isUploadingAvatar && (
+                  <div className="absolute inset-0 rounded-full bg-slate-900/70 flex flex-col items-center justify-center text-white backdrop-blur-2xs z-10 pointer-events-none">
+                    <Loader2 className="w-5 h-5 animate-spin text-white mb-0.5" />
+                    <span className="text-[8px] font-bold">Uploading...</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col items-start gap-1">
@@ -165,7 +269,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Contact Information Section - Horizontal to profile photo & name */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-6 lg:gap-10 text-[13px] border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-8 flex-1">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 shrink-0">
@@ -190,7 +293,11 @@ export default function SettingsPage() {
                     Phone Number
                   </span>
                   <span className="font-semibold text-slate-800 truncate block mt-0.5">
-                    {currentUser.phone}
+                    {currentUser.phone?.trim() ? (
+                      currentUser.phone
+                    ) : (
+                      <span className="text-slate-400 font-normal italic">Phone number not set</span>
+                    )}
                   </span>
                 </div>
               </div>
@@ -208,13 +315,18 @@ export default function SettingsPage() {
           </div>
 
           <div className="mt-4 pt-4 border-t border-slate-100">
-            <p className="text-[13px] text-slate-600 font-normal leading-relaxed">
-              {formData.bio}
-            </p>
+            {formData.bio?.trim() ? (
+              <p className="text-[13px] text-slate-600 font-normal leading-relaxed">
+                {formData.bio}
+              </p>
+            ) : (
+              <p className="text-[13px] text-slate-400 italic font-normal">
+                No bio added yet. Click &quot;Edit Profile&quot; to introduce yourself.
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Edit Form */}
         {isEditing && (
           <form
             onSubmit={handleSaveProfile}
@@ -247,11 +359,10 @@ export default function SettingsPage() {
                 </div>
                 <input
                   type="email"
-                  value={currentUser.email}
-                  readOnly
-                  disabled
-                  title="Work email address is managed by CEO / PM for login authentication and cannot be edited."
-                  className="w-full px-3 py-2 text-[13px] bg-slate-100 border border-slate-200 rounded-lg text-slate-500 cursor-not-allowed select-none"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="e.g. employee@company.com"
+                  className="w-full px-3 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
                 />
               </div>
 
@@ -262,6 +373,7 @@ export default function SettingsPage() {
                 <input
                   type="text"
                   value={formData.phone}
+                  placeholder="e.g. +91 98765 43210"
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full px-3 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
                 />
@@ -274,6 +386,7 @@ export default function SettingsPage() {
                 <textarea
                   rows={3}
                   value={formData.bio}
+                  placeholder="Write a brief professional bio highlighting your background, skills, and role..."
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   className="w-full px-3 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
                 />
@@ -299,7 +412,6 @@ export default function SettingsPage() {
           </form>
         )}
 
-        {/* Notification Preferences */}
         <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs space-y-4">
           <div className="flex items-center gap-2 text-slate-900 font-bold text-[14px]">
             <Bell className="w-4 h-4 text-[#0084d4]" />
@@ -307,23 +419,6 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-3 pt-1">
-            <label className="flex items-center justify-between py-2 border-b border-slate-100 cursor-pointer">
-              <div>
-                <p className="text-[13px] font-semibold text-slate-800">
-                  Email Notifications
-                </p>
-                <p className="text-[11px] text-slate-400">
-                  Receive email digest for project milestones, approvals and review requests
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={emailNotifs}
-                onChange={(e) => setEmailNotifs(e.target.checked)}
-                className="w-4 h-4 accent-[#0084d4] rounded cursor-pointer"
-              />
-            </label>
-
             <label className="flex items-center justify-between py-2 cursor-pointer">
               <div>
                 <p className="text-[13px] font-semibold text-slate-800">
@@ -357,6 +452,127 @@ export default function SettingsPage() {
               </span>
             )}
           </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2 text-slate-900 font-bold text-[14px]">
+              <Lock className="w-4 h-4 text-[#0084d4]" />
+              <span>Security &amp; Password Management</span>
+            </div>
+            <span className="text-[11px] font-medium text-slate-400">
+              Scrypt Encrypted Storage
+            </span>
+          </div>
+
+          {passwordError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-[12px] text-red-700 flex items-center gap-2 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <span>{passwordError}</span>
+            </div>
+          )}
+
+          {passwordSuccess && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-[12px] text-emerald-700 flex items-center gap-2 animate-in fade-in">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{passwordSuccess}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleChangePassword} className="space-y-4 max-w-lg pt-1">
+            <div>
+              <label className="block text-[12px] font-semibold text-slate-700 mb-1">
+                Current Password *
+              </label>
+              <div className="relative">
+                <input
+                  type={showCurrentPass ? "text" : "password"}
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="w-full px-3 py-2 pr-10 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] focus:bg-white text-slate-800 font-mono shadow-2xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPass(!showCurrentPass)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 absolute right-2.5 top-1.5 cursor-pointer"
+                >
+                  {showCurrentPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[12px] font-semibold text-slate-700 mb-1">
+                  New Password *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPass ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full px-3 py-2 pr-10 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] focus:bg-white text-slate-800 font-mono shadow-2xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    className="p-1.5 text-slate-400 hover:text-slate-600 absolute right-2.5 top-1.5 cursor-pointer"
+                  >
+                    {showNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold text-slate-700 mb-1">
+                  Confirm New Password *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPass ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat new password"
+                    className="w-full px-3 py-2 pr-10 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] focus:bg-white text-slate-800 font-mono shadow-2xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPass(!showConfirmPass)}
+                    className="p-1.5 text-slate-400 hover:text-slate-600 absolute right-2.5 top-1.5 cursor-pointer"
+                  >
+                    {showConfirmPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <button
+                type="submit"
+                disabled={isUpdatingPassword || !currentPassword || !newPassword || !confirmPassword}
+                className="h-9 px-4 bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold rounded-lg transition-colors shadow-2xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isUpdatingPassword ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Updating Password...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Update Password</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

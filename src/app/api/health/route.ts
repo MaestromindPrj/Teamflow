@@ -16,7 +16,6 @@ export async function GET() {
       const testResult = await sql`SELECT 1 as connected;`;
       dbConnected = Boolean(testResult[0]?.connected);
 
-      // Attempt to query counts
       try {
         const usersCount = await sql`SELECT count(*)::int as c FROM users;`;
         const projectsCount = await sql`SELECT count(*)::int as c FROM projects;`;
@@ -26,9 +25,7 @@ export async function GET() {
           projects: projectsCount[0]?.c || 0,
           tasks: tasksCount[0]?.c || 0,
         };
-      } catch {
-        // Tables might not be initialized yet
-      }
+      } catch {}
     } catch (err: unknown) {
       console.error("Health check DB connection error:", err);
       dbError = "Database connection error (details logged server-side)";

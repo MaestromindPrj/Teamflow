@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
         const uploadResult = await uploadToCloudinary(buffer, {
           filename: fileName,
           mimeType: file.type,
+          resourceType: detectedType === "image" ? "image" : "raw",
           folder: detectedType === "image" ? "teamflow/images" : "teamflow/documents",
         });
 
@@ -61,17 +62,14 @@ export async function POST(req: NextRequest) {
         storageProvider = "cloudinary";
       } catch (cloudErr: unknown) {
         console.error("Cloudinary upload failed:", cloudErr);
-        const errMsg = cloudErr instanceof Error ? cloudErr.message : "Cloudinary upload failed";
         return NextResponse.json(
           {
-            error: `Cloudinary upload error: ${errMsg}`,
-            tip: "Check your CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in .env.local",
+            error: "Failed to upload file. Please try again.",
           },
           { status: 502 }
         );
       }
     } else {
-      // Cloudinary not configured yet: return local data URI / fallback
       secureUrl =
         detectedType === "image"
           ? `data:${file.type || "image/png"};base64,${buffer.toString("base64")}`
@@ -91,7 +89,6 @@ export async function POST(req: NextRequest) {
       uploadedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
     };
 
-    // If a taskId was supplied and Neon database is configured, persist the deliverable into tasks table
     if (taskId && isDbConfigured()) {
       try {
         await initDatabase();
@@ -104,7 +101,7 @@ export async function POST(req: NextRequest) {
           const newActivity = {
             id: `act-${Date.now()}`,
             title: `Deliverable uploaded: ${fileName}`,
-            detail: `Uploaded by ${uploadedByName} via ${storageProvider === "cloudinary" ? "Cloudinary Cloud" : "Local Storage"}`,
+            detail: `Uploaded by ${uploadedByName}`,
             date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
           };
 

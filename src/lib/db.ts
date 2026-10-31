@@ -23,12 +23,8 @@ export function getDb() {
   return neon(process.env.DATABASE_URL);
 }
 
-// Track whether init has already executed in this process
 let isInitialized = false;
 
-/**
- * Initializes database tables and automatically seeds them with initial data if empty.
- */
 export async function initDatabase() {
   if (isInitialized) return;
   if (!isDbConfigured()) return;
@@ -36,7 +32,6 @@ export async function initDatabase() {
   const sql = getDb();
 
   try {
-    // 1. Create Users Table
     await sql`
       CREATE TABLE IF NOT EXISTS users (
         id VARCHAR(100) PRIMARY KEY,
@@ -48,13 +43,11 @@ export async function initDatabase() {
         department VARCHAR(255),
         avatar TEXT,
         phone VARCHAR(100),
-        location VARCHAR(255),
         employee_id VARCHAR(100),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
 
-    // 2. Create Projects Table
     await sql`
       CREATE TABLE IF NOT EXISTS projects (
         id VARCHAR(100) PRIMARY KEY,
@@ -74,7 +67,6 @@ export async function initDatabase() {
       );
     `;
 
-    // 3. Create Tasks Table
     await sql`
       CREATE TABLE IF NOT EXISTS tasks (
         id VARCHAR(100) PRIMARY KEY,
@@ -93,7 +85,6 @@ export async function initDatabase() {
       );
     `;
 
-    // 4. Create Attendance Table
     await sql`
       CREATE TABLE IF NOT EXISTS attendance (
         id VARCHAR(100) PRIMARY KEY,
@@ -110,7 +101,6 @@ export async function initDatabase() {
       );
     `;
 
-    // 5. Create Clock In Status Table
     await sql`
       CREATE TABLE IF NOT EXISTS clock_in_status (
         user_id VARCHAR(100) PRIMARY KEY,
@@ -123,7 +113,6 @@ export async function initDatabase() {
       );
     `;
 
-    // 6. Create Departments Table
     await sql`
       CREATE TABLE IF NOT EXISTS departments (
         id VARCHAR(100) PRIMARY KEY,
@@ -132,7 +121,6 @@ export async function initDatabase() {
       );
     `;
 
-    // 7. Create Rewards Ledger Table (CEO/PM awards & merit points)
     await sql`
       CREATE TABLE IF NOT EXISTS rewards_ledger (
         id VARCHAR(100) PRIMARY KEY,
@@ -147,15 +135,30 @@ export async function initDatabase() {
       );
     `;
 
-    // Check if initial users exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS password_reset_codes (
+        id VARCHAR(100) PRIMARY KEY,
+        user_id VARCHAR(100) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        code VARCHAR(10) NOT NULL,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        used BOOLEAN DEFAULT false,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    try {
+      await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;`;
+      await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS discussion JSONB DEFAULT '[]'::jsonb;`;
+    } catch {}
+
     const userCountResult = await sql`SELECT COUNT(*)::int AS count FROM users;`;
     const userCount = Number(userCountResult[0]?.count || 0);
 
     if (userCount === 0) {
-      // Seed Initial Users
       for (const u of INITIAL_USERS) {
         await sql`
-          INSERT INTO users (id, name, full_name, email, role, job_title, department, avatar, phone, location, employee_id)
+          INSERT INTO users (id, name, full_name, email, role, job_title, department, avatar, phone, employee_id)
           VALUES (
             ${u.id},
             ${u.name},
@@ -166,7 +169,6 @@ export async function initDatabase() {
             ${u.department},
             ${u.avatar},
             ${u.phone},
-            ${u.location},
             ${u.employeeId}
           )
           ON CONFLICT (id) DO NOTHING;
@@ -174,12 +176,10 @@ export async function initDatabase() {
       }
     }
 
-    // Check if initial projects exist
     const projectCountResult = await sql`SELECT COUNT(*)::int AS count FROM projects;`;
     const projectCount = Number(projectCountResult[0]?.count || 0);
 
     if (projectCount === 0) {
-      // Seed Initial Projects
       for (const p of INITIAL_PROJECTS) {
         await sql`
           INSERT INTO projects (id, name, code, description, project_manager_id, team_lead_id, team_member_ids, status, priority, start_date, deadline, category, budget)
@@ -203,12 +203,10 @@ export async function initDatabase() {
       }
     }
 
-    // Check if initial tasks exist
     const taskCountResult = await sql`SELECT COUNT(*)::int AS count FROM tasks;`;
     const taskCount = Number(taskCountResult[0]?.count || 0);
 
     if (taskCount === 0) {
-      // Seed Initial Tasks
       for (const t of INITIAL_TASKS_DATA) {
         await sql`
           INSERT INTO tasks (id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity)
@@ -231,7 +229,6 @@ export async function initDatabase() {
       }
     }
 
-    // Check if initial attendance records exist
     const attCountResult = await sql`SELECT COUNT(*)::int AS count FROM attendance;`;
     const attCount = Number(attCountResult[0]?.count || 0);
 
@@ -256,7 +253,6 @@ export async function initDatabase() {
       }
     }
 
-    // Check if initial clock in status exists
     const clockCountResult = await sql`SELECT COUNT(*)::int AS count FROM clock_in_status;`;
     const clockCount = Number(clockCountResult[0]?.count || 0);
 
@@ -280,7 +276,6 @@ export async function initDatabase() {
       }
     }
 
-    // Check if initial departments exist
     const deptCountResult = await sql`SELECT COUNT(*)::int AS count FROM departments;`;
     const deptCount = Number(deptCountResult[0]?.count || 0);
 
@@ -303,7 +298,6 @@ export async function initDatabase() {
       }
     }
 
-    // Check if initial rewards ledger exist
     const rewardCountResult = await sql`SELECT COUNT(*)::int AS count FROM rewards_ledger;`;
     const rewardCount = Number(rewardCountResult[0]?.count || 0);
 
@@ -311,7 +305,7 @@ export async function initDatabase() {
       const defaultLedger = [
         {
           id: "rw-seed-1",
-          userId: "u-pm-1", // Marcus Vance (PM) rewarded by Elena (CEO)
+          userId: "u-pm-1", 
           points: 100,
           action: "Executive Recognition",
           reason: "Delivered Q3 Engineering Initiatives ahead of timeline",
@@ -321,7 +315,7 @@ export async function initDatabase() {
         },
         {
           id: "rw-seed-2",
-          userId: "u-emp-1", // Ajay (UI Lead) rewarded by Marcus (PM)
+          userId: "u-emp-1", 
           points: 100,
           action: "Peer Merit Award",
           reason: "Exceptional UI/UX Architecture and design system tokens",
@@ -331,7 +325,7 @@ export async function initDatabase() {
         },
         {
           id: "rw-seed-3",
-          userId: "u-pm-2", // Sophia (PM) rewarded by Elena (CEO)
+          userId: "u-pm-2", 
           points: 120,
           action: "Leadership Accolade",
           reason: "Zero blockers maintained across streaming Pub/Sub pipeline projects",
@@ -341,7 +335,7 @@ export async function initDatabase() {
         },
         {
           id: "rw-seed-4",
-          userId: "u-emp-3", // Priya (AI Engineer) rewarded by Sophia (PM)
+          userId: "u-emp-3", 
           points: 80,
           action: "Engineering Merit",
           reason: "BigQuery telemetry composite clustering reduced query costs by 60%",

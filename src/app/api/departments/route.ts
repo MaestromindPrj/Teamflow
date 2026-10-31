@@ -44,7 +44,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {
@@ -115,7 +115,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   if (!isDbConfigured()) {
-    return NextResponse.json({ error: "DATABASE_URL not configured" }, { status: 400 });
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   try {
@@ -127,9 +127,7 @@ export async function DELETE(req: NextRequest) {
       try {
         const body = await req.json();
         id = body.id;
-      } catch {
-        // no body
-      }
+      } catch {}
     }
 
     if (!id) {

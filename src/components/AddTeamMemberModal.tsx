@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, UserPlus, Search, UserCheck, Plus } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { Project } from "@/data/teamflowData";
+import UserAvatar from "@/components/UserAvatar";
 
 interface AddTeamMemberModalProps {
   project: Project;
@@ -145,10 +146,12 @@ export default function AddTeamMemberModal({ project, isOpen, onClose }: AddTeam
                                 readOnly
                                 className="w-4 h-4 accent-[#0084d4] rounded pointer-events-none"
                               />
-                              <img
+                              <UserAvatar
                                 src={emp.avatar}
-                                alt={emp.fullName}
-                                className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-200"
+                                name={emp.fullName}
+                                role={emp.role}
+                                className="w-8 h-8 rounded-full border border-slate-200 shrink-0"
+                                textClassName="text-[11px]"
                               />
                               <div className="min-w-0">
                                 <p className="font-semibold text-[13px] text-slate-900 leading-tight truncate">

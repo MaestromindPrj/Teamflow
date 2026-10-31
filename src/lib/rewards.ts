@@ -45,10 +45,8 @@ export function computeUserRewards(
   const inReviewTasks = userTasks.filter((t) => t.status === "Review");
   const inProgressTasks = userTasks.filter((t) => t.status === "In Progress");
 
-  // Base points
   let points = 100 + completedTasks.length * 150 + inReviewTasks.length * 50 + inProgressTasks.length * 25;
 
-  // PM points for driving team projects
   if (user.role === "project_manager") {
     const pmProjects = projects.filter((p) => p.projectManagerId === user.id);
     const pmTasks = tasks.filter((t) => pmProjects.some((p) => p.id === t.projectId));
@@ -56,7 +54,6 @@ export function computeUserRewards(
     points += pmCompleted * 40;
   }
 
-  // Direct merit awards from CEO / PM
   const userLedgerEntries = rewardsLedger.filter((r) => r.userId === user.id);
   const awardedPointsTotal = userLedgerEntries.reduce((sum, r) => sum + r.points, 0);
   points += awardedPointsTotal;
@@ -67,7 +64,6 @@ export function computeUserRewards(
 
   const history: DynamicRewardProfile["history"] = [];
 
-  // Top of ledger: direct awards from CEO/PM
   userLedgerEntries.forEach((entry) => {
     history.push({
       date: entry.date,
@@ -77,7 +73,6 @@ export function computeUserRewards(
     });
   });
 
-  // Task completed milestones
   completedTasks.forEach((t) => {
     history.push({
       date: t.deadline || "Oct 20, 2026",
@@ -87,7 +82,6 @@ export function computeUserRewards(
     });
   });
 
-  // Task review milestones
   inReviewTasks.forEach((t) => {
     history.push({
       date: t.deadline || "Oct 25, 2026",

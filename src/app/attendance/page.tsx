@@ -20,6 +20,7 @@ import { useTeamFlow, getLocalDateString } from "@/context/TeamFlowContext";
 import AttendanceDetailModal from "@/components/AttendanceDetailModal";
 import { AttendanceRecord } from "@/data/teamflowData";
 import InPageSubTabs, { SubTabItem } from "@/components/InPageSubTabs";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function AttendancePage() {
   const {
@@ -271,10 +272,8 @@ export default function AttendancePage() {
                 {(() => {
                   const todayString = getLocalDateString(new Date());
                   const sortedAttendance = [...visibleAttendance].sort((a, b) => {
-                    // Today's records always appear at the top (first row)
                     if (a.date === todayString && b.date !== todayString) return -1;
                     if (b.date === todayString && a.date !== todayString) return 1;
-                    // Otherwise sort by date descending (latest first)
                     const dateComp = b.date.localeCompare(a.date);
                     if (dateComp !== 0) return dateComp;
                     return b.id.localeCompare(a.id);
@@ -285,19 +284,12 @@ export default function AttendancePage() {
                     const clockState = userClockInData[row.userId];
                     const isToday = row.date === todayString;
 
-                    // ONLY today's row can ever be "Working Now"
                     const isWorkingNow = isToday && (clockState ? clockState.isClockedIn : row.clockOut === "—" && row.status !== "Leave");
 
-                    // Check-in punch:
-                    // For today, use active live clockInTimeString if present; for past days, strictly use the stored historical punch
                     const checkInTime = isToday && (clockState?.isClockedIn || clockState?.clockInTimeString)
                       ? (clockState.clockInTimeString || row.clockIn)
                       : row.clockIn;
 
-                    // Check-out punch:
-                    // If working now today -> null (shows "Working Now" badge)
-                    // If checked out today -> today's checkout time
-                    // For past days -> ALWAYS use stored historical clockOut (never null/working now)
                     const checkOutTime = isWorkingNow
                       ? null
                       : isToday && clockState?.clockOutTimeString
@@ -306,7 +298,6 @@ export default function AttendancePage() {
                       ? row.clockOut
                       : null;
 
-                    // Work duration:
                     let liveDurationStr = row.duration;
                     if (row.status === "Leave") {
                       liveDurationStr = "—";
@@ -331,7 +322,6 @@ export default function AttendancePage() {
                         "0"
                       )}m ${String(s).padStart(2, "0")}s`;
                     } else {
-                      // Historical logs strictly preserve their recorded duration
                       liveDurationStr = row.duration;
                     }
 
@@ -352,17 +342,13 @@ export default function AttendancePage() {
                       >
                         <td className="py-3.5 pr-3">
                           <div className="flex items-center gap-2.5">
-                            {staffUser?.avatar ? (
-                              <img
-                                src={staffUser.avatar}
-                                alt={row.userName}
-                                className="w-[34px] h-[34px] rounded-full object-cover border border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
-                              />
-                            ) : (
-                              <div className="w-[34px] h-[34px] rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700 text-[11px] shrink-0">
-                                {row.userName.substring(0, 2)}
-                              </div>
-                            )}
+                            <UserAvatar
+                              src={staffUser?.avatar}
+                              name={row.userName}
+                              role={staffUser?.role}
+                              className="w-[34px] h-[34px] rounded-full border border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
+                              textClassName="text-[11px]"
+                            />
                             <div>
                               <div className="font-semibold text-slate-900 leading-tight group-hover:text-[#0084d4] transition-colors">
                                 {row.userName}
