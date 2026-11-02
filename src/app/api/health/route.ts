@@ -54,6 +54,9 @@ export async function GET(_req: NextRequest) {
       foundDbKeys: Object.keys(process.env).filter((k) =>
         k.includes("DATA") || k.includes("POSTGRES") || k.includes("NEON") || k.includes("URL")
       ),
+      allCustomKeys: Object.keys(process.env)
+        .filter((k) => !k.startsWith("npm_") && !k.startsWith("_") && !k.startsWith("NODE_"))
+        .sort(),
     },
   });
 }
