@@ -34,6 +34,8 @@ export async function GET(_req: NextRequest) {
 
   return NextResponse.json({
     status: "ok",
+    commitSha: process.env.VERCEL_GIT_COMMIT_SHA || "local",
+    commitMessage: process.env.VERCEL_GIT_COMMIT_MESSAGE || "local",
     timestamp: new Date().toISOString(),
     services: {
       neonPostgres: {
@@ -45,6 +47,12 @@ export async function GET(_req: NextRequest) {
       cloudinary: {
         configured: cloudinaryConfigured,
       },
+    },
+    debug: {
+      hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+      hasDatabaseUrlUnpooled: Boolean(process.env.DATABASE_URL_UNPOOLED),
+      hasPostgresUrl: Boolean(process.env.POSTGRES_URL),
+      urlPrefix: (process.env.DATABASE_URL || "").substring(0, 12),
     },
   });
 }
