@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { hashPassword } from "@/lib/auth";
 import {
   INITIAL_USERS,
   INITIAL_PROJECTS,
@@ -11,17 +12,27 @@ import {
   AttendanceRecord,
 } from "@/data/teamflowData";
 
+function getDatabaseUrl(): string | undefined {
+  return (
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_URL_UNPOOLED ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL
+  );
+}
+
 export function isDbConfigured(): boolean {
-  return !!process.env.DATABASE_URL;
+  return !!getDatabaseUrl();
 }
 
 export function getDb() {
-  if (!process.env.DATABASE_URL) {
+  const url = getDatabaseUrl();
+  if (!url) {
     throw new Error(
-      "Neon PostgreSQL DATABASE_URL is not configured. Please add DATABASE_URL in your .env.local file."
+      "Neon PostgreSQL DATABASE_URL is not configured. Please add DATABASE_URL in your .env.local or Vercel environment variables."
     );
   }
-  return neon(process.env.DATABASE_URL);
+  return neon(url);
 }
 
 let isInitialized = false;
@@ -45,6 +56,9 @@ export async function initDatabase() {
         avatar TEXT,
         phone VARCHAR(100),
         employee_id VARCHAR(100),
+        bio TEXT,
+        password_hash TEXT,
+        initial_password TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
@@ -167,16 +181,31 @@ export async function initDatabase() {
 
     try {
       await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;`;
+      await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;`;
+      await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS initial_password TEXT;`;
       await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS discussion JSONB DEFAULT '[]'::jsonb;`;
-    } catch {}
+
+      const defaultPassword = "Maestro@2026!";
+      const defaultHash = hashPassword(defaultPassword);
+      await sql`
+        UPDATE users 
+        SET initial_password = ${defaultPassword}, password_hash = ${defaultHash} 
+        WHERE password_hash IS NULL OR password_hash = '';
+      `;
+    } catch (migErr) {
+      console.warn("Migration warning:", migErr);
+    }
 
     const userCountResult = await sql`SELECT COUNT(*)::int AS count FROM users;`;
     const userCount = Number(userCountResult[0]?.count || 0);
 
     if (userCount === 0) {
+      const defaultPassword = "Maestro@2026!";
+      const defaultHash = hashPassword(defaultPassword);
+
       for (const u of INITIAL_USERS) {
         await sql`
-          INSERT INTO users (id, name, full_name, email, role, job_title, avatar, phone, employee_id)
+          INSERT INTO users (id, name, full_name, email, role, job_title, avatar, phone, employee_id, password_hash, initial_password)
           VALUES (
             ${u.id},
             ${u.name},
@@ -186,9 +215,13 @@ export async function initDatabase() {
             ${u.jobTitle},
             ${u.avatar},
             ${u.phone},
-            ${u.employeeId}
+            ${u.employeeId},
+            ${defaultHash},
+            ${defaultPassword}
           )
-          ON CONFLICT (id) DO NOTHING;
+          ON CONFLICT (id) DO UPDATE SET
+            password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash),
+            initial_password = COALESCE(users.initial_password, EXCLUDED.initial_password);
         `;
       }
     }
