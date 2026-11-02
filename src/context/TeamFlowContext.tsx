@@ -7,6 +7,10 @@ import {
   Task,
   TaskAttachment,
   AttendanceRecord,
+  PunchSession,
+  LeaveRequest,
+  ProjectCategory,
+  DEFAULT_PROJECT_CATEGORIES,
   INITIAL_USERS,
   INITIAL_PROJECTS,
   INITIAL_TASKS_DATA,
@@ -21,6 +25,7 @@ export interface UserClockInState {
   clockOutTimeString: string | null;
   elapsedSeconds?: number;
   clockInDate?: string;
+  sessions?: PunchSession[];
 }
 
 export function getLocalDateString(d: Date = new Date()): string {
@@ -28,6 +33,20 @@ export function getLocalDateString(d: Date = new Date()): string {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+export function getDatesInRange(startStr: string, endStr: string): string[] {
+  const dates: string[] = [];
+  const curr = new Date(startStr + "T00:00:00");
+  const end = new Date(endStr + "T00:00:00");
+  while (curr <= end) {
+    const y = curr.getFullYear();
+    const m = String(curr.getMonth() + 1).padStart(2, "0");
+    const d = String(curr.getDate()).padStart(2, "0");
+    dates.push(`${y}-${m}-${d}`);
+    curr.setDate(curr.getDate() + 1);
+  }
+  return dates.length > 0 ? dates : [startStr];
 }
 
 export function getStartOfTodayTimestamp(d: Date = new Date()): number {
@@ -164,6 +183,14 @@ interface TeamFlowContextType {
   isUserTeamLead: (userId: string, projectId: string) => boolean;
   getAllMedia: () => Array<TaskAttachment & { projectTitle: string; taskTitle: string; projectId: string }>;
   getProjectMedia: (projectId: string) => Array<TaskAttachment & { taskTitle: string }>;
+  jobRoles: { id: string; name: string }[];
+  createJobRole: (name: string) => Promise<boolean>;
+  updateJobRole: (id: string, name: string, oldName?: string) => Promise<boolean>;
+  deleteJobRole: (id: string) => Promise<boolean>;
+  categories: ProjectCategory[];
+  createCategory: (name: string, description?: string) => Promise<boolean>;
+  updateCategory: (id: string, name: string, oldName?: string, description?: string) => Promise<boolean>;
+  deleteCategory: (id: string) => Promise<boolean>;
   departments: { id: string; name: string }[];
   createDepartment: (name: string) => Promise<boolean>;
   updateDepartment: (id: string, name: string, oldName?: string) => Promise<boolean>;
@@ -172,40 +199,110 @@ interface TeamFlowContextType {
     fullName: string;
     email: string;
     role: "employer" | "project_manager";
-    department?: string;
     jobTitle?: string;
+    department?: string;
     initialPassword?: string;
   }) => Promise<User>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   rewardsLedger: RewardLedgerEntry[];
+  hasHydrated: boolean;
   awardRewardPoints: (params: {
     userId: string;
     points: number;
     action: string;
     reason: string;
   }) => Promise<boolean>;
+  leaveRequests: LeaveRequest[];
+  applyLeave: (params: {
+    userId: string;
+    startDate: string;
+    endDate?: string;
+    leaveType: string;
+    reason?: string;
+    status?: "Pending" | "Approved";
+  }) => Promise<{ success: boolean; error?: string }>;
+  reviewLeaveRequest: (id: string, status: "Approved" | "Rejected") => Promise<boolean>;
 }
 
 const TeamFlowContext = createContext<TeamFlowContextType | undefined>(undefined);
 
-const DEFAULT_DEPARTMENTS: { id: string; name: string }[] = [
-  { id: "dept-ui-ux-designer", name: "UI/UX Designer" },
-  { id: "dept-software-developer", name: "Software Developer" },
-  { id: "dept-junior-software-developer", name: "Junior Software Developer" },
-  { id: "dept-ai-engineer", name: "AI Engineer" },
-  { id: "dept-project-manager", name: "Project Manager" },
+const DEFAULT_JOB_ROLES: { id: string; name: string }[] = [
+  { id: "role-ui-ux-designer", name: "UI/UX Designer" },
+  { id: "role-software-developer", name: "Software Developer" },
+  { id: "role-junior-software-developer", name: "Junior Software Developer" },
+  { id: "role-ai-engineer", name: "AI Engineer" },
+  { id: "role-project-manager", name: "Project Manager" },
 ];
 
+const EMPTY_FALLBACK_USER: User = {
+  id: "",
+  name: "",
+  fullName: "",
+  email: "",
+  role: "employer",
+  jobTitle: "",
+  avatar: "",
+  phone: "",
+  employeeId: "",
+};
+
+export function sanitizeUserData(u: User): User {
+  const hasDummyAvatar =
+    u.avatar &&
+    (u.avatar.includes("images.unsplash.com") ||
+     u.avatar.includes("/avatars/marcus.jpg") ||
+     u.avatar.includes("/avatars/ajay.jpg"));
+  const hasDummyPhone =
+    u.phone &&
+    (u.phone.includes("555") ||
+     u.phone === "+91 9834724461");
+  const hasDummyBio =
+    u.bio &&
+    (u.bio.toLowerCase().includes("dummy") ||
+     u.bio.toLowerCase().includes("lorem ipsum"));
+
+  return {
+    ...u,
+    avatar: hasDummyAvatar ? "" : (u.avatar || ""),
+    phone: hasDummyPhone ? "" : (u.phone || ""),
+    bio: hasDummyBio ? "" : (u.bio || ""),
+  };
+}
+
 export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
-  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
-  const [currentUserId, setCurrentUserIdState] = useState<string>("u-ceo-1");
+  const [users, setUsers] = useState<User[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedUsers = localStorage.getItem("teamflow_users");
+        if (savedUsers) {
+          const parsed = JSON.parse(savedUsers);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map(sanitizeUserData);
+          }
+        }
+      } catch {}
+    }
+    return INITIAL_USERS;
+  });
+  const [currentUserId, setCurrentUserIdState] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("teamflow_current_user") || "";
+      } catch {}
+    }
+    return "";
+  });
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS_DATA);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE_DATA);
   const [userClockInData, setUserClockInData] = useState<Record<string, UserClockInState>>(DEFAULT_CLOCK_IN_DATA);
-  const [departments, setDepartments] = useState<{ id: string; name: string }[]>(DEFAULT_DEPARTMENTS);
+  const [jobRoles, setJobRoles] = useState<{ id: string; name: string }[]>(DEFAULT_JOB_ROLES);
+  const departments = jobRoles;
+  const setDepartments = setJobRoles;
+  const [categories, setCategories] = useState<ProjectCategory[]>(DEFAULT_PROJECT_CATEGORIES);
   const [rewardsLedger, setRewardsLedger] = useState<RewardLedgerEntry[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
@@ -217,8 +314,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
       if (savedUser) {
         setCurrentUserIdState(savedUser);
-      } else {
-        setCurrentUserIdState("u-ceo-1");
       }
 
       const savedUsers = localStorage.getItem("teamflow_users");
@@ -226,7 +321,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         try {
           const parsed = JSON.parse(savedUsers);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setUsers(parsed);
+            setUsers(parsed.map(sanitizeUserData));
           }
         } catch {}
       }
@@ -245,6 +340,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
+      const savedCategories = localStorage.getItem("teamflow_categories");
+      if (savedCategories) {
+        try {
+          const parsed = JSON.parse(savedCategories);
+          if (Array.isArray(parsed) && parsed.length > 0) setCategories(parsed);
+        } catch {}
+      }
+
       const hasAttendanceCleaned = localStorage.getItem("teamflow_attendance_v4_reset");
       if (!hasAttendanceCleaned) {
         localStorage.removeItem("teamflow_attendance");
@@ -252,7 +355,16 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       } else if (savedAttendance) {
         try {
           const parsed = JSON.parse(savedAttendance);
-          if (Array.isArray(parsed)) setAttendance(parsed);
+          if (Array.isArray(parsed)) {
+            const seen = new Set<string>();
+            const deduped = parsed.filter((r: AttendanceRecord) => {
+              const k = `${r.userId}-${r.date}`;
+              if (seen.has(k)) return false;
+              seen.add(k);
+              return true;
+            });
+            setAttendance(deduped);
+          }
         } catch {}
       }
 
@@ -281,23 +393,26 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
   const refreshFromBackend = useCallback(async () => {
     try {
-      const [usersRes, projectsRes, tasksRes, attendanceRes, clockInRes, deptsRes, rewardsRes, meRes] = await Promise.all([
+      const [usersRes, projectsRes, tasksRes, attendanceRes, clockInRes, deptsRes, rewardsRes, meRes, leavesRes, categoriesRes] = await Promise.all([
         fetch("/api/users").catch(() => null),
         fetch("/api/projects").catch(() => null),
         fetch("/api/tasks").catch(() => null),
         fetch("/api/attendance").catch(() => null),
         fetch("/api/clock-in").catch(() => null),
-        fetch("/api/departments").catch(() => null),
+        fetch("/api/job-roles").catch(() => null),
         fetch("/api/rewards").catch(() => null),
         fetch("/api/auth/me").catch(() => null),
+        fetch("/api/leaves").catch(() => null),
+        fetch("/api/categories").catch(() => null),
       ]);
 
       if (usersRes && usersRes.ok) {
         const data = await usersRes.json();
         if (Array.isArray(data.users)) {
-          setUsers(data.users);
+          const sanitized = data.users.map(sanitizeUserData);
+          setUsers(sanitized);
           try {
-            localStorage.setItem("teamflow_users", JSON.stringify(data.users));
+            localStorage.setItem("teamflow_users", JSON.stringify(sanitized));
           } catch {}
         }
       }
@@ -332,8 +447,9 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
       if (deptsRes && deptsRes.ok) {
         const data = await deptsRes.json();
-        if (Array.isArray(data.departments)) {
-          setDepartments(data.departments);
+        const list = data.jobRoles || data.departments;
+        if (Array.isArray(list) && list.length > 0) {
+          setJobRoles(list);
         }
       }
 
@@ -344,18 +460,33 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      if (leavesRes && leavesRes.ok) {
+        const data = await leavesRes.json();
+        if (Array.isArray(data.leaveRequests)) {
+          setLeaveRequests(data.leaveRequests);
+        }
+      }
+
+      if (categoriesRes && categoriesRes.ok) {
+        const data = await categoriesRes.json();
+        if (Array.isArray(data.categories) && data.categories.length > 0) {
+          setCategories(data.categories);
+        }
+      }
+
       if (meRes && meRes.ok) {
         const meData = await meRes.json();
         if (meData?.user?.id) {
-          setCurrentUserIdState(meData.user.id);
+          const sanitized = sanitizeUserData(meData.user);
+          setCurrentUserIdState(sanitized.id);
           try {
-            localStorage.setItem("teamflow_current_user", meData.user.id);
+            localStorage.setItem("teamflow_current_user", sanitized.id);
           } catch {}
           setUsers((prev) => {
-            const exists = prev.some((u) => u.id === meData.user.id);
+            const exists = prev.some((u) => u.id === sanitized.id);
             return exists
-              ? prev.map((u) => (u.id === meData.user.id ? { ...u, ...meData.user } : u))
-              : [meData.user, ...prev];
+              ? prev.map((u) => (u.id === sanitized.id ? { ...u, ...sanitized } : u))
+              : [sanitized, ...prev];
           });
         }
       }
@@ -369,17 +500,22 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   }, [refreshFromBackend]);
 
   useEffect(() => {
-    if (!hasHydrated) return;
+    if (!hasHydrated || !currentUserId) return;
     try {
       localStorage.setItem("teamflow_current_user", currentUserId);
       localStorage.setItem("teamflow_projects", JSON.stringify(projects));
       localStorage.setItem("teamflow_tasks", JSON.stringify(tasks));
       localStorage.setItem("teamflow_attendance", JSON.stringify(attendance));
       localStorage.setItem("teamflow_user_clock_in_v3", JSON.stringify(userClockInData));
+      localStorage.setItem("teamflow_categories", JSON.stringify(categories));
     } catch {}
-  }, [currentUserId, projects, tasks, attendance, userClockInData, hasHydrated]);
+  }, [currentUserId, projects, tasks, attendance, userClockInData, categories, hasHydrated]);
 
-  const currentUser = users.find((u) => u.id === currentUserId) || users[0];
+  const currentUser: User =
+    users.find((u) => u.id === currentUserId) ||
+    (currentUserId
+      ? { ...EMPTY_FALLBACK_USER, id: currentUserId }
+      : users[0] || INITIAL_USERS[0] || EMPTY_FALLBACK_USER);
 
   const setCurrentUserId = (id: string) => {
     setCurrentUserIdState(id);
@@ -406,67 +542,135 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const createDepartment = async (name: string): Promise<boolean> => {
+  const createJobRole = async (name: string): Promise<boolean> => {
     const trimmed = name.trim();
     if (!trimmed) return false;
-    const newDept = {
-      id: `dept-${Date.now()}`,
+    const newRole = {
+      id: `role-${trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`,
       name: trimmed,
     };
-    setDepartments((prev) => [...prev, newDept]);
+    setJobRoles((prev) => [...prev, newRole]);
 
     try {
-      await fetch("/api/departments", {
+      await fetch("/api/job-roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newDept),
+        body: JSON.stringify(newRole),
       });
       return true;
     } catch (err) {
-      console.warn("Failed to create department on backend:", err);
+      console.warn("Failed to create job role on backend:", err);
       return false;
     }
   };
 
-  const updateDepartment = async (id: string, name: string, oldName?: string): Promise<boolean> => {
+  const updateJobRole = async (id: string, name: string, oldName?: string): Promise<boolean> => {
     const trimmed = name.trim();
     if (!trimmed) return false;
 
-    setDepartments((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, name: trimmed } : d))
+    setJobRoles((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, name: trimmed } : r))
     );
 
     if (oldName && oldName !== trimmed) {
       setUsers((prev) =>
-        prev.map((u) => (u.department === oldName ? { ...u, department: trimmed } : u))
+        prev.map((u) => (u.jobTitle === oldName ? { ...u, jobTitle: trimmed } : u))
       );
     }
 
     try {
-      await fetch("/api/departments", {
+      await fetch("/api/job-roles", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, name: trimmed, oldName }),
       });
       return true;
     } catch (err) {
-      console.warn("Failed to update department on backend:", err);
+      console.warn("Failed to update job role on backend:", err);
       return false;
     }
   };
 
-  const deleteDepartment = async (id: string): Promise<boolean> => {
-    setDepartments((prev) => prev.filter((d) => d.id !== id));
+  const deleteJobRole = async (id: string): Promise<boolean> => {
+    setJobRoles((prev) => prev.filter((r) => r.id !== id));
     try {
-      await fetch(`/api/departments?id=${encodeURIComponent(id)}`, {
+      await fetch(`/api/job-roles?id=${encodeURIComponent(id)}`, {
         method: "DELETE",
       });
       return true;
     } catch (err) {
-      console.warn("Failed to delete department on backend:", err);
+      console.warn("Failed to delete job role on backend:", err);
       return false;
     }
   };
+
+  const createCategory = async (name: string, description?: string): Promise<boolean> => {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    const newCat: ProjectCategory = {
+      id: `cat-${trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`,
+      name: trimmed,
+      description: description?.trim() || "",
+      projectCount: 0,
+    };
+    setCategories((prev) => [...prev, newCat]);
+
+    try {
+      await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCat),
+      });
+      return true;
+    } catch (err) {
+      console.warn("Failed to create category on backend:", err);
+      return false;
+    }
+  };
+
+  const updateCategory = async (id: string, name: string, oldName?: string, description?: string): Promise<boolean> => {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+
+    setCategories((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, name: trimmed, description: description !== undefined ? description : c.description } : c))
+    );
+
+    if (oldName && oldName !== trimmed) {
+      setProjects((prev) =>
+        prev.map((p) => (p.category.toLowerCase() === oldName.toLowerCase() ? { ...p, category: trimmed } : p))
+      );
+    }
+
+    try {
+      await fetch("/api/categories", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: trimmed, oldName, description }),
+      });
+      return true;
+    } catch (err) {
+      console.warn("Failed to update category on backend:", err);
+      return false;
+    }
+  };
+
+  const deleteCategory = async (id: string): Promise<boolean> => {
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+    try {
+      await fetch(`/api/categories?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      return true;
+    } catch (err) {
+      console.warn("Failed to delete category on backend:", err);
+      return false;
+    }
+  };
+
+  const createDepartment = createJobRole;
+  const updateDepartment = updateJobRole;
+  const deleteDepartment = deleteJobRole;
 
   const deleteUser = async (id: string): Promise<boolean> => {
     if (id === "u-ceo-1") return false;
@@ -504,8 +708,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       ? `TF-PM-${Math.floor(100 + Math.random() * 900)}`
       : `TF-EMP-${Math.floor(200 + Math.random() * 800)}`;
     const firstName = memberData.fullName.trim().split(" ")[0] || "Staff";
-    const dept = isPm ? "Project Management" : memberData.department || "General";
-    const title = memberData.jobTitle || (isPm ? "Project Manager" : dept);
+    const title = memberData.jobTitle || memberData.department || (isPm ? "Project Manager" : "Software Developer");
 
     const newUser: User = {
       id,
@@ -514,7 +717,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       email: memberData.email.trim(),
       role: memberData.role,
       jobTitle: title,
-      department: dept,
       avatar: "",
       phone: "",
       employeeId,
@@ -578,6 +780,9 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const logout = async (): Promise<void> => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
+    try {
+      localStorage.removeItem("teamflow_current_user");
     } catch {}
     if (typeof window !== "undefined") {
       window.location.href = "/login";
@@ -920,7 +1125,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
                 userId: targetUser.id,
                 userName: targetUser.fullName,
                 userRole: targetUser.role,
-                department: targetUser.department,
                 date: todayString,
                 clockIn: "12:00 AM",
                 clockOut: "—",
@@ -987,14 +1191,26 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     let nextState: UserClockInState;
 
     if (nextClockedIn) {
-      const prevElapsedToday = userState.clockInDate === todayString ? (userState.elapsedSeconds || 0) : 0;
+      const isSameDay = userState.clockInDate === todayString;
+      const prevElapsedToday = isSameDay ? (userState.elapsedSeconds || 0) : 0;
+      const existingSessions: PunchSession[] = (isSameDay && userState.sessions) ? [...userState.sessions] : [];
+      const newSession: PunchSession = {
+        sessionNumber: existingSessions.length + 1,
+        clockIn: timeString,
+        clockOut: null,
+        duration: undefined,
+        elapsedSeconds: 0,
+      };
+      const updatedSessions = [...existingSessions, newSession];
+
       nextState = {
         isClockedIn: true,
         clockInTimestamp: Date.now(),
-        clockInTimeString: timeString,
+        clockInTimeString: isSameDay && userState.clockInTimeString ? userState.clockInTimeString : timeString,
         clockOutTimeString: null,
         elapsedSeconds: prevElapsedToday,
         clockInDate: todayString,
+        sessions: updatedSessions,
       };
 
       setAttendance((prev) => {
@@ -1004,7 +1220,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             ...existingToday,
             clockIn: existingToday.clockIn && existingToday.clockIn !== "—" ? existingToday.clockIn : timeString,
             clockOut: "—",
-            status: "Present"
+            status: "Present",
+            sessions: updatedSessions,
           };
           fetch("/api/attendance", {
             method: "POST",
@@ -1014,16 +1231,16 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           return prev.map((r) => (r.id === existingToday.id ? updatedRecord : r));
         } else {
           const newRecord: AttendanceRecord = {
-            id: `att-rec-${Date.now()}-${userId}`,
+            id: `att-${userId}-${todayString}`,
             userId: targetUser.id,
             userName: targetUser.fullName,
             userRole: targetUser.role,
-            department: targetUser.department,
             date: todayString,
             clockIn: timeString,
             clockOut: "—",
             duration: "00h 00m 01s",
-            status: "Present"
+            status: "Present",
+            sessions: updatedSessions,
           };
           fetch("/api/attendance", {
             method: "POST",
@@ -1078,7 +1295,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             userId: targetUser.id,
             userName: targetUser.fullName,
             userRole: targetUser.role,
-            department: targetUser.department,
             date: todayString,
             clockIn: "12:00 AM",
             clockOut: timeString,
@@ -1099,6 +1315,28 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         const totalElapsed = (userState.elapsedSeconds || 0) + sessionSeconds;
         const formattedDuration = formatSecondsToDuration(totalElapsed);
 
+        const currentSessions: PunchSession[] = (userState.sessions && userState.sessions.length > 0)
+          ? userState.sessions.map((s, idx) => {
+              if (idx === userState.sessions!.length - 1) {
+                return {
+                  ...s,
+                  clockOut: timeString,
+                  duration: formatSecondsToDuration(sessionSeconds),
+                  elapsedSeconds: sessionSeconds,
+                };
+              }
+              return s;
+            })
+          : [
+              {
+                sessionNumber: 1,
+                clockIn: userState.clockInTimeString || timeString,
+                clockOut: timeString,
+                duration: formattedDuration,
+                elapsedSeconds: totalElapsed,
+              },
+            ];
+
         nextState = {
           isClockedIn: false,
           clockInTimestamp: null,
@@ -1106,6 +1344,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           clockOutTimeString: timeString,
           elapsedSeconds: totalElapsed,
           clockInDate: todayString,
+          sessions: currentSessions,
         };
 
         setAttendance((prev) => {
@@ -1116,6 +1355,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
               clockOut: timeString,
               duration: formattedDuration,
               status: "Checked Out",
+              sessions: currentSessions,
             };
             fetch("/api/attendance", {
               method: "POST",
@@ -1125,16 +1365,16 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             return prev.map((r) => (r.id === existingToday.id ? updatedRecord : r));
           } else {
             const newRecord: AttendanceRecord = {
-              id: `att-rec-${Date.now()}-${userId}`,
+              id: `att-${userId}-${todayString}`,
               userId: targetUser.id,
               userName: targetUser.fullName,
               userRole: targetUser.role,
-              department: targetUser.department,
               date: todayString,
               clockIn: userState.clockInTimeString || timeString,
               clockOut: timeString,
               duration: formattedDuration,
               status: "Checked Out",
+              sessions: currentSessions,
             };
             fetch("/api/attendance", {
               method: "POST",
@@ -1237,9 +1477,195 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     return list;
   };
 
+  const applyLeave = async (params: {
+    userId: string;
+    startDate: string;
+    endDate?: string;
+    leaveType: string;
+    reason?: string;
+    status?: "Pending" | "Approved";
+  }): Promise<{ success: boolean; error?: string }> => {
+    const targetUser = users.find((u) => u.id === params.userId) || currentUser;
+    const isDirectApproval =
+      params.status === "Approved" ||
+      currentUser.role === "ceo" ||
+      (currentUser.role === "project_manager" && params.userId !== currentUser.id);
+    const finalStatus = isDirectApproval ? "Approved" : "Pending";
+
+    const payload = {
+      userId: targetUser.id,
+      userName: targetUser.fullName,
+      userRole: targetUser.role,
+      startDate: params.startDate,
+      endDate: params.endDate || params.startDate,
+      leaveType: params.leaveType,
+      reason: params.reason || "",
+      status: finalStatus,
+      appliedById: currentUser.id,
+      appliedByName: currentUser.fullName,
+      reviewedById: isDirectApproval ? currentUser.id : undefined,
+      reviewedByName: isDirectApproval ? currentUser.fullName : undefined,
+    };
+
+    try {
+      const res = await fetch("/api/leaves", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || "Failed to submit leave application" };
+      }
+
+      if (data.leaveRequest) {
+        setLeaveRequests((prev) => [data.leaveRequest, ...prev]);
+      }
+
+      if (finalStatus === "Approved") {
+        const dates = getDatesInRange(params.startDate, params.endDate || params.startDate);
+        const todayStr = getLocalDateString(new Date());
+
+        setAttendance((prev) => {
+          const updated = [...prev];
+          for (const d of dates) {
+            const recId = `att-${targetUser.id}-${d}`;
+            const existingIdx = updated.findIndex((r) => r.userId === targetUser.id && r.date === d);
+            const leaveRec: AttendanceRecord = {
+              id: existingIdx >= 0 ? updated[existingIdx].id : recId,
+              userId: targetUser.id,
+              userName: targetUser.fullName,
+              userRole: targetUser.role,
+              date: d,
+              clockIn: "—",
+              clockOut: "—",
+              duration: "—",
+              status: "Leave",
+              sessions: [],
+              leaveType: params.leaveType,
+              leaveReason: params.reason || "",
+            };
+            if (existingIdx >= 0) {
+              updated[existingIdx] = leaveRec;
+            } else {
+              updated.unshift(leaveRec);
+            }
+          }
+          return updated;
+        });
+
+        if (dates.includes(todayStr)) {
+          setUserClockInData((prev) => ({
+            ...prev,
+            [targetUser.id]: {
+              isClockedIn: false,
+              clockInTimestamp: null,
+              clockInTimeString: null,
+              clockOutTimeString: null,
+              elapsedSeconds: 0,
+              clockInDate: todayStr,
+              sessions: [],
+            },
+          }));
+        }
+      }
+
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error applying leave";
+      return { success: false, error: msg };
+    }
+  };
+
+  const reviewLeaveRequest = async (id: string, status: "Approved" | "Rejected"): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/leaves", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          status,
+          reviewedById: currentUser.id,
+          reviewedByName: currentUser.fullName,
+        }),
+      });
+      if (!res.ok) return false;
+
+      setLeaveRequests((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                status,
+                reviewedById: currentUser.id,
+                reviewedByName: currentUser.fullName,
+              }
+            : r
+        )
+      );
+
+      if (status === "Approved") {
+        const reqItem = leaveRequests.find((r) => r.id === id);
+        if (reqItem) {
+          const dates = getDatesInRange(reqItem.startDate, reqItem.endDate);
+          const todayStr = getLocalDateString(new Date());
+
+          setAttendance((prev) => {
+            const updated = [...prev];
+            for (const d of dates) {
+              const recId = `att-${reqItem.userId}-${d}`;
+              const existingIdx = updated.findIndex((r) => r.userId === reqItem.userId && r.date === d);
+              const leaveRec: AttendanceRecord = {
+                id: existingIdx >= 0 ? updated[existingIdx].id : recId,
+                userId: reqItem.userId,
+                userName: reqItem.userName,
+                userRole: reqItem.userRole,
+                date: d,
+                clockIn: "—",
+                clockOut: "—",
+                duration: "—",
+                status: "Leave",
+                sessions: [],
+                leaveType: reqItem.leaveType,
+                leaveReason: reqItem.reason || "",
+              };
+              if (existingIdx >= 0) {
+                updated[existingIdx] = leaveRec;
+              } else {
+                updated.unshift(leaveRec);
+              }
+            }
+            return updated;
+          });
+
+          if (dates.includes(todayStr)) {
+            setUserClockInData((prev) => ({
+              ...prev,
+              [reqItem.userId]: {
+                isClockedIn: false,
+                clockInTimestamp: null,
+                clockInTimeString: null,
+                clockOutTimeString: null,
+                elapsedSeconds: 0,
+                clockInDate: todayStr,
+                sessions: [],
+              },
+            }));
+          }
+        }
+      }
+
+      return true;
+    } catch (err) {
+      console.error("reviewLeaveRequest error:", err);
+      return false;
+    }
+  };
+
   return (
     <TeamFlowContext.Provider
       value={{
+        hasHydrated,
         currentUser,
         users,
         projects,
@@ -1267,6 +1693,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         isUserTeamLead,
         getAllMedia,
         getProjectMedia,
+        jobRoles,
+        createJobRole,
+        updateJobRole,
+        deleteJobRole,
+        categories,
+        createCategory,
+        updateCategory,
+        deleteCategory,
         departments,
         createDepartment,
         updateDepartment,
@@ -1275,7 +1709,10 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         rewardsLedger,
-        awardRewardPoints
+        awardRewardPoints,
+        leaveRequests,
+        applyLeave,
+        reviewLeaveRequest
       }}
     >
       {children}

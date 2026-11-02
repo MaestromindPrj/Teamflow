@@ -19,6 +19,14 @@ export interface DynamicRewardProfile {
       message: string;
       date: string;
     }>;
+    all: Array<{
+      id: string;
+      reason: string;
+      author: string;
+      date: string;
+      action: string;
+      points: number;
+    }>;
   };
   history: Array<{
     date: string;
@@ -45,18 +53,23 @@ export function computeUserRewards(
   const inReviewTasks = userTasks.filter((t) => t.status === "Review");
   const inProgressTasks = userTasks.filter((t) => t.status === "In Progress");
 
-  let points = 100 + completedTasks.length * 150 + inReviewTasks.length * 50 + inProgressTasks.length * 25;
+  const userLedgerEntries = rewardsLedger.filter((r) => r.userId === user.id);
+  const awardedPointsTotal = userLedgerEntries.reduce((sum, r) => sum + r.points, 0);
 
+  let pmBonusPoints = 0;
   if (user.role === "project_manager") {
     const pmProjects = projects.filter((p) => p.projectManagerId === user.id);
     const pmTasks = tasks.filter((t) => pmProjects.some((p) => p.id === t.projectId));
     const pmCompleted = pmTasks.filter((t) => t.status === "Completed").length;
-    points += pmCompleted * 40;
+    pmBonusPoints = pmCompleted * 40;
   }
 
-  const userLedgerEntries = rewardsLedger.filter((r) => r.userId === user.id);
-  const awardedPointsTotal = userLedgerEntries.reduce((sum, r) => sum + r.points, 0);
-  points += awardedPointsTotal;
+  const points =
+    completedTasks.length * 150 +
+    inReviewTasks.length * 50 +
+    inProgressTasks.length * 25 +
+    awardedPointsTotal +
+    pmBonusPoints;
 
   const level = Math.max(1, Math.floor(points / 250) + 1);
   const nextTierPoints = level * 250;
@@ -73,9 +86,15 @@ export function computeUserRewards(
     });
   });
 
+  const todayStr = new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+
   completedTasks.forEach((t) => {
     history.push({
-      date: t.deadline || "Oct 20, 2026",
+      date: t.deadline || todayStr,
       action: "Task Completed",
       points: "+150",
       reason: `Finished deliverable: ${t.title}`,
@@ -84,28 +103,21 @@ export function computeUserRewards(
 
   inReviewTasks.forEach((t) => {
     history.push({
-      date: t.deadline || "Oct 25, 2026",
+      date: t.deadline || todayStr,
       action: "Review Milestone",
       points: "+50",
       reason: `Delivered for quality review: ${t.title}`,
     });
   });
 
-  if (user.role === "project_manager") {
+  if (user.role === "project_manager" && pmBonusPoints > 0) {
     history.push({
-      date: "Oct 28, 2026",
+      date: todayStr,
       action: "Portfolio Velocity",
-      points: "+40",
-      reason: "Managed team sprints on time with 0 blockers",
+      points: `+${pmBonusPoints}`,
+      reason: "Managed team project deliverables completed on schedule",
     });
   }
-
-  history.push({
-    date: "Oct 01, 2026",
-    action: "Onboarding Bonus",
-    points: "+100",
-    reason: "Initial workspace activation and profile setup",
-  });
 
   const badges: DynamicRewardProfile["badges"] = [
     {
@@ -116,7 +128,7 @@ export function computeUserRewards(
     },
   ];
 
-  if (completedTasks.length > 0 || user.role === "project_manager" || userLedgerEntries.length > 0) {
+  if (completedTasks.length > 0 || (user.role === "project_manager" && pmBonusPoints > 0) || userLedgerEntries.length > 0) {
     badges.push({
       id: "b-deliverer",
       title: "Consistent Deliverer",
@@ -143,7 +155,13 @@ export function computeUserRewards(
     });
   }
 
-  if (userLedgerEntries.some((e) => e.awardedById === "u-ceo-1")) {
+  if (
+    userLedgerEntries.some(
+      (e) =>
+        e.awardedByName?.toLowerCase().includes("ceo") ||
+        e.action.toLowerCase().includes("executive")
+    )
+  ) {
     badges.push({
       id: "b-ceo-merit",
       title: "Executive Honoree",
@@ -151,6 +169,17 @@ export function computeUserRewards(
       type: "award",
     });
   }
+
+  const latestAward = userLedgerEntries.length > 0 ? userLedgerEntries[0] : null;
+
+  const allAppreciations = userLedgerEntries.map((e) => ({
+    id: e.id,
+    reason: e.reason,
+    author: e.awardedByName || "Manager",
+    date: e.date,
+    action: e.action,
+    points: e.points,
+  }));
 
   return {
     currentBalance: points,
@@ -161,25 +190,18 @@ export function computeUserRewards(
     nextTierPoints,
     progressPercent,
     appreciation: {
-      count: Math.max(1, completedTasks.length + userLedgerEntries.length),
-      quote: userLedgerEntries.length > 0
-        ? userLedgerEntries[0].reason
-        : completedTasks.length > 0
-        ? `Delivered ${completedTasks.length} production milestone(s) on target with high precision.`
-        : "Proactively collaborating across workspace tasks and design objectives.",
-      author: userLedgerEntries.length > 0 && userLedgerEntries[0].awardedByName
-        ? userLedgerEntries[0].awardedByName
-        : user.role === "project_manager"
-        ? "Elena Rostova (CEO)"
-        : "Marcus Vance (Project Manager)",
-      date: userLedgerEntries.length > 0 ? userLedgerEntries[0].date : "Oct 28, 2026",
-      recent: [
-        {
-          from: user.role === "project_manager" ? "Elena Rostova (CEO)" : "Sophia Chen (Project Manager)",
-          message: "Exceptional engineering and timely deliverable completion.",
-          date: "Yesterday",
-        },
-      ],
+      count: allAppreciations.length,
+      quote: latestAward
+        ? latestAward.reason
+        : "No executive or peer appreciation notes awarded yet. Recognitions and praise notes awarded by the CEO or Project Managers will appear here when points are awarded.",
+      author: latestAward?.awardedByName || "",
+      date: latestAward?.date || "",
+      recent: userLedgerEntries.slice(0, 3).map((e) => ({
+        from: e.awardedByName || "Manager",
+        message: e.reason,
+        date: e.date,
+      })),
+      all: allAppreciations,
     },
     history,
     badges,
@@ -199,7 +221,7 @@ export function computeLeaderboard(
       return {
         id: u.id,
         name: u.fullName,
-        role: u.jobTitle || (u.role === "project_manager" ? "Project Manager" : u.department || "Employer"),
+        role: u.jobTitle || (u.role === "project_manager" ? "Project Manager" : "Employer"),
         points: stats.currentBalance,
         avatar: u.avatar,
         rank: 0,

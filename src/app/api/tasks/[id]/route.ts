@@ -82,9 +82,9 @@ export async function PUT(
     let progress = updates.progress !== undefined ? updates.progress : current.progress;
     if (updates.status === "Completed") progress = 100;
 
-    let attachments = updates.attachments !== undefined ? updates.attachments : current.attachments;
+    const attachments = updates.attachments !== undefined ? updates.attachments : current.attachments;
     let activity = updates.activity !== undefined ? updates.activity : current.activity;
-    let discussion = updates.discussion !== undefined ? updates.discussion : (current.discussion || []);
+    const discussion = updates.discussion !== undefined ? updates.discussion : (current.discussion || []);
 
     if (updates.status && updates.status !== current.status && !updates.activity) {
       const newAct = {

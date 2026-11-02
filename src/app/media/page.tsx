@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { FolderKanban, Download, ExternalLink, Archive, FileText, Image as ImageIcon, Search, Filter, Shield, ArrowRight, Plus, UploadCloud } from "lucide-react";
 import Header from "@/components/Header";
@@ -10,7 +10,9 @@ import UploadAssetModal from "@/components/UploadAssetModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
 
 export default function MediaHubPage() {
-  const { currentUser, projects, tasks, isUserTeamLead } = useTeamFlow();
+  const { currentUser, projects, tasks, isUserTeamLead, hasHydrated } = useTeamFlow();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [selectedType, setSelectedType] = useState<string>("All");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -65,6 +67,17 @@ export default function MediaHubPage() {
         return <FileText className="w-5 h-5 text-sky-600" />;
     }
   };
+
+  if (!mounted || !hasHydrated || !currentUser.id) {
+    return (
+      <div className="flex-1 flex flex-col pb-12">
+        <Header title="Deliverables &amp; Asset Vault" subtitle="Loading..." />
+        <div className="px-7 py-6">
+          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col pb-12">

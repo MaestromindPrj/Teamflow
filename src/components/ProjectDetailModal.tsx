@@ -589,7 +589,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                       <h4 className="text-[13px] font-bold text-slate-900 mt-0.5">
                         {teamLead.id === currentUser.id ? "(You)" : teamLead.fullName}
                       </h4>
-                      <p className="text-[11px] text-slate-500">{teamLead.department}</p>
+                      <p className="text-[11px] text-slate-500">{teamLead.jobTitle || "Team Lead"}</p>
                     </div>
                   </div>
                 )}
@@ -629,7 +629,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                               )}
                             </div>
                             <p className="text-[10px] text-slate-400 truncate">
-                              {member.department}
+                              {member.jobTitle || "Employer"}
                             </p>
                           </div>
                         </div>

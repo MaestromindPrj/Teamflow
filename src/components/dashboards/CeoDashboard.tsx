@@ -274,7 +274,7 @@ export default function CeoDashboard() {
                                       </p>
                                     </div>
                                     <p className="text-[11px] text-slate-500 truncate">
-                                      {lead.jobTitle || lead.department}
+                                      {lead.jobTitle || "Team Lead"}
                                     </p>
                                   </div>
                                 </div>
@@ -292,7 +292,7 @@ export default function CeoDashboard() {
                                   <div
                                     key={member.id}
                                     className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-md border border-slate-200 shadow-2xs"
-                                    title={`${member.fullName} (${member.jobTitle || member.department})`}
+                                    title={`${member.fullName} (${member.jobTitle || "Employer"})`}
                                   >
                                     <UserAvatar
                                       src={member.avatar}
@@ -304,7 +304,7 @@ export default function CeoDashboard() {
                                       {member.fullName}
                                     </span>
                                     <span className="text-[9px] text-slate-400">
-                                      ({member.jobTitle || member.department})
+                                      ({member.jobTitle || "Employer"})
                                     </span>
                                   </div>
                                 ))}
@@ -520,7 +520,7 @@ export default function CeoDashboard() {
                         {staff.role === "project_manager" ? "Project Manager" : "Employer"}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-[12px] text-slate-500">{staff.jobTitle || staff.department}</td>
+                    <td className="py-3 px-3 text-[12px] text-slate-500">{staff.jobTitle || "Employer"}</td>
                     <td className="py-3 px-3 text-[12px] text-slate-800 font-medium" suppressHydrationWarning>{clockInTime}</td>
                     <td className="py-3 px-3 text-[12px] text-slate-500" suppressHydrationWarning>{clockOutTime}</td>
                     <td className="py-3 px-3 text-[12px] font-bold text-[#0084d4]" suppressHydrationWarning>{durationStr}</td>

@@ -70,7 +70,7 @@ export async function GET() {
     await initDatabase();
     const sql = getDb();
     const rows = await sql`
-      SELECT user_id, is_clocked_in, clock_in_timestamp, clock_in_time_string, clock_out_time_string, elapsed_seconds, clock_in_date
+      SELECT user_id, is_clocked_in, clock_in_timestamp, clock_in_time_string, clock_out_time_string, elapsed_seconds, clock_in_date, sessions
       FROM clock_in_status;
     `;
 
@@ -84,6 +84,7 @@ export async function GET() {
         clockOutTimeString: (r.clock_out_time_string as string) || null,
         elapsedSeconds: Number(r.elapsed_seconds || 0),
         clockInDate: (r.clock_in_date as string) || undefined,
+        sessions: Array.isArray(r.sessions) ? r.sessions : undefined,
       };
     });
 
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
   try {
     await initDatabase();
     const body = await req.json();
-    const { userId, isClockedIn, clockInTimestamp, clockInTimeString, clockOutTimeString, elapsedSeconds, clockInDate } = body;
+    const { userId, isClockedIn, clockInTimestamp, clockInTimeString, clockOutTimeString, elapsedSeconds, clockInDate, sessions } = body;
 
     if (!userId) {
       return NextResponse.json({ error: "userId is required" }, { status: 400 });
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
     const sql = getDb();
     await sql`
       INSERT INTO clock_in_status (
-        user_id, is_clocked_in, clock_in_timestamp, clock_in_time_string, clock_out_time_string, elapsed_seconds, clock_in_date, updated_at
+        user_id, is_clocked_in, clock_in_timestamp, clock_in_time_string, clock_out_time_string, elapsed_seconds, clock_in_date, sessions, updated_at
       )
       VALUES (
         ${userId},
@@ -121,6 +122,7 @@ export async function POST(req: NextRequest) {
         ${clockOutTimeString || null},
         ${Number(elapsedSeconds || 0)},
         ${clockInDate || null},
+        ${JSON.stringify(sessions || [])}::jsonb,
         CURRENT_TIMESTAMP
       )
       ON CONFLICT (user_id) DO UPDATE SET
@@ -130,6 +132,7 @@ export async function POST(req: NextRequest) {
         clock_out_time_string = EXCLUDED.clock_out_time_string,
         elapsed_seconds = EXCLUDED.elapsed_seconds,
         clock_in_date = EXCLUDED.clock_in_date,
+        sessions = EXCLUDED.sessions,
         updated_at = CURRENT_TIMESTAMP;
     `;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Eye,
@@ -25,6 +25,32 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+
+  const [quickUsers, setQuickUsers] = useState<
+    Array<{ name: string; email: string; role: string; roleColor: string }>
+  >([
+    { name: "Elena Rostova", email: "elena.rostova@maestrominds.co.in", role: "CEO", roleColor: "bg-purple-500" },
+    { name: "Marcus Vance", email: "marcus.vance@maestrominds.co.in", role: "Project Manager", roleColor: "bg-blue-500" },
+    { name: "Ajay Shanmugam", email: "ajay@maestrominds.co.in", role: "UI/UX Designer", roleColor: "bg-emerald-500" },
+  ]);
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.users) && data.users.length > 0) {
+          const ceo = data.users.find((u: { role: string }) => u.role === "ceo");
+          const pm = data.users.find((u: { role: string }) => u.role === "project_manager");
+          const emp = data.users.find((u: { role: string }) => u.role === "employer");
+          const mapped: Array<{ name: string; email: string; role: string; roleColor: string }> = [];
+          if (ceo) mapped.push({ name: ceo.fullName || ceo.name, email: ceo.email, role: "CEO", roleColor: "bg-purple-500" });
+          if (pm) mapped.push({ name: pm.fullName || pm.name, email: pm.email, role: pm.jobTitle || "Project Manager", roleColor: "bg-blue-500" });
+          if (emp) mapped.push({ name: emp.fullName || emp.name, email: emp.email, role: emp.jobTitle || "Employer", roleColor: "bg-emerald-500" });
+          if (mapped.length > 0) setQuickUsers(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,44 +195,21 @@ export default function LoginPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-1.5 text-[11px]">
-              <button
-                type="button"
-                onClick={() => handleQuickFill("elena.rostova@maestrominds.co.in")}
-                className="w-full text-left px-2.5 py-1.5 rounded-lg border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50 transition-colors flex items-center justify-between cursor-pointer group"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
-                  <span className="font-semibold text-slate-800">Elena Rostova</span>
-                  <span className="text-slate-400 text-[10px]">CEO</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-mono group-hover:text-[#0084d4]">Select &rarr;</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickFill("marcus.vance@maestrominds.co.in")}
-                className="w-full text-left px-2.5 py-1.5 rounded-lg border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50 transition-colors flex items-center justify-between cursor-pointer group"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                  <span className="font-semibold text-slate-800">Marcus Vance</span>
-                  <span className="text-slate-400 text-[10px]">Project Manager</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-mono group-hover:text-[#0084d4]">Select &rarr;</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickFill("ajay@maestrominds.co.in")}
-                className="w-full text-left px-2.5 py-1.5 rounded-lg border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50 transition-colors flex items-center justify-between cursor-pointer group"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="font-semibold text-slate-800">Ajay Shanmugam</span>
-                  <span className="text-slate-400 text-[10px]">Lead Designer</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-mono group-hover:text-[#0084d4]">Select &rarr;</span>
-              </button>
+              {quickUsers.map((qu) => (
+                <button
+                  key={qu.email}
+                  type="button"
+                  onClick={() => handleQuickFill(qu.email)}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50 transition-colors flex items-center justify-between cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${qu.roleColor} shrink-0`} />
+                    <span className="font-semibold text-slate-800">{qu.name}</span>
+                    <span className="text-slate-400 text-[10px]">{qu.role}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono group-hover:text-[#0084d4]">Select &rarr;</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>

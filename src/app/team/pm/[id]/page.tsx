@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -28,12 +28,27 @@ function ProjectManagerDetailContent() {
   const params = useParams();
   const pmId = params?.id as string;
 
-  const { users, projects, tasks, currentUser } = useTeamFlow();
+  const { users, projects, tasks, currentUser, hasHydrated } = useTeamFlow();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [pmDetailTab, setPmDetailTab] = useState<"projects" | "workforce" | "tasks">("projects");
 
   const pm = users.find((u) => u.id === pmId && u.role === "project_manager") ||
     users.find((u) => u.role === "project_manager");
+
+  if (!mounted || !hasHydrated) {
+    return (
+      <div className="flex-1 flex flex-col pb-12">
+        <Header title="Project Manager Details" subtitle="Loading..." />
+        <div className="px-7 py-6">
+          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   if (!pm) {
     return (
@@ -327,7 +342,7 @@ function ProjectManagerDetailContent() {
                                   </span>
                                 </div>
                                 <p className="text-[11px] text-slate-500 truncate">
-                                  {lead.department}
+                                  {lead.jobTitle || "Team Lead"}
                                 </p>
                                 <p className="text-[10px] text-slate-400">{lead.email}</p>
                               </div>
@@ -364,7 +379,7 @@ function ProjectManagerDetailContent() {
                                         {member.fullName}
                                       </p>
                                       <p className="text-[10px] text-slate-400 truncate">
-                                        {member.jobTitle || member.department}
+                                        {member.jobTitle || "Employer"}
                                       </p>
                                     </div>
                                   </div>
@@ -443,7 +458,7 @@ function ProjectManagerDetailContent() {
                         <h4 className="text-[13px] font-bold text-slate-900 truncate">
                           {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName}
                         </h4>
-                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{member.jobTitle || member.department}</p>
+                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{member.jobTitle || "Employer"}</p>
                         <p className="text-[10px] text-slate-400 truncate">{member.email}</p>
                       </div>
                     </div>

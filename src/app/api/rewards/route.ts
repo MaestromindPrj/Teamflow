@@ -12,48 +12,7 @@ export interface RewardLedgerEntry {
   date: string;
 }
 
-const DEFAULT_MOCK_LEDGER: RewardLedgerEntry[] = [
-  {
-    id: "rw-seed-1",
-    userId: "u-pm-1",
-    points: 100,
-    action: "Executive Recognition",
-    reason: "Delivered Q3 Engineering Initiatives ahead of timeline",
-    awardedById: "u-ceo-1",
-    awardedByName: "Elena Rostova (CEO)",
-    date: "Oct 22, 2026",
-  },
-  {
-    id: "rw-seed-2",
-    userId: "u-emp-1",
-    points: 100,
-    action: "Peer Merit Award",
-    reason: "Exceptional UI/UX Architecture and design system tokens",
-    awardedById: "u-pm-1",
-    awardedByName: "Marcus Vance (Project Manager)",
-    date: "Oct 24, 2026",
-  },
-  {
-    id: "rw-seed-3",
-    userId: "u-pm-2",
-    points: 120,
-    action: "Leadership Accolade",
-    reason: "Zero blockers maintained across streaming Pub/Sub pipeline projects",
-    awardedById: "u-ceo-1",
-    awardedByName: "Elena Rostova (CEO)",
-    date: "Oct 26, 2026",
-  },
-  {
-    id: "rw-seed-4",
-    userId: "u-emp-3",
-    points: 80,
-    action: "Engineering Merit",
-    reason: "BigQuery telemetry composite clustering reduced query costs by 60%",
-    awardedById: "u-pm-2",
-    awardedByName: "Sophia Chen (Project Manager)",
-    date: "Oct 27, 2026",
-  },
-];
+const DEFAULT_MOCK_LEDGER: RewardLedgerEntry[] = [];
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

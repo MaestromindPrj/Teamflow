@@ -34,13 +34,14 @@ function generateInitialPassword(): string {
 }
 
 export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModalProps) {
-  const { departments, addTeamMember } = useTeamFlow();
+  const { jobRoles, departments, addTeamMember } = useTeamFlow();
+  const availableRoles = jobRoles && jobRoles.length > 0 ? jobRoles : departments;
 
   const [fullName, setFullName] = useState("");
   const [emailUsername, setEmailUsername] = useState("");
   const [role, setRole] = useState<"employer" | "project_manager">("employer");
-  const [selectedDepartment, setSelectedDepartment] = useState<string>(
-    departments[0]?.name || "Design & UX Systems"
+  const [selectedJobRole, setSelectedJobRole] = useState<string>(
+    availableRoles[0]?.name || "Software Developer"
   );
   const [initialPassword, setInitialPassword] = useState(() => generateInitialPassword());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,7 +52,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
     name: string;
     email: string;
     role: string;
-    department: string;
+    jobTitle: string;
     password: string;
   } | null>(null);
 
@@ -85,7 +86,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
 
   const handleCopyAllCredentials = () => {
     if (!createdCredentials) return;
-    const text = `MaestroMinds TeamFlow Account Created:\nName: ${createdCredentials.name}\nEmail: ${createdCredentials.email}\nRole: ${createdCredentials.role}\nDepartment: ${createdCredentials.department}\nInitial Password: ${createdCredentials.password}\nLogin Portal: /login`;
+    const text = `MaestroMinds TeamFlow Account Created:\nName: ${createdCredentials.name}\nEmail: ${createdCredentials.email}\nRole: ${createdCredentials.role}\nJob Role: ${createdCredentials.jobTitle}\nInitial Password: ${createdCredentials.password}\nLogin Portal: /login`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -122,6 +123,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
       ? rawEmailInput
       : `${rawEmailInput}@maestrominds.co.in`;
     const passwordToUse = initialPassword.trim() || generateInitialPassword();
+    const finalJobTitle = role === "employer" ? (selectedJobRole || "Software Developer") : "Project Manager";
 
     setIsSubmitting(true);
     try {
@@ -129,8 +131,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
         fullName: trimmedName,
         email: companyEmail,
         role,
-        department: role === "employer" ? selectedDepartment : "Project Management",
-        jobTitle: role === "employer" ? selectedDepartment : "Project Manager",
+        jobTitle: finalJobTitle,
         initialPassword: passwordToUse,
       });
 
@@ -139,7 +140,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
         name: trimmedName,
         email: companyEmail,
         role: role === "employer" ? "Employer" : "Project Manager",
-        department: role === "employer" ? selectedDepartment : "Project Management",
+        jobTitle: finalJobTitle,
         password: passwordToUse,
       });
     } catch (err: unknown) {
@@ -204,7 +205,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                 <span className="col-span-2 font-mono font-semibold text-slate-900">{createdCredentials.email}</span>
 
                 <span className="text-slate-500 font-medium">Job Role:</span>
-                <span className="col-span-2 font-semibold text-slate-700">{createdCredentials.department}</span>
+                <span className="col-span-2 font-semibold text-slate-700">{createdCredentials.jobTitle}</span>
 
                 <span className="text-slate-500 font-medium">Temporary Password:</span>
                 <span className="col-span-2 font-mono font-bold text-[#0084d4] bg-white px-2 py-1 rounded border border-sky-200 inline-block w-fit">
@@ -322,16 +323,15 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                   <label className="block text-[12px] font-semibold text-slate-700">
                     Job Role *
                   </label>
-                  
                 </div>
                 <select
-                  value={selectedDepartment}
-                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  value={selectedJobRole}
+                  onChange={(e) => setSelectedJobRole(e.target.value)}
                   className="w-full px-3.5 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900 font-medium"
                 >
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.name}>
-                      {d.name}
+                  {availableRoles.map((r) => (
+                    <option key={r.id} value={r.name}>
+                      {r.name}
                     </option>
                   ))}
                 </select>
@@ -339,7 +339,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
             ) : (
               <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-lg text-[12px] text-blue-700 flex items-center gap-2">
                 <Shield className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>Project Managers oversee project portfolios and manage team leads across all departments.</span>
+                <span>Project Managers oversee project portfolios and manage team leads across the organization.</span>
               </div>
             )}
 

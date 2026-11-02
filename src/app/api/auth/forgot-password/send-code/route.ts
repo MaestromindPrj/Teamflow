@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDbConfigured, initDatabase, getDb } from "@/lib/db";
-import { sendPasswordResetOtpEmail } from "@/lib/brevo";
+import { sendPasswordResetOtpEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!emailResult.success) {
-      console.warn("Brevo email send failed:", emailResult.error);
+      console.warn("SMTP verification email send failed:", emailResult.error);
       return NextResponse.json(
         {
           error: "Failed to deliver verification email. Please check your email address and try again.",

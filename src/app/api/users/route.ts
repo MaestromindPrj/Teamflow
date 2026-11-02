@@ -12,7 +12,7 @@ export async function GET() {
     await initDatabase();
     const sql = getDb();
     const rows = await sql`
-      SELECT id, name, full_name, email, role, job_title, department, avatar, phone, employee_id, bio
+      SELECT id, name, full_name, email, role, job_title, avatar, phone, employee_id, bio
       FROM users
       ORDER BY id ASC;
     `;
@@ -23,11 +23,10 @@ export async function GET() {
       fullName: r.full_name as string,
       email: r.email as string,
       role: r.role as "ceo" | "project_manager" | "employer",
-      jobTitle: r.job_title as string,
-      department: r.department as string,
-      avatar: r.avatar as string,
-      phone: r.phone as string,
-      employeeId: r.employee_id as string,
+      jobTitle: (r.job_title as string) || (r.role === "ceo" ? "Chief Executive Officer" : r.role === "project_manager" ? "Project Manager" : "Software Developer"),
+      avatar: (r.avatar as string) || "",
+      phone: (r.phone as string) || "",
+      employeeId: (r.employee_id as string) || "",
       bio: (r.bio as string) || undefined,
     }));
 
@@ -46,7 +45,7 @@ export async function POST(req: NextRequest) {
   try {
     await initDatabase();
     const body = await req.json();
-    const { id, name, fullName, email, role, jobTitle, department, avatar, phone, employeeId, bio } = body;
+    const { id, name, fullName, email, role, jobTitle, avatar, phone, employeeId, bio } = body;
 
     if (!id || !email || !fullName) {
       return NextResponse.json({ error: "Missing required fields (id, email, fullName)" }, { status: 400 });
@@ -57,15 +56,14 @@ export async function POST(req: NextRequest) {
 
     const sql = getDb();
     await sql`
-      INSERT INTO users (id, name, full_name, email, role, job_title, department, avatar, phone, employee_id, bio, password_hash, initial_password)
-      VALUES (${id}, ${name || fullName.split(" ")[0]}, ${fullName}, ${email}, ${role || "employer"}, ${jobTitle || ""}, ${department || ""}, ${avatar || ""}, ${phone || ""}, ${employeeId || ""}, ${bio || null}, ${passwordHash}, ${initialPassword})
+      INSERT INTO users (id, name, full_name, email, role, job_title, avatar, phone, employee_id, bio, password_hash, initial_password)
+      VALUES (${id}, ${name || fullName.split(" ")[0]}, ${fullName}, ${email}, ${role || "employer"}, ${jobTitle || ""}, ${avatar || ""}, ${phone || ""}, ${employeeId || ""}, ${bio || null}, ${passwordHash}, ${initialPassword})
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         full_name = EXCLUDED.full_name,
         email = EXCLUDED.email,
         role = EXCLUDED.role,
         job_title = EXCLUDED.job_title,
-        department = EXCLUDED.department,
         avatar = EXCLUDED.avatar,
         phone = EXCLUDED.phone,
         employee_id = EXCLUDED.employee_id,

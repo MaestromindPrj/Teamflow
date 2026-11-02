@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -29,7 +29,11 @@ function StaffRewardDetailContent() {
   const params = useParams();
   const userId = params?.id as string;
 
-  const { users, projects, tasks, rewardsLedger, currentUser } = useTeamFlow();
+  const { users, projects, tasks, rewardsLedger, currentUser, hasHydrated } = useTeamFlow();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const targetUser = users.find((u) => u.id === userId) || users.find((u) => u.role !== "ceo");
   const profile = targetUser
     ? computeUserRewards(targetUser, tasks, projects, rewardsLedger)
@@ -67,6 +71,17 @@ function StaffRewardDetailContent() {
         return <Award className="w-4 h-4 text-sky-600 stroke-[2]" />;
     }
   };
+
+  if (!mounted || !hasHydrated || !currentUser.id) {
+    return (
+      <div className="flex-1 flex flex-col pb-12">
+        <Header title="Staff Reward Details" subtitle="Loading..." />
+        <div className="px-7 py-6">
+          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   if (!targetUser) {
     return (
@@ -242,7 +257,7 @@ function StaffRewardDetailContent() {
                     }`}
                   >
                     {isPm ? <Briefcase className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
-                    {isPm ? "Project Manager" : targetUser.jobTitle || targetUser.department}
+                    {isPm ? "Project Manager" : targetUser.jobTitle || "Employer"}
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
                     ID: {targetUser.employeeId}
@@ -344,24 +359,32 @@ function StaffRewardDetailContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-[12px]">
-                {filteredHistory.map((log, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 px-3.5 text-slate-500 font-medium whitespace-nowrap">
-                      {log.date}
-                    </td>
-                    <td className="py-3 px-3.5 font-semibold text-slate-900 whitespace-nowrap">
-                      {log.action}
-                    </td>
-                    <td className="py-3 px-3.5 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30">
-                        {log.points}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3.5 text-slate-600 leading-relaxed">
-                      {log.reason}
+                {filteredHistory.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-slate-400 text-[13px]">
+                      No points transactions recorded yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredHistory.map((log, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3 px-3.5 text-slate-500 font-medium whitespace-nowrap">
+                        {log.date}
+                      </td>
+                      <td className="py-3 px-3.5 font-semibold text-slate-900 whitespace-nowrap">
+                        {log.action}
+                      </td>
+                      <td className="py-3 px-3.5 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30">
+                          {log.points}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3.5 text-slate-600 leading-relaxed">
+                        {log.reason}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -396,21 +419,54 @@ function StaffRewardDetailContent() {
           </div>
 
           <div className="bg-white border border-slate-200/90 rounded-lg p-5 shadow-2xs flex flex-col justify-between space-y-4">
-            <div>
+            <div className="flex items-center justify-between">
               <h4 className="text-[14px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
                 <Heart className="w-4 h-4 text-[#de2d1d] fill-[#de2d1d]" />
                 <span>Executive &amp; Peer Appreciation</span>
               </h4>
-              <p className="text-[13px] text-slate-600 italic my-4 leading-relaxed bg-slate-50/70 p-4 rounded-lg border border-slate-200/80">
-                {profile.appreciation.quote}
-              </p>
+              {profile.appreciation.all?.length > 0 && (
+                <span className="text-[11px] font-bold text-[#de2d1d] bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">
+                  {profile.appreciation.all.length} {profile.appreciation.all.length === 1 ? "Note" : "Notes"}
+                </span>
+              )}
             </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-100">
-              <span className="font-semibold text-slate-700">
-                — {profile.appreciation.author}
-              </span>
-              <span>{profile.appreciation.date}</span>
-            </div>
+
+            {(!profile.appreciation.all || profile.appreciation.all.length === 0) ? (
+              <div className="space-y-3">
+                <p className="text-[13px] text-slate-600 italic leading-relaxed bg-slate-50/70 p-4 rounded-lg border border-slate-200/80">
+                  {profile.appreciation.quote}
+                </p>
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-100">
+                  <span className="text-slate-400 italic">Awaiting first recognition note</span>
+                  <span>—</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                {profile.appreciation.all.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-slate-50/70 border border-slate-200/80 rounded-lg p-3.5 space-y-2 hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                        {item.action}
+                      </span>
+                      <span className="text-[10px] font-bold text-[#4ade1d] bg-[#4ade1d]/10 px-1.5 py-0.5 rounded">
+                        +{item.points} pts
+                      </span>
+                    </div>
+                    <p className="text-[13px] text-slate-700 italic leading-relaxed">
+                      &ldquo;{item.reason}&rdquo;
+                    </p>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-200/60">
+                      <span className="font-semibold text-slate-800">— {item.author}</span>
+                      <span className="text-slate-400">{item.date}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

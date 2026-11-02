@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock, Play, Pause, CheckCircle2, AlertCircle } from "lucide-react";
-import { useTeamFlow } from "@/context/TeamFlowContext";
+import { Clock, Play, Pause, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
+import { useTeamFlow, getLocalDateString } from "@/context/TeamFlowContext";
 
 export default function CheckInStatusBar({ className = "" }: { className?: string }) {
-  const { currentUser, currentUserClockIn, toggleClockInOut } = useTeamFlow();
+  const { currentUser, currentUserClockIn, toggleClockInOut, attendance } = useTeamFlow();
   const [tickerSeconds, setTickerSeconds] = useState<number>(0);
 
-  const isCheckedIn = currentUserClockIn?.isClockedIn ?? false;
+  const todayStr = getLocalDateString(new Date());
+  const isOnLeaveToday = attendance.some(
+    (r) => r.userId === currentUser.id && r.date === todayStr && r.status === "Leave"
+  );
+
+  const isCheckedIn = !isOnLeaveToday && (currentUserClockIn?.isClockedIn ?? false);
   const clockInTimestamp = currentUserClockIn?.clockInTimestamp;
   const elapsedSecondsBase = currentUserClockIn?.elapsedSeconds ?? 0;
   const clockInTimeStr = currentUserClockIn?.clockInTimeString;
@@ -46,21 +51,31 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
         <div className="flex items-start gap-3 min-w-0">
           <div
             className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-              isCheckedIn
+              isOnLeaveToday
+                ? "bg-amber-100 text-amber-700 border border-amber-200"
+                : isCheckedIn
                 ? "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30 shadow-2xs"
                 : "bg-slate-100 text-slate-500 border border-slate-200"
             }`}
           >
-            <Clock className={`w-5 h-5 ${isCheckedIn ? "animate-pulse" : ""}`} />
+            {isOnLeaveToday ? (
+              <Calendar className="w-5 h-5 text-amber-600" />
+            ) : (
+              <Clock className={`w-5 h-5 ${isCheckedIn ? "animate-pulse" : ""}`} />
+            )}
           </div>
 
           <div className="space-y-0.5 min-w-0">
             <h3 className="text-[14px] font-bold text-slate-900 tracking-tight">
-              Workday Check-In
+              {isOnLeaveToday ? "Workday Status: On Leave" : "Workday Check-In"}
             </h3>
 
             <p className="text-[12px] text-slate-500 leading-snug">
-              {isCheckedIn ? (
+              {isOnLeaveToday ? (
+                <span className="text-amber-800 font-medium">
+                  You are marked on Approved Leave today. Standard work hours and punch logs are excused.
+                </span>
+              ) : isCheckedIn ? (
                 <>
                   Started today at{" "}
                   <span className="font-semibold text-slate-700">{clockInTimeStr || "Morning"}</span>
@@ -78,28 +93,36 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
-          <span className="text-[12px] font-semibold text-slate-600 hidden sm:inline">
-            {isCheckedIn ? "Check Out" : "Check In"}
-          </span>
+          {isOnLeaveToday ? (
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
+              On Approved Leave
+            </span>
+          ) : (
+            <>
+              <span className="text-[12px] font-semibold text-slate-600 hidden sm:inline">
+                {isCheckedIn ? "Check Out" : "Check In"}
+              </span>
 
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isCheckedIn}
-            onClick={toggleClockInOut}
-            title={isCheckedIn ? "Click to Check Out" : "Click to Check In"}
-            className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#0084d4] focus:ring-offset-2 ${
-              isCheckedIn ? "bg-[#4ade1d]" : "bg-slate-300 hover:bg-slate-400"
-            }`}
-          >
-            <span className="sr-only">Toggle Workday Check-In</span>
-            <span
-              aria-hidden="true"
-              className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                isCheckedIn ? "translate-x-6" : "translate-x-0"
-              }`}
-            />
-          </button>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isCheckedIn}
+                onClick={toggleClockInOut}
+                title={isCheckedIn ? "Click to Check Out" : "Click to Check In"}
+                className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#0084d4] focus:ring-offset-2 ${
+                  isCheckedIn ? "bg-[#4ade1d]" : "bg-slate-300 hover:bg-slate-400"
+                }`}
+              >
+                <span className="sr-only">Toggle Workday Check-In</span>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    isCheckedIn ? "translate-x-6" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -143,10 +166,14 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
 
         <span
           className={`text-[11px] font-bold px-2 py-1 rounded-md tracking-wider ${
-            isCheckedIn ? "bg-[#4ade1d]/15 text-[#4ade1d]" : "bg-slate-100 text-slate-600"
+            isOnLeaveToday
+              ? "bg-amber-100 text-amber-800 border border-amber-200"
+              : isCheckedIn
+              ? "bg-[#4ade1d]/15 text-[#4ade1d]"
+              : "bg-slate-100 text-slate-600"
           }`}
         >
-          {isCheckedIn ? "ON" : "OFF"}
+          {isOnLeaveToday ? "ON LEAVE" : isCheckedIn ? "ON" : "OFF"}
         </span>
       </div>
     </div>

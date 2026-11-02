@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const usernamePrefix = rawEmail.split("@")[0];
 
     const users = await sql`
-      SELECT id, name, full_name, email, role, job_title, department, avatar, phone, employee_id, bio
+      SELECT id, name, full_name, email, role, job_title, avatar, phone, employee_id, bio
       FROM users
       WHERE LOWER(email) = LOWER(${normalizedEmail})
          OR LOWER(split_part(email, '@', 1)) = LOWER(${usernamePrefix})
@@ -96,11 +96,10 @@ export async function POST(req: NextRequest) {
       fullName: dbUser.full_name as string,
       email: dbUser.email as string,
       role: dbUser.role as "ceo" | "project_manager" | "employer",
-      jobTitle: dbUser.job_title as string,
-      department: dbUser.department as string,
-      avatar: dbUser.avatar as string,
-      phone: dbUser.phone as string,
-      employeeId: dbUser.employee_id as string,
+      jobTitle: (dbUser.job_title as string) || (dbUser.role === "ceo" ? "Chief Executive Officer" : dbUser.role === "project_manager" ? "Project Manager" : "Software Developer"),
+      avatar: (dbUser.avatar as string) || "",
+      phone: (dbUser.phone as string) || "",
+      employeeId: (dbUser.employee_id as string) || "",
       bio: (dbUser.bio as string) || undefined,
     };
 

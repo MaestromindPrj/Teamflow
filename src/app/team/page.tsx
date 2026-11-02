@@ -36,7 +36,9 @@ function TeamDirectoryContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
 
-  const { users, projects, tasks, currentUser, deleteUser } = useTeamFlow();
+  const { users, projects, tasks, currentUser, deleteUser, hasHydrated } = useTeamFlow();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -46,12 +48,14 @@ function TeamDirectoryContent() {
   const [pmSearch, setPmSearch] = useState("");
   const [empSearch, setEmpSearch] = useState("");
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [pmEmployerFilter, setPmEmployerFilter] = useState<"all" | "leads">("all");
 
-  const isPm = currentUser.role === "project_manager";
-  const isCeo = currentUser.role === "ceo";
+  const effectiveUser = currentUser.id ? currentUser : (users[0] || currentUser);
+  const isPm = effectiveUser.role === "project_manager";
+  const isCeo = effectiveUser.role === "ceo";
 
   const myManagedProjects = isPm
-    ? projects.filter((p) => p.projectManagerId === currentUser.id)
+    ? projects.filter((p) => p.projectManagerId === effectiveUser.id)
     : projects;
 
   const myEmployerIds = new Set(
@@ -71,7 +75,18 @@ function TeamDirectoryContent() {
     }
   }, [tabParam, isPm]);
 
-  if (currentUser.role === "employer") {
+  if (!mounted || !hasHydrated) {
+    return (
+      <div className="flex-1 flex flex-col pb-12">
+        <Header title="Team Directory" subtitle="Loading..." />
+        <div className="px-7 py-6">
+          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (effectiveUser.role === "employer") {
     return (
       <div className="flex-1 flex flex-col pb-12">
         <Header
@@ -115,12 +130,9 @@ function TeamDirectoryContent() {
     const q = pmSearch.toLowerCase();
     return (
       pm.fullName.toLowerCase().includes(q) ||
-      pm.jobTitle.toLowerCase().includes(q) ||
-      pm.department.toLowerCase().includes(q)
+      (pm.jobTitle || "").toLowerCase().includes(q)
     );
   });
-
-  const [pmEmployerFilter, setPmEmployerFilter] = useState<"all" | "leads">("all");
 
   const leadsUnderPmCount = employers.filter((e) =>
     myManagedProjects.some((p) => p.teamLeadId === e.id)
@@ -138,8 +150,7 @@ function TeamDirectoryContent() {
       const q = empSearch.toLowerCase();
       return (
         emp.fullName.toLowerCase().includes(q) ||
-        emp.jobTitle.toLowerCase().includes(q) ||
-        emp.department.toLowerCase().includes(q)
+        (emp.jobTitle || "").toLowerCase().includes(q)
       );
     });
 
@@ -197,7 +208,7 @@ function TeamDirectoryContent() {
           />
         )}
 
-        {activeTab === "project_managers" && (
+        {isCeo && activeTab === "project_managers" && (
           <div className="space-y-6">
             <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -293,13 +304,13 @@ function TeamDirectoryContent() {
           </div>
         )}
 
-        {activeTab === "employers" && (
+        {(isPm || (isCeo && activeTab === "employers")) && (
           <div className="space-y-4">
             <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-[16px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
                   <Users className="w-4 h-4 text-[#4ade1d]" />
-                  <span>Employers &amp; Technical Staff Directory</span>
+                  <span>Employers Directory</span>
                 </h2>
                 <p className="text-[12px] text-slate-500">
                   Full organization roster of developers, designers, and QA engineers with their active leads and tasks
@@ -370,10 +381,10 @@ function TeamDirectoryContent() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-[14px] font-bold text-slate-900 truncate">
-                              {emp.id === currentUser.id ? `${emp.fullName} (You)` : emp.fullName}
+                              {emp.id === effectiveUser.id ? `${emp.fullName} (You)` : emp.fullName}
                             </h3>
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              {emp.jobTitle || emp.department}
+                              {emp.jobTitle || "Employer"}
                             </span>
                           </div>
                         </div>
@@ -432,7 +443,7 @@ function TeamDirectoryContent() {
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                       <span>ID: {emp.employeeId}</span>
-                      {isCeo && emp.id !== currentUser.id && (
+                      {isCeo && emp.id !== effectiveUser.id && (
                         <button
                           type="button"
                           onClick={() => setDeletingUser(emp)}

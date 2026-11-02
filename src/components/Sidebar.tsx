@@ -11,16 +11,18 @@ import {
   Award,
   Settings,
   Image as ImageIcon,
-  Building2
+  Briefcase,
+  Layers
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutGrid },
   { name: "Projects", href: "/projects", icon: FolderKanban },
+  { name: "Categories", href: "/categories", icon: Layers },
   { name: "Attendance", href: "/attendance", icon: Calendar },
   { name: "Team Directory", href: "/team", icon: Users },
-  { name: "Job Roles", href: "/departments", icon: Building2 },
+  { name: "Job Roles", href: "/job-roles", icon: Briefcase },
   { name: "Media & Assets", href: "/media", icon: ImageIcon },
   { name: "Rewards", href: "/rewards", icon: Award },
   { name: "Settings", href: "/settings", icon: Settings }
@@ -28,7 +30,7 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { currentUser } = useTeamFlow();
+  const { currentUser, users, hasHydrated } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -39,11 +41,12 @@ export default function Sidebar() {
     return null;
   }
 
-  const role = mounted ? currentUser.role : "ceo";
+  const activeUser = currentUser.id ? currentUser : (users[0] || currentUser);
+  const role = mounted && hasHydrated ? activeUser.role : (activeUser.role || "ceo");
   const isCeoOrPm = role === "ceo" || role === "project_manager";
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if (item.href === "/departments" && !isCeoOrPm) {
+    if ((item.href === "/job-roles" || item.href === "/departments" || item.href === "/categories") && !isCeoOrPm) {
       return false;
     }
     if (role === "ceo" && item.href === "/media") {

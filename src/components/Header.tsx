@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bell, ChevronDown, Check, ShieldCheck, Briefcase, UserCheck, Clock, LogOut, Settings, User } from "lucide-react";
+import { Bell, ChevronDown, Check, ShieldCheck, Briefcase, UserCheck, Clock, LogOut, Settings, User, X } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import UserAvatar from "@/components/UserAvatar";
 
@@ -15,7 +15,7 @@ interface HeaderProps {
 
 export default function Header({ title, subtitle, actionButton }: HeaderProps) {
   const router = useRouter();
-  const { currentUser, users, projects, tasks, isClockedIn, toggleClockInOut, logout } = useTeamFlow();
+  const { currentUser, users, projects, tasks, rewardsLedger, isClockedIn, toggleClockInOut, logout, hasHydrated } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -25,44 +25,105 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const dynamicNotifications = useMemo(() => {
-    const list: Array<{ id: string; title: string; detail: string; time: string }> = [];
+    const list: Array<{ id: string; title: string; detail: string; time: string; link?: string }> = [];
 
-    const reviewTasks = tasks.filter((t) => t.status === "Review");
-    const completedTasks = tasks.filter((t) => t.status === "Completed");
+    const isEmployer = currentUser.role === "employer";
+    const isPm = currentUser.role === "project_manager";
+    const isCeo = currentUser.role === "ceo";
 
-    if (reviewTasks.length > 0) {
-      const topReview = reviewTasks[0];
-      const assignee = users.find((u) => u.id === topReview.assignedTo);
-      list.push({
-        id: `notif-rev-${topReview.id}`,
-        title: "Deliverable Ready for Review",
-        detail: `${assignee?.fullName || "Team Member"} submitted "${topReview.title}"`,
-        time: "Recent"
-      });
+    // 1. Role-specific: Employers see their assigned tasks and awards
+    if (isEmployer) {
+      const myActiveTasks = tasks.filter((t) => t.assignedTo === currentUser.id && t.status !== "Completed");
+      const highPriority = myActiveTasks.find((t) => t.priority === "High");
+
+      if (highPriority) {
+        list.push({
+          id: `notif-high-${highPriority.id}`,
+          title: "High Priority Task",
+          detail: `"${highPriority.title}" is assigned to you (Due: ${highPriority.deadline || "Soon"})`,
+          time: "Urgent",
+          link: "/tasks",
+        });
+      } else if (myActiveTasks.length > 0) {
+        const topTask = myActiveTasks[0];
+        list.push({
+          id: `notif-assigned-${topTask.id}`,
+          title: "Active Task Assignment",
+          detail: `"${topTask.title}" (${topTask.status})`,
+          time: "In Progress",
+          link: "/tasks",
+        });
+      }
+
+      // Reward points received by current user
+      const myRewards = rewardsLedger.filter((r) => r.userId === currentUser.id);
+      if (myRewards.length > 0) {
+        const topReward = myRewards[0];
+        list.push({
+          id: `notif-reward-${topReward.id}`,
+          title: `Reward Points Earned (+${topReward.points} pts)`,
+          detail: topReward.reason || "Recognized for initiative contribution",
+          time: topReward.date || "Recent",
+          link: "/rewards",
+        });
+      }
+
+      // Completed / verified deliverables
+      const myCompleted = tasks.filter((t) => t.assignedTo === currentUser.id && t.status === "Completed");
+      if (myCompleted.length > 0) {
+        const topDone = myCompleted[0];
+        list.push({
+          id: `notif-done-${topDone.id}`,
+          title: "Deliverable Approved",
+          detail: `Your task "${topDone.title}" has been completed and verified`,
+          time: "Verified",
+          link: "/tasks",
+        });
+      }
     }
 
-    if (completedTasks.length > 0) {
-      const topCompleted = completedTasks[0];
-      list.push({
-        id: `notif-comp-${topCompleted.id}`,
-        title: "Task Milestone Completed",
-        detail: `"${topCompleted.title}" completed and approved`,
-        time: "1 hour ago"
-      });
-    }
+    // 2. Role-specific: PMs & CEOs see review queues and project milestones
+    if (isPm || isCeo) {
+      const reviewTasks = tasks.filter((t) => t.status === "Review");
+      if (reviewTasks.length > 0) {
+        reviewTasks.slice(0, 2).forEach((t) => {
+          const assignee = users.find((u) => u.id === t.assignedTo);
+          list.push({
+            id: `notif-rev-${t.id}`,
+            title: "Deliverable Ready for Review",
+            detail: `${assignee?.fullName || "Team Member"} submitted "${t.title}"`,
+            time: "Needs Review",
+            link: "/tasks",
+          });
+        });
+      }
 
-    if (projects.length > 0) {
-      const topProj = projects[0];
-      list.push({
-        id: `notif-proj-${topProj.id}`,
-        title: "Active Project Initiative",
-        detail: `${topProj.name} (${topProj.code}) on track`,
-        time: "Today"
-      });
+      const completedTasks = tasks.filter((t) => t.status === "Completed");
+      if (completedTasks.length > 0) {
+        const topCompleted = completedTasks[0];
+        list.push({
+          id: `notif-comp-${topCompleted.id}`,
+          title: "Task Milestone Completed",
+          detail: `"${topCompleted.title}" completed and approved`,
+          time: "Milestone",
+          link: "/tasks",
+        });
+      }
+
+      if (projects.length > 0) {
+        const topProj = projects[0];
+        list.push({
+          id: `notif-proj-${topProj.id}`,
+          title: "Active Project Initiative",
+          detail: `${topProj.name} (${topProj.code}) on track`,
+          time: "Active",
+          link: "/projects",
+        });
+      }
     }
 
     return list;
-  }, [tasks, projects, users]);
+  }, [tasks, projects, users, currentUser, rewardsLedger]);
 
   const [dismissedNotifIds, setDismissedNotifIds] = useState<string[]>([]);
 
@@ -85,6 +146,14 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
       } catch {}
       return updated;
     });
+  };
+
+  const handleNotificationClick = (n: { id: string; link?: string }) => {
+    handleDismissNotification(n.id);
+    if (n.link) {
+      router.push(n.link);
+      setShowNotifications(false);
+    }
   };
 
   const handleClearAllNotifications = () => {
@@ -159,7 +228,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
       <div className="flex items-center gap-3 flex-wrap">
         {actionButton}
 
-        {mounted && currentUser.role !== "ceo" && (
+        {mounted && hasHydrated && currentUser.id && currentUser.role !== "ceo" && (
           <button
             onClick={toggleClockInOut}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors cursor-pointer shadow-2xs ${
@@ -180,21 +249,33 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
             suppressHydrationWarning
             className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200/90 hover:border-slate-300 transition-all shadow-2xs cursor-pointer"
           >
-            <UserAvatar
-              src={mounted ? currentUser.avatar : ""}
-              name={mounted ? (currentUser.fullName || currentUser.name) : "Elena"}
-              role={mounted ? currentUser.role : "ceo"}
-              className="w-7 h-7 rounded-full border border-slate-200 shrink-0"
-              textClassName="text-[10px]"
-            />
-            <div className="text-left hidden md:block">
-              <p className="text-[12px] font-semibold text-slate-800 leading-tight">
-                {mounted ? currentUser.name : "Elena"}
-              </p>
-              <p className="text-[10px] text-slate-400 capitalize leading-tight">
-                {mounted ? currentUser.role.replace("_", " ") : "ceo"}
-              </p>
-            </div>
+            {mounted && hasHydrated && currentUser.id ? (
+              <>
+                <UserAvatar
+                  src={currentUser?.avatar || ""}
+                  name={currentUser?.fullName || currentUser?.name || "User"}
+                  role={currentUser?.role || "employer"}
+                  className="w-7 h-7 rounded-full border border-slate-200 shrink-0"
+                  textClassName="text-[10px]"
+                />
+                <div className="text-left hidden md:block">
+                  <p className="text-[12px] font-semibold text-slate-800 leading-tight">
+                    {currentUser?.name || currentUser?.fullName || "User"}
+                  </p>
+                  <p className="text-[10px] text-slate-400 capitalize leading-tight">
+                    {currentUser?.role ? currentUser.role.replace("_", " ") : "employer"}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-slate-100 animate-pulse" />
+                <div className="text-left hidden md:block space-y-1">
+                  <div className="w-16 h-2.5 bg-slate-100 rounded animate-pulse" />
+                  <div className="w-10 h-2 bg-slate-100 rounded animate-pulse" />
+                </div>
+              </div>
+            )}
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
 
@@ -228,16 +309,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
                 </div>
               </div>
 
-              <div className="py-1 px-1.5">
-                <Link
-                  href="/settings"
-                  onClick={() => setShowUserMenu(false)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
-                >
-                  <Settings className="w-4 h-4 text-slate-400" />
-                  <span>Account &amp; Profile Settings</span>
-                </Link>
-              </div>
+              
 
               <div className="pt-1 border-t border-slate-100 px-1.5">
                 <button
@@ -290,13 +362,26 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
                   {notifications.map((n) => (
                     <div
                       key={n.id}
-                      onClick={() => handleDismissNotification(n.id)}
-                      className="py-2.5 hover:bg-slate-50/80 -mx-1 px-1 rounded transition-colors cursor-pointer"
-                      title="Click to dismiss notification"
+                      onClick={() => handleNotificationClick(n)}
+                      className="py-2.5 px-1.5 hover:bg-slate-50/80 -mx-1 rounded transition-colors cursor-pointer group flex items-start justify-between gap-2"
+                      title={n.link ? `Click to view ${n.title}` : "Click to dismiss"}
                     >
-                      <p className="text-slate-900 font-medium text-[12px]">{n.title}</p>
-                      <p className="text-slate-500 text-[11px] mt-0.5">{n.detail}</p>
-                      <span className="text-[10px] text-slate-400 mt-1 block">{n.time}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-slate-900 font-medium text-[12px] group-hover:text-[#0084d4] transition-colors">{n.title}</p>
+                        <p className="text-slate-500 text-[11px] mt-0.5 leading-snug">{n.detail}</p>
+                        <span className="text-[10px] text-slate-400 mt-1 block">{n.time}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDismissNotification(n.id);
+                        }}
+                        className="text-slate-300 hover:text-slate-600 p-0.5 rounded cursor-pointer shrink-0 mt-0.5"
+                        title="Dismiss notification"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>

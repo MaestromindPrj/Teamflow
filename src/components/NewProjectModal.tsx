@@ -53,7 +53,7 @@ export default function NewProjectModal({
   onClose,
   onCreated
 }: NewProjectModalProps) {
-  const { currentUser, users, projects, createProject } = useTeamFlow();
+  const { currentUser, users, projects, categories, createProject } = useTeamFlow();
 
   const projectManagers = users.filter((u) => u.role === "project_manager");
   const employers = users.filter((u) => u.role === "employer");
@@ -65,7 +65,13 @@ export default function NewProjectModal({
   useEffect(() => {
     setCode(generateProjectCode(name, projects));
   }, [name, projects]);
-  const [category, setCategory] = useState("Web Engineering");
+  const [category, setCategory] = useState(() => categories[0]?.name || "Web Engineering");
+
+  useEffect(() => {
+    if (categories.length > 0 && !categories.some((c) => c.name === category)) {
+      setCategory(categories[0].name);
+    }
+  }, [categories, category]);
   const [priority, setPriority] = useState<"High" | "Medium" | "Low">("Medium");
   const [deadline, setDeadline] = useState("");
   const [budget, setBudget] = useState("");
@@ -112,7 +118,11 @@ export default function NewProjectModal({
       description: description.trim(),
       category,
       priority,
-      deadline: deadline || "2026-12-31",
+      deadline: deadline || (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        return d.toISOString().split("T")[0];
+      })(),
       budget: budget || "$50,000",
       projectManagerId: selectedPmId,
       teamLeadId: selectedLeadId,
@@ -206,11 +216,11 @@ export default function NewProjectModal({
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
               >
-                <option value="Web Engineering">Web Engineering</option>
-                <option value="Mobile Systems">Mobile Systems</option>
-                <option value="Cloud Infrastructure">Cloud Infrastructure</option>
-                <option value="Design System">Design System</option>
-                <option value="Security &amp; Compliance">Security &amp; Compliance</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -316,7 +326,7 @@ export default function NewProjectModal({
                         {emp.fullName}
                       </p>
                       <p className="text-[10px] text-slate-400 truncate">
-                        {emp.department}
+                        {emp.jobTitle || "Employer"}
                       </p>
                     </div>
                   </div>
@@ -343,7 +353,7 @@ export default function NewProjectModal({
             >
               {eligibleLeads.map((lead) => (
                 <option key={lead.id} value={lead.id}>
-                  {lead.id === currentUser.id ? `${lead.fullName} (You)` : lead.fullName} — {lead.department}
+                  {lead.id === currentUser.id ? `${lead.fullName} (You)` : lead.fullName} — {lead.jobTitle || "Employer"}
                 </option>
               ))}
             </select>

@@ -5,7 +5,6 @@ export interface User {
   email: string;
   role: "ceo" | "project_manager" | "employer";
   jobTitle: string;
-  department: string;
   avatar: string;
   phone: string;
   employeeId: string;
@@ -62,18 +61,80 @@ export interface Project {
   budget: string;
 }
 
+export interface PunchSession {
+  sessionNumber: number;
+  clockIn: string;
+  clockOut: string | null;
+  duration?: string;
+  elapsedSeconds?: number;
+}
+
 export interface AttendanceRecord {
   id: string;
   userId: string;
   userName: string;
   userRole: "ceo" | "project_manager" | "employer";
-  department: string;
   date: string;
   clockIn: string;
   clockOut: string;
   duration: string;
   status: "Present" | "Late" | "Leave" | "Remote" | "Checked Out" | "Not Clocked In";
+  sessions?: PunchSession[];
+  leaveType?: string;
+  leaveReason?: string;
 }
+
+export interface LeaveRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userRole: "ceo" | "project_manager" | "employer";
+  startDate: string;
+  endDate: string;
+  leaveType: string;
+  reason?: string;
+  status: "Pending" | "Approved" | "Rejected";
+  appliedById: string;
+  appliedByName: string;
+  reviewedById?: string;
+  reviewedByName?: string;
+  createdAt?: string;
+}
+
+export interface ProjectCategory {
+  id: string;
+  name: string;
+  description?: string;
+  projectCount?: number;
+}
+
+export const DEFAULT_PROJECT_CATEGORIES: ProjectCategory[] = [
+  {
+    id: "cat-web-engineering",
+    name: "Web Engineering",
+    description: "Frontend, backend, web applications, and API systems",
+  },
+  {
+    id: "cat-mobile-systems",
+    name: "Mobile Systems",
+    description: "iOS, Android, cross-platform apps, and mobile SDKs",
+  },
+  {
+    id: "cat-cloud-infrastructure",
+    name: "Cloud Infrastructure",
+    description: "DevOps, CI/CD pipelines, Kubernetes, and serverless architecture",
+  },
+  {
+    id: "cat-design-system",
+    name: "Design System",
+    description: "UI component libraries, design tokens, and user experience frameworks",
+  },
+  {
+    id: "cat-security-compliance",
+    name: "Security & Compliance",
+    description: "Data privacy, penetration testing, compliance, and cybersecurity",
+  },
+];
 
 export const INITIAL_USERS: User[] = [
   {
@@ -83,9 +144,8 @@ export const INITIAL_USERS: User[] = [
     email: "elena.rostova@maestrominds.co.in",
     role: "ceo",
     jobTitle: "Chief Executive Officer",
-    department: "Executive Leadership",
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-    phone: "+1 (555) 234-9811",
+    avatar: "",
+    phone: "",
     employeeId: "TF-CEO-001"
   },
   {
@@ -95,9 +155,8 @@ export const INITIAL_USERS: User[] = [
     email: "marcus.vance@maestrominds.co.in",
     role: "project_manager",
     jobTitle: "Project Manager",
-    department: "Project Manager",
-    avatar: "/avatars/marcus.jpg",
-    phone: "+1 (555) 438-1209",
+    avatar: "",
+    phone: "",
     employeeId: "TF-PM-101"
   },
   {
@@ -107,9 +166,8 @@ export const INITIAL_USERS: User[] = [
     email: "sophia.chen@maestrominds.co.in",
     role: "project_manager",
     jobTitle: "Project Manager",
-    department: "Project Manager",
-    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
-    phone: "+1 (555) 782-3401",
+    avatar: "",
+    phone: "",
     employeeId: "TF-PM-102"
   },
   {
@@ -119,9 +177,8 @@ export const INITIAL_USERS: User[] = [
     email: "ajay@maestrominds.co.in",
     role: "employer",
     jobTitle: "UI/UX Designer",
-    department: "UI/UX Designer",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-    phone: "+1 (555) 890-4412",
+    avatar: "",
+    phone: "",
     employeeId: "TF-EMP-201"
   },
   {
@@ -131,9 +188,8 @@ export const INITIAL_USERS: User[] = [
     email: "devon.lane@maestrominds.co.in",
     role: "employer",
     jobTitle: "Software Developer",
-    department: "Software Developer",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-    phone: "+1 (555) 912-8834",
+    avatar: "",
+    phone: "",
     employeeId: "TF-EMP-202"
   },
   {
@@ -143,9 +199,8 @@ export const INITIAL_USERS: User[] = [
     email: "priya.sharma@maestrominds.co.in",
     role: "employer",
     jobTitle: "AI Engineer",
-    department: "AI Engineer",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
-    phone: "+1 (555) 674-1928",
+    avatar: "",
+    phone: "",
     employeeId: "TF-EMP-203"
   },
   {
@@ -155,9 +210,8 @@ export const INITIAL_USERS: User[] = [
     email: "liam.cooper@maestrominds.co.in",
     role: "employer",
     jobTitle: "Junior Software Developer",
-    department: "Junior Software Developer",
-    avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
-    phone: "+1 (555) 321-7788",
+    avatar: "",
+    phone: "",
     employeeId: "TF-EMP-204"
   },
   {
@@ -167,9 +221,8 @@ export const INITIAL_USERS: User[] = [
     email: "maya.lin@maestrominds.co.in",
     role: "employer",
     jobTitle: "UI/UX Designer",
-    department: "UI/UX Designer",
-    avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80",
-    phone: "+1 (555) 443-8821",
+    avatar: "",
+    phone: "",
     employeeId: "TF-EMP-205"
   }
 ];
@@ -603,7 +656,6 @@ export const INITIAL_ATTENDANCE_DATA: AttendanceRecord[] = [
     userId: "u-pm-1",
     userName: "Marcus Vance",
     userRole: "project_manager",
-    department: "Project Manager",
     date: "2026-10-20",
     clockIn: "08:45 AM",
     clockOut: "05:00 PM",
@@ -615,7 +667,6 @@ export const INITIAL_ATTENDANCE_DATA: AttendanceRecord[] = [
     userId: "u-pm-2",
     userName: "Sophia Chen",
     userRole: "project_manager",
-    department: "Project Manager",
     date: "2026-10-20",
     clockIn: "09:02 AM",
     clockOut: "05:00 PM",
@@ -627,7 +678,6 @@ export const INITIAL_ATTENDANCE_DATA: AttendanceRecord[] = [
     userId: "u-emp-1",
     userName: "Ajay Shanmugam",
     userRole: "employer",
-    department: "UI/UX Designer",
     date: "2026-10-20",
     clockIn: "09:12 AM",
     clockOut: "05:00 PM",
@@ -639,7 +689,6 @@ export const INITIAL_ATTENDANCE_DATA: AttendanceRecord[] = [
     userId: "u-emp-2",
     userName: "Devon Lane",
     userRole: "employer",
-    department: "Software Developer",
     date: "2026-10-20",
     clockIn: "09:05 AM",
     clockOut: "05:00 PM",
@@ -651,7 +700,6 @@ export const INITIAL_ATTENDANCE_DATA: AttendanceRecord[] = [
     userId: "u-emp-3",
     userName: "Priya Sharma",
     userRole: "employer",
-    department: "AI Engineer",
     date: "2026-10-20",
     clockIn: "08:30 AM",
     clockOut: "05:00 PM",
@@ -663,7 +711,6 @@ export const INITIAL_ATTENDANCE_DATA: AttendanceRecord[] = [
     userId: "u-emp-4",
     userName: "Maya Lin",
     userRole: "employer",
-    department: "UI/UX Designer",
     date: "2026-10-20",
     clockIn: "09:42 AM",
     clockOut: "05:00 PM",
@@ -675,7 +722,6 @@ export const INITIAL_ATTENDANCE_DATA: AttendanceRecord[] = [
     userId: "u-emp-5",
     userName: "Liam Cooper",
     userRole: "employer",
-    department: "Junior Software Developer",
     date: "2026-10-20",
     clockIn: "09:15 AM",
     clockOut: "05:00 PM",

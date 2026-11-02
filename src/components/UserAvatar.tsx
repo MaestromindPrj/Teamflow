@@ -53,6 +53,16 @@ export default function UserAvatar({
 
   const cleanSrc = src && typeof src === "string" ? src.trim() : "";
 
+  const isDummyAvatar = (url: string) => {
+    return (
+      url.includes("images.unsplash.com") ||
+      url.includes("/avatars/marcus.jpg") ||
+      url.includes("/avatars/ajay.jpg")
+    );
+  };
+
+  const isRealAvatar = cleanSrc && !isDummyAvatar(cleanSrc);
+
   const computedTextClass = () => {
     if (textClassName) return textClassName;
     if (className.includes("w-18") || className.includes("w-16")) return "text-[18px]";
@@ -63,7 +73,7 @@ export default function UserAvatar({
     return "text-[11px]";
   };
 
-  if (!cleanSrc || imgError) {
+  if (!isRealAvatar || imgError) {
     return (
       <div
         className={`${className} flex items-center justify-center font-bold border shrink-0 select-none ${roleStyle} ${computedTextClass()}`}

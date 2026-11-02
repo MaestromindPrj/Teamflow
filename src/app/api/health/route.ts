@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { isDbConfigured, getDb } from "@/lib/db";
 import { isCloudinaryConfigured } from "@/lib/cloudinary";
 
-export async function GET() {
+export async function GET(_req: NextRequest) {
   const dbConfigured = isDbConfigured();
   const cloudinaryConfigured = isCloudinaryConfigured();
 

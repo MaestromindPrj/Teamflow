@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -27,7 +27,9 @@ import UserAvatar from "@/components/UserAvatar";
 
 export default function RewardsPage() {
   const router = useRouter();
-  const { currentUser, users, projects, tasks, rewardsLedger } = useTeamFlow();
+  const { currentUser, users, projects, tasks, rewardsLedger, hasHydrated } = useTeamFlow();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const isCeo = currentUser.role === "ceo";
   const isPm = currentUser.role === "project_manager";
 
@@ -58,8 +60,7 @@ export default function RewardsPage() {
       const q = searchQuery.toLowerCase();
       return (
         u.fullName.toLowerCase().includes(q) ||
-        u.jobTitle.toLowerCase().includes(q) ||
-        u.department.toLowerCase().includes(q)
+        (u.jobTitle || "").toLowerCase().includes(q)
       );
     }
     return true;
@@ -81,8 +82,7 @@ export default function RewardsPage() {
       const q = searchQuery.toLowerCase();
       return (
         u.fullName.toLowerCase().includes(q) ||
-        u.jobTitle.toLowerCase().includes(q) ||
-        u.department.toLowerCase().includes(q)
+        (u.jobTitle || "").toLowerCase().includes(q)
       );
     }
     return true;
@@ -104,6 +104,17 @@ export default function RewardsPage() {
         return <Award className="w-4 h-4 text-sky-600 stroke-[2]" />;
     }
   };
+
+  if (!mounted || !hasHydrated || !currentUser.id) {
+    return (
+      <div className="flex-1 flex flex-col pb-12">
+        <Header title="Rewards & Recognition" subtitle="Loading..." />
+        <div className="px-7 py-6">
+          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col pb-12">
@@ -158,7 +169,7 @@ export default function RewardsPage() {
                       <th className="pb-3 pr-3 w-16">Rank</th>
                       <th className="pb-3 px-3">Team Member</th>
                       <th className="pb-3 px-3">Role</th>
-                      <th className="pb-3 px-3">Department</th>
+                      <th className="pb-3 px-3">Job Role</th>
                       <th className="pb-3 pl-3 text-right">Total Points</th>
                     </tr>
                   </thead>
@@ -208,7 +219,7 @@ export default function RewardsPage() {
                           </span>
                         </td>
                         <td className="py-3 px-3 text-[12px] text-slate-500">
-                          {staffUsers.find((u) => u.fullName === user.name)?.department || "Engineering"}
+                          {staffUsers.find((u) => u.fullName === user.name)?.jobTitle || user.role || "Software Developer"}
                         </td>
                         <td className="py-3 pl-3 text-right font-extrabold text-slate-900">
                           {user.points} pts
@@ -257,7 +268,7 @@ export default function RewardsPage() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search name, role, department..."
+                    placeholder="Search name, role, job title..."
                     className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-64"
                   />
                 </div>
@@ -294,7 +305,7 @@ export default function RewardsPage() {
                               }`}
                             >
                               {isPm ? <Briefcase className="w-2.5 h-2.5" /> : <UserCheck className="w-2.5 h-2.5" />}
-                              {isPm ? "Project Manager" : user.jobTitle || user.department}
+                              {isPm ? "Project Manager" : user.jobTitle || "Employer"}
                             </span>
                           </div>
                         </div>
@@ -322,7 +333,7 @@ export default function RewardsPage() {
                             setAwardTargetUserId(user.id);
                             setIsAwardModalOpen(true);
                           }}
-                          className="py-1.5 px-2.5 rounded-lg text-[11px] font-bold bg-[#0084d4]/10 hover:bg-[#0084d4] text-[#0084d4] hover:text-white transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                          className="flex-1 py-2 px-3.5 rounded-lg text-[12px] font-semibold bg-[#0084d4] hover:bg-[#0277bd] text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
                           title={`Award points to ${user.fullName}`}
                         >
                           <Sparkles className="w-3.5 h-3.5" />
@@ -330,10 +341,10 @@ export default function RewardsPage() {
                         </button>
                         <Link
                           href={`/rewards/${user.id}`}
-                          className="flex-1 py-1.5 px-2.5 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 group"
+                          className="py-2 px-3 rounded-lg text-[12px] font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 group shadow-2xs"
                         >
-                          <span>Point Details</span>
-                          <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                          <span>Details</span>
+                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                         </Link>
                       </div>
                     </div>
@@ -384,20 +395,55 @@ export default function RewardsPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between">
-                <div className="flex items-center gap-2 text-[#de2d1d] font-semibold text-[13px]">
-                  <Heart className="w-4 h-4 fill-[#de2d1d] stroke-[#de2d1d]" />
-                  <span>Executive Peer Appreciation</span>
+              <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[#de2d1d] font-semibold text-[13px]">
+                    <Heart className="w-4 h-4 fill-[#de2d1d] stroke-[#de2d1d]" />
+                    <span>Executive &amp; Peer Appreciation</span>
+                  </div>
+                  {myRewards.appreciation.all?.length > 0 && (
+                    <span className="text-[11px] font-bold text-[#de2d1d] bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">
+                      {myRewards.appreciation.all.length} {myRewards.appreciation.all.length === 1 ? "Note" : "Notes"}
+                    </span>
+                  )}
                 </div>
 
-                <p className="text-[13px] text-slate-600 font-normal italic my-3 leading-relaxed">
-                  {myRewards.appreciation.quote}
-                </p>
-
-                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                  <span>— {myRewards.appreciation.author}</span>
-                  <span>{myRewards.appreciation.date}</span>
-                </div>
+                {(!myRewards.appreciation.all || myRewards.appreciation.all.length === 0) ? (
+                  <div className="space-y-3">
+                    <p className="text-[13px] text-slate-500 font-normal italic leading-relaxed bg-slate-50/70 p-3.5 rounded-lg border border-slate-200/80">
+                      {myRewards.appreciation.quote}
+                    </p>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+                      <span className="text-slate-400 italic">Awaiting first recognition note</span>
+                      <span>—</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                    {myRewards.appreciation.all.map((item) => (
+                      <div
+                        key={item.id}
+                        className="bg-slate-50/70 border border-slate-200/80 rounded-lg p-3.5 space-y-2 hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                            {item.action}
+                          </span>
+                          <span className="text-[10px] font-bold text-[#4ade1d] bg-[#4ade1d]/10 px-1.5 py-0.5 rounded">
+                            +{item.points} pts
+                          </span>
+                        </div>
+                        <p className="text-[13px] text-slate-700 italic leading-relaxed">
+                          &ldquo;{item.reason}&rdquo;
+                        </p>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-200/60">
+                          <span className="font-semibold text-slate-800">— {item.author}</span>
+                          <span className="text-slate-400">{item.date}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -477,7 +523,7 @@ export default function RewardsPage() {
                                     {emp.id === currentUser.id ? `${emp.fullName} (You)` : emp.fullName}
                                   </h4>
                                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    {emp.jobTitle || emp.department}
+                                    {emp.jobTitle || "Employer"}
                                   </span>
                                 </div>
                               </div>
@@ -502,7 +548,7 @@ export default function RewardsPage() {
                                   setAwardTargetUserId(emp.id);
                                   setIsAwardModalOpen(true);
                                 }}
-                                className="py-1.5 px-2.5 rounded-lg text-[11px] font-bold bg-[#0084d4]/10 hover:bg-[#0084d4] text-[#0084d4] hover:text-white transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                                className="flex-1 py-2 px-3.5 rounded-lg text-[12px] font-semibold bg-[#0084d4] hover:bg-[#0277bd] text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
                                 title={`Award points to ${emp.fullName}`}
                               >
                                 <Sparkles className="w-3.5 h-3.5" />
@@ -510,10 +556,10 @@ export default function RewardsPage() {
                               </button>
                               <Link
                                 href={`/rewards/${emp.id}`}
-                                className="flex-1 py-1.5 px-2.5 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 group/btn shadow-2xs"
+                                className="py-2 px-3 rounded-lg text-[12px] font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0 group/btn shadow-2xs"
                               >
-                                <span>Point Details</span>
-                                <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-0.5 transition-transform" />
+                                <span>Details</span>
+                                <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                               </Link>
                             </div>
                           </div>

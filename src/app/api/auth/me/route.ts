@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     await initDatabase();
     const sql = getDb();
     const rows = await sql`
-      SELECT id, name, full_name, email, role, job_title, department, avatar, phone, employee_id, bio
+      SELECT id, name, full_name, email, role, job_title, avatar, phone, employee_id, bio
       FROM users
       WHERE id = ${payload.userId}
       LIMIT 1;
@@ -39,11 +39,10 @@ export async function GET(req: NextRequest) {
         fullName: r.full_name as string,
         email: r.email as string,
         role: r.role as "ceo" | "project_manager" | "employer",
-        jobTitle: r.job_title as string,
-        department: r.department as string,
-        avatar: r.avatar as string,
-        phone: r.phone as string,
-        employeeId: r.employee_id as string,
+        jobTitle: (r.job_title as string) || (r.role === "ceo" ? "Chief Executive Officer" : r.role === "project_manager" ? "Project Manager" : "Software Developer"),
+        avatar: (r.avatar as string) || "",
+        phone: (r.phone as string) || "",
+        employeeId: (r.employee_id as string) || "",
         bio: (r.bio as string) || undefined,
       },
     });

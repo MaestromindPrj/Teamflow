@@ -1,4 +1,3 @@
-
 import nodemailer from "nodemailer";
 
 export interface SendOtpEmailParams {
@@ -10,16 +9,19 @@ export interface SendOtpEmailParams {
 export async function sendPasswordResetOtpEmail(
   params: SendOtpEmailParams
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const host = process.env.BREVO_SMTP_HOST || "smtp-relay.brevo.com";
-  const port = Number(process.env.BREVO_SMTP_PORT || 587);
-  const user = process.env.BREVO_SMTP_USER || "c0d2d7001@smtp-brevo.com";
-  const pass = process.env.BREVO_SMTP_KEY;
-  const senderEmail = process.env.BREVO_SENDER_EMAIL || "maestromindsprojects@gmail.com";
-  const senderName = process.env.BREVO_SENDER_NAME || "TeamFlow Security";
+  const host = process.env.SMTP_HOST || "smtp.gmail.com";
+  const port = Number(process.env.SMTP_PORT || 465);
+  const user = process.env.SMTP_USER || process.env.GMAIL_USER || "";
+  const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || "";
+  const senderEmail = process.env.SMTP_SENDER_EMAIL || user;
+  const senderName = process.env.SMTP_SENDER_NAME || "TeamFlow Security";
 
-  if (!pass) {
-    console.warn("BREVO_SMTP_KEY is not configured in environment variables.");
-    return { success: false, error: "Brevo SMTP credentials are not configured." };
+  if (!pass || !user) {
+    console.warn("Gmail SMTP credentials (SMTP_USER, SMTP_PASS) are not configured.");
+    return {
+      success: false,
+      error: "Gmail SMTP credentials are not configured. Please set SMTP_USER and SMTP_PASS in .env.local.",
+    };
   }
 
   const htmlContent = `
@@ -78,7 +80,7 @@ export async function sendPasswordResetOtpEmail(
     const transporter = nodemailer.createTransport({
       host,
       port,
-      secure: false, 
+      secure: port === 465,
       auth: {
         user,
         pass,
@@ -101,7 +103,8 @@ export async function sendPasswordResetOtpEmail(
     console.error("sendPasswordResetOtpEmail error:", err);
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Failed to dispatch email through Brevo SMTP.",
+      error: err instanceof Error ? err.message : "Failed to dispatch email through Gmail SMTP.",
     };
   }
 }
+

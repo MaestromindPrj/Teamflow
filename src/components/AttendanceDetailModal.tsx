@@ -13,11 +13,12 @@ import {
   FolderKanban,
   Activity,
   LogOut,
-  Sparkles
+  Sparkles,
+  Coffee
 } from "lucide-react";
-import { useTeamFlow, getLocalDateString } from "@/context/TeamFlowContext";
+import { useTeamFlow, getLocalDateString, formatSecondsToDuration } from "@/context/TeamFlowContext";
 import { StatusBadge } from "@/components/Badges";
-import { AttendanceRecord } from "@/data/teamflowData";
+import { AttendanceRecord, PunchSession } from "@/data/teamflowData";
 import UserAvatar from "@/components/UserAvatar";
 
 interface AttendanceDetailModalProps {
@@ -62,6 +63,22 @@ export default function AttendanceDetailModal({
     ? record.clockOut
     : null;
 
+  const recordedSessions: PunchSession[] =
+    (isToday && clockState?.sessions && clockState.sessions.length > 0)
+      ? clockState.sessions
+      : (record.sessions && record.sessions.length > 0)
+      ? record.sessions
+      : (record.clockIn && record.clockIn !== "—")
+      ? [
+          {
+            sessionNumber: 1,
+            clockIn: record.clockIn,
+            clockOut: record.clockOut !== "—" ? record.clockOut : null,
+            duration: record.duration,
+          },
+        ]
+      : [];
+
   let liveDurationStr = record.duration;
   if (record.status === "Leave") {
     liveDurationStr = "00h 00m 00s (On Leave)";
@@ -103,6 +120,9 @@ export default function AttendanceDetailModal({
       p.teamLeadId === record.userId ||
       p.projectManagerId === record.userId
   );
+
+  const firstPunchIn = recordedSessions[0]?.clockIn || checkInTime || "—";
+  const lastPunchOut = recordedSessions[recordedSessions.length - 1]?.clockOut || checkOutTime || "—";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
@@ -151,7 +171,7 @@ export default function AttendanceDetailModal({
                     {record.userName}
                   </h3>
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-[#0084d4] border border-sky-200/70">
-                    {staffUser?.jobTitle || (record.userRole === "project_manager" ? "Project Manager" : record.department || "Employer")}
+                    {staffUser?.jobTitle || (record.userRole === "project_manager" ? "Project Manager" : "Employer")}
                   </span>
                 </div>
                 <StatusBadge status={modalStatus} />
@@ -168,32 +188,36 @@ export default function AttendanceDetailModal({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-white border border-slate-200/90 rounded-lg p-3.5 shadow-2xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                Check-In Punch
+                First Check-In Punch
               </span>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#4ade1d]" />
                 <span className="text-[16px] font-extrabold text-slate-900">
-                  {checkInTime || "—"}
+                  {firstPunchIn}
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">Recorded by system</span>
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                {recordedSessions.length > 1 ? `${recordedSessions.length} sessions logged today` : "Recorded by system"}
+              </span>
             </div>
 
             <div className="bg-white border border-slate-200/90 rounded-lg p-3.5 shadow-2xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                Check-Out Punch
+                {isWorkingNow ? "Current Status" : "Last Check-Out Punch"}
               </span>
               <div className="flex items-center gap-2">
                 {isWorkingNow ? (
                   <>
                     <span className="w-2 h-2 rounded-full bg-[#4ade1d] animate-ping" />
-                    <span className="text-[13px] font-bold text-[#4ade1d]">Active On-Duty</span>
+                    <span className="text-[13px] font-bold text-[#4ade1d]">
+                      Active On-Duty {recordedSessions.length > 1 ? `(Session ${recordedSessions.length})` : ""}
+                    </span>
                   </>
                 ) : (
                   <>
                     <LogOut className="w-3.5 h-3.5 text-slate-400" />
                     <span className="text-[16px] font-extrabold text-slate-900">
-                      {checkOutTime || "—"}
+                      {lastPunchOut}
                     </span>
                   </>
                 )}
@@ -205,64 +229,151 @@ export default function AttendanceDetailModal({
 
             <div className="bg-white border border-slate-200/90 rounded-lg p-3.5 shadow-2xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                Logged Duration
+                Total Logged Duration
               </span>
               <span className="font-mono text-[15px] font-bold text-[#0084d4] block">
                 {liveDurationStr}
               </span>
-              <span className="text-[10px] text-slate-400 mt-1 block">Live work timer</span>
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                {isWorkingNow ? "Live timer across all sessions" : "Cumulative logged hours"}
+              </span>
             </div>
           </div>
 
           <div className="bg-slate-50/60 rounded-lg border border-slate-100 p-4 space-y-3">
-            <h4 className="text-[12px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <Activity className="w-3.5 h-3.5 text-[#0084d4]" />
-              <span>Day Activity &amp; Punch Timeline</span>
-            </h4>
-
-            <div className="space-y-2.5 text-[12px]">
-              <div className="flex items-start gap-3">
-                <span className="font-mono text-[11px] font-bold text-[#4ade1d] bg-[#4ade1d]/15 px-2 py-0.5 rounded border border-[#4ade1d]/30 shrink-0">
-                  {checkInTime || "09:00 AM"}
+            <div className="flex items-center justify-between">
+              <h4 className="text-[12px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5 text-[#0084d4]" />
+                <span>Day Activity &amp; Punch Timeline</span>
+              </h4>
+              {recordedSessions.length > 0 && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-[#0084d4] border border-sky-200">
+                  {recordedSessions.length} {recordedSessions.length === 1 ? "Session" : "Sessions"}
                 </span>
-                <div>
-                  <strong className="text-slate-800">Biometric / Web Check-In Accepted</strong>
-                  <p className="text-[11px] text-slate-400">Authenticated via TeamFlow portal session</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded shrink-0">
-                  01:00 PM
-                </span>
-                <div>
-                  <strong className="text-slate-800">Midday Meal &amp; Rest Interval</strong>
-                  <p className="text-[11px] text-slate-400">Scheduled 45-minute pause compliant with workplace standard</p>
-                </div>
-              </div>
-
-              {isWorkingNow ? (
-                <div className="flex items-start gap-3">
-                  <span className="font-mono text-[11px] font-bold text-[#4ade1d] bg-[#4ade1d]/15 px-2 py-0.5 rounded border border-[#4ade1d]/30 animate-pulse shrink-0">
-                    Active
-                  </span>
-                  <div>
-                    <strong className="text-[#4ade1d]">Afternoon Sprint &amp; Task Delivery</strong>
-                    <p className="text-[11px] text-slate-500">Currently executing active sprint deliverables</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-start gap-3">
-                  <span className="font-mono text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/60 shrink-0">
-                    {checkOutTime || "05:30 PM"}
-                  </span>
-                  <div>
-                    <strong className="text-slate-800">Official Check-Out Recorded</strong>
-                    <p className="text-[11px] text-slate-400">Workday logs finalized and saved to company archive</p>
-                  </div>
-                </div>
               )}
             </div>
+
+            {record.status === "Leave" ? (
+              <div className="space-y-2.5">
+                <div className="p-3.5 bg-amber-50/80 border border-amber-200/70 rounded-lg text-amber-900 flex items-start gap-3">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1 text-[12px]">
+                    <div className="font-bold text-amber-950">
+                      Approved Workforce Leave Recorded
+                    </div>
+                    <p className="text-amber-800">
+                      Employee was granted scheduled time off for this date. Biometric and portal check-in sessions are excused.
+                    </p>
+                    {record.leaveType && (
+                      <div className="pt-1 flex items-center gap-2">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-200/70 text-amber-900">
+                          {record.leaveType}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {record.leaveReason && (
+                  <div className="p-3 bg-white border border-slate-200 rounded-lg text-[12px] text-slate-700">
+                    <strong className="text-slate-900 block text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-0.5">
+                      Submitted Reason / Notes
+                    </strong>
+                    <span>{record.leaveReason}</span>
+                  </div>
+                )}
+              </div>
+            ) : recordedSessions.length === 0 ? (
+              <div className="p-3 bg-slate-100 rounded-md text-[12px] text-slate-500">
+                No clock-in sessions recorded for this date.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recordedSessions.map((session, idx) => {
+                  const isLast = idx === recordedSessions.length - 1;
+                  const isActiveSession = isLast && isWorkingNow && !session.clockOut;
+
+                  let sessionDur = session.duration || "—";
+                  if (isActiveSession && clockState?.clockInTimestamp) {
+                    const liveSec = Math.max(0, Math.floor((currentTime - clockState.clockInTimestamp) / 1000));
+                    sessionDur = formatSecondsToDuration(liveSec);
+                  }
+
+                  const nextSession = recordedSessions[idx + 1];
+
+                  return (
+                    <div key={`session-${session.sessionNumber || idx}`} className="space-y-2">
+                      <div className="bg-white rounded-lg border border-slate-200/80 p-3 shadow-2xs hover:border-slate-300 transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
+                              Session {session.sessionNumber || idx + 1}
+                            </span>
+                            {isActiveSession ? (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#4ade1d] animate-ping" />
+                                Working Now
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                                <CheckCircle2 className="w-3 h-3 text-[#4ade1d]" />
+                                Completed
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-[11px] font-mono font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                            Duration: <span className={isActiveSession ? "text-[#4ade1d]" : "text-slate-900"}>{sessionDur}</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[12px]">
+                          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded border border-slate-100">
+                            <span className="w-2 h-2 rounded-full bg-[#4ade1d] shrink-0" />
+                            <div>
+                              <span className="text-[10px] text-slate-400 block font-medium">Check-In</span>
+                              <span className="font-semibold text-slate-800 font-mono text-[12px]">{session.clockIn}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded border border-slate-100">
+                            {isActiveSession ? (
+                              <>
+                                <span className="w-2 h-2 rounded-full bg-[#4ade1d] animate-ping shrink-0" />
+                                <div>
+                                  <span className="text-[10px] text-slate-400 block font-medium">Check-Out</span>
+                                  <span className="font-bold text-[#4ade1d] text-[12px]">Active / On-Duty</span>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <LogOut className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <div>
+                                  <span className="text-[10px] text-slate-400 block font-medium">Check-Out</span>
+                                  <span className="font-semibold text-slate-800 font-mono text-[12px]">{session.clockOut || "—"}</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {nextSession && (
+                        <div className="flex items-center justify-center py-0.5">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50/80 border border-amber-200/70 rounded-full text-[11px] text-amber-800 shadow-2xs">
+                            <Coffee className="w-3 h-3 text-amber-600 shrink-0" />
+                            <span className="font-semibold">Break / Out of Office:</span>
+                            <span className="font-mono text-amber-900 font-bold">
+                              {session.clockOut || "—"} &rarr; {nextSession.clockIn}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {userProjects.length > 0 && (
@@ -288,12 +399,7 @@ export default function AttendanceDetailModal({
         </div>
 
         <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-[12px] font-semibold transition-colors cursor-pointer"
-          >
-            Close Dossier
-          </button>
+          
         </div>
       </div>
     </div>

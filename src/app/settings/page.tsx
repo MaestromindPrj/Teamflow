@@ -23,7 +23,9 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const { currentUser, updateUserProfile } = useTeamFlow();
+  const { currentUser, updateUserProfile, hasHydrated } = useTeamFlow();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [isEditing, setIsEditing] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("Profile details updated successfully.");
@@ -47,8 +49,7 @@ export default function SettingsPage() {
     name: currentUser.name,
     fullName: currentUser.fullName,
     email: currentUser.email,
-    role: currentUser.jobTitle || (currentUser.role === "project_manager" ? "Project Manager" : currentUser.department || "Employer"),
-    department: currentUser.department,
+    role: currentUser.jobTitle || (currentUser.role === "ceo" ? "Chief Executive Officer" : currentUser.role === "project_manager" ? "Project Manager" : "Employer"),
     employeeId: currentUser.employeeId,
     phone: currentUser.phone || "",
     avatar: currentUser.avatar || "",
@@ -60,8 +61,7 @@ export default function SettingsPage() {
       name: currentUser.name,
       fullName: currentUser.fullName,
       email: currentUser.email,
-      role: currentUser.jobTitle || (currentUser.role === "project_manager" ? "Project Manager" : currentUser.department || "Employer"),
-      department: currentUser.department,
+      role: currentUser.jobTitle || (currentUser.role === "ceo" ? "Chief Executive Officer" : currentUser.role === "project_manager" ? "Project Manager" : "Employer"),
       employeeId: currentUser.employeeId,
       phone: currentUser.phone || "",
       avatar: currentUser.avatar || "",
@@ -196,7 +196,18 @@ export default function SettingsPage() {
       ? "Project Manager"
       : currentUser.role === "ceo"
       ? "CEO"
-      : currentUser.jobTitle || currentUser.department || "Employer";
+      : currentUser.jobTitle || "Employer";
+
+  if (!mounted || !hasHydrated || !currentUser.id) {
+    return (
+      <div className="flex-1 flex flex-col pb-12">
+        <Header title="Settings &amp; Profile" subtitle="Loading..." />
+        <div className="px-7 py-6">
+          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col pb-12">

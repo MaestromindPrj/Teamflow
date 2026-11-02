@@ -44,7 +44,11 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
   const [description, setDescription] = useState("");
   const [assignedTo, setAssignedTo] = useState(projectMembers[0]?.id || "");
   const [priority, setPriority] = useState<"High" | "Medium" | "Low">("Medium");
-  const [deadline, setDeadline] = useState("2026-10-31");
+  const [deadline, setDeadline] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
+  });
   const [status, setStatus] = useState<"To Do" | "In Progress" | "Review" | "Completed">("To Do");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [calculatedSize, setCalculatedSize] = useState("");
@@ -175,7 +179,7 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
             >
               {projectMembers.map((member) => (
                 <option key={member.id} value={member.id}>
-                  {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.department}) {member.id === project.teamLeadId ? "• [Team Lead]" : ""}
+                  {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.jobTitle || "Employer"}) {member.id === project.teamLeadId ? "• [Team Lead]" : ""}
                 </option>
               ))}
             </select>

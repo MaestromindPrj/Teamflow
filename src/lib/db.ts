@@ -4,6 +4,7 @@ import {
   INITIAL_PROJECTS,
   INITIAL_TASKS_DATA,
   INITIAL_ATTENDANCE_DATA,
+  DEFAULT_PROJECT_CATEGORIES,
   User,
   Project,
   Task,
@@ -147,6 +148,23 @@ export async function initDatabase() {
       );
     `;
 
+    await sql`
+      CREATE TABLE IF NOT EXISTS project_categories (
+        id VARCHAR(100) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS job_roles (
+        id VARCHAR(100) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
     try {
       await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;`;
       await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS discussion JSONB DEFAULT '[]'::jsonb;`;
@@ -158,7 +176,7 @@ export async function initDatabase() {
     if (userCount === 0) {
       for (const u of INITIAL_USERS) {
         await sql`
-          INSERT INTO users (id, name, full_name, email, role, job_title, department, avatar, phone, employee_id)
+          INSERT INTO users (id, name, full_name, email, role, job_title, avatar, phone, employee_id)
           VALUES (
             ${u.id},
             ${u.name},
@@ -166,7 +184,6 @@ export async function initDatabase() {
             ${u.email},
             ${u.role},
             ${u.jobTitle},
-            ${u.department},
             ${u.avatar},
             ${u.phone},
             ${u.employeeId}
@@ -235,13 +252,12 @@ export async function initDatabase() {
     if (attCount === 0) {
       for (const a of INITIAL_ATTENDANCE_DATA) {
         await sql`
-          INSERT INTO attendance (id, user_id, user_name, user_role, department, date, clock_in, clock_out, duration, status)
+          INSERT INTO attendance (id, user_id, user_name, user_role, date, clock_in, clock_out, duration, status)
           VALUES (
             ${a.id},
             ${a.userId},
             ${a.userName},
             ${a.userRole},
-            ${a.department},
             ${a.date},
             ${a.clockIn},
             ${a.clockOut},
@@ -349,6 +365,19 @@ export async function initDatabase() {
         await sql`
           INSERT INTO rewards_ledger (id, user_id, points, action, reason, awarded_by_id, awarded_by_name, date)
           VALUES (${rw.id}, ${rw.userId}, ${rw.points}, ${rw.action}, ${rw.reason}, ${rw.awardedById}, ${rw.awardedByName}, ${rw.date})
+          ON CONFLICT (id) DO NOTHING;
+        `;
+      }
+    }
+
+    const catCountResult = await sql`SELECT COUNT(*)::int AS count FROM project_categories;`;
+    const catCount = Number(catCountResult[0]?.count || 0);
+
+    if (catCount === 0) {
+      for (const cat of DEFAULT_PROJECT_CATEGORIES) {
+        await sql`
+          INSERT INTO project_categories (id, name, description)
+          VALUES (${cat.id}, ${cat.name}, ${cat.description || ""})
           ON CONFLICT (id) DO NOTHING;
         `;
       }

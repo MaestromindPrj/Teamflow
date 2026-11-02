@@ -28,8 +28,7 @@ export default function AddTeamMemberModal({ project, isOpen, onClose }: AddTeam
     const q = searchQuery.toLowerCase();
     return (
       emp.fullName.toLowerCase().includes(q) ||
-      emp.jobTitle.toLowerCase().includes(q) ||
-      emp.department.toLowerCase().includes(q)
+      (emp.jobTitle || "").toLowerCase().includes(q)
     );
   });
 
@@ -158,7 +157,7 @@ export default function AddTeamMemberModal({ project, isOpen, onClose }: AddTeam
                                   {emp.fullName}
                                 </p>
                                 <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                                  {emp.jobTitle || emp.department}
+                                  {emp.jobTitle || "Employer"}
                                 </p>
                               </div>
                             </div>

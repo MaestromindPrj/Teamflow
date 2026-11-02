@@ -8,14 +8,14 @@ import ProjectManagerDashboard from "@/components/dashboards/ProjectManagerDashb
 import EmployerDashboard from "@/components/dashboards/EmployerDashboard";
 
 export default function DashboardPage() {
-  const { currentUser } = useTeamFlow();
+  const { currentUser, hasHydrated } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
+  if (!mounted || !hasHydrated || !currentUser.id) {
     return (
       <div className="flex-1 flex flex-col pb-12" suppressHydrationWarning>
         <Header
