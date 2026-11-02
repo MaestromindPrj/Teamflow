@@ -146,9 +146,11 @@ interface TeamFlowContextType {
     teamLeadId: string;
     teamMemberIds: string[];
     priority: "High" | "Medium" | "Low";
+    startDate?: string;
     deadline: string;
     category: string;
     budget?: string;
+    status?: "Planning" | "In Progress" | "In Review" | "Completed";
   }) => Project;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
@@ -158,6 +160,7 @@ interface TeamFlowContextType {
     description: string;
     assignedTo: string;
     priority: "High" | "Medium" | "Low";
+    startDate?: string;
     deadline: string;
     status?: "To Do" | "In Progress" | "Review" | "Completed";
   }) => Task;
@@ -830,9 +833,11 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     teamLeadId: string;
     teamMemberIds: string[];
     priority: "High" | "Medium" | "Low";
+    startDate?: string;
     deadline: string;
     category: string;
     budget?: string;
+    status?: "Planning" | "In Progress" | "In Review" | "Completed";
   }): Project => {
     const fallbackCode = `PRJ-${String(projects.length + 1).padStart(2, "0")}`;
     const newProject: Project = {
@@ -843,9 +848,9 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       projectManagerId: projectData.projectManagerId,
       teamLeadId: projectData.teamLeadId,
       teamMemberIds: Array.from(new Set([...projectData.teamMemberIds, projectData.teamLeadId])),
-      status: "In Progress",
+      status: projectData.status || "In Progress",
       priority: projectData.priority,
-      startDate: new Date().toISOString().split("T")[0],
+      startDate: projectData.startDate || new Date().toISOString().split("T")[0],
       deadline: projectData.deadline,
       category: projectData.category || "General",
       budget: projectData.budget || "$50,000"
@@ -863,6 +868,13 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProject = (id: string, updates: Partial<Project>) => {
+    if (updates.status === "Planning") {
+      const hasCompleted = tasks.some((t) => t.projectId === id && t.status === "Completed");
+      if (hasCompleted) {
+        console.warn("Cannot change project status to Planning because one or more tasks have already been completed.");
+        return;
+      }
+    }
     const { code: _ignoredCode, ...safeUpdates } = updates;
     setProjects((prev) =>
       prev.map((p) => {
@@ -899,6 +911,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     description: string;
     assignedTo: string;
     priority: "High" | "Medium" | "Low";
+    startDate?: string;
     deadline: string;
     status?: "To Do" | "In Progress" | "Review" | "Completed";
   }): Task => {

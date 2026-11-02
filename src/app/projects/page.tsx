@@ -12,7 +12,8 @@ import {
   Users,
   Clock,
   CheckCircle2,
-  Crown
+  Crown,
+  ChevronDown
 } from "lucide-react";
 import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
@@ -23,7 +24,7 @@ import InPageSubTabs from "@/components/InPageSubTabs";
 import UserAvatar from "@/components/UserAvatar";
 
 export default function ProjectsPage() {
-  const { users, projects, tasks, currentUser, hasHydrated } = useTeamFlow();
+  const { users, projects, tasks, updateProject, currentUser, hasHydrated } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -181,7 +182,9 @@ export default function ProjectsPage() {
             const members = users.filter((u) => project.teamMemberIds.includes(u.id));
             const projectTasks = tasks.filter((t) => t.projectId === project.id);
             const doneTasks = projectTasks.filter((t) => t.status === "Completed").length;
+            const hasCompletedTasks = doneTasks > 0;
             const percent = projectTasks.length > 0 ? Math.round((doneTasks / projectTasks.length) * 100) : 0;
+            const canManageThisProject = currentUser.role === "ceo" || (currentUser.role === "project_manager" && project.projectManagerId === currentUser.id);
 
             return (
               <div
@@ -195,7 +198,46 @@ export default function ProjectsPage() {
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 uppercase">
                         {project.code}
                       </span>
-                      <StatusBadge status={project.status} />
+                      {canManageThisProject ? (
+                        <div className="relative inline-flex items-center" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            value={project.status}
+                            onChange={(e) => {
+                              const nextStatus = e.target.value as any;
+                              if (nextStatus === "Planning" && hasCompletedTasks) return;
+                              updateProject(project.id, { status: nextStatus });
+                            }}
+                            className={`text-[11px] font-semibold rounded-md pl-2 pr-5 py-0.5 border cursor-pointer appearance-none focus:outline-hidden transition-colors ${
+                              project.status === "In Progress"
+                                ? "bg-[#e0f2fe] text-[#0284c7] border-sky-200/70 hover:bg-sky-100"
+                                : project.status === "In Review"
+                                ? "bg-[#ffa500]/15 text-[#ffa500] border-[#ffa500]/30 hover:bg-[#ffa500]/25"
+                                : project.status === "Completed"
+                                ? "bg-[#4ade1d]/15 text-[#4ade1d] border-[#4ade1d]/30 hover:bg-[#4ade1d]/25"
+                                : "bg-purple-50 text-purple-700 border-purple-200/70 hover:bg-purple-100"
+                            }`}
+                            title={
+                              hasCompletedTasks
+                                ? "The Status is locked because tasks are being completed"
+                                : "Click to change project status"
+                            }
+                          >
+                            <option
+                              value="Planning"
+                              disabled={hasCompletedTasks}
+                              className={hasCompletedTasks ? "text-slate-400 bg-slate-100" : ""}
+                            >
+                              {hasCompletedTasks ? "Planning (Locked)" : "Planning"}
+                            </option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="In Review">In Review</option>
+                            <option value="Completed">Completed</option>
+                          </select>
+                          <ChevronDown className="w-3 h-3 text-current absolute right-1 pointer-events-none opacity-70" />
+                        </div>
+                      ) : (
+                        <StatusBadge status={project.status} />
+                      )}
                       <PriorityBadge priority={project.priority} />
                       <span className="text-[11px] text-slate-400 font-medium">
                         {project.category}
@@ -265,7 +307,11 @@ export default function ProjectsPage() {
                     </div>
 
                     <span className="text-[11px] text-slate-500 font-medium">
-                      Due: <strong className="text-slate-800">{project.deadline}</strong>
+                      {project.status === "Planning" && project.startDate ? (
+                        <>Starts: <strong className="text-purple-700">{project.startDate}</strong> · Due: <strong className="text-slate-800">{project.deadline}</strong></>
+                      ) : (
+                        <>Due: <strong className="text-slate-800">{project.deadline}</strong></>
+                      )}
                     </span>
                   </div>
                 </div>

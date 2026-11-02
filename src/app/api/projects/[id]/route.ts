@@ -80,7 +80,19 @@ export async function PUT(
       teamMemberIds = [...teamMemberIds, teamLeadId];
     }
     const status = updates.status !== undefined ? updates.status : current.status;
+    if (status === "Planning" && current.status !== "Planning") {
+      const completedTasks = await sql`
+        SELECT id FROM tasks WHERE project_id = ${id} AND status = 'Completed' LIMIT 1;
+      `;
+      if (completedTasks.length > 0) {
+        return NextResponse.json(
+          { error: "Cannot change project status to Planning because one or more tasks have already been completed." },
+          { status: 400 }
+        );
+      }
+    }
     const priority = updates.priority !== undefined ? updates.priority : current.priority;
+    const startDate = updates.startDate !== undefined ? updates.startDate : current.start_date;
     const deadline = updates.deadline !== undefined ? updates.deadline : current.deadline;
     const category = updates.category !== undefined ? updates.category : current.category;
     const budget = updates.budget !== undefined ? updates.budget : current.budget;
@@ -94,6 +106,7 @@ export async function PUT(
         team_member_ids = ${JSON.stringify(teamMemberIds)}::jsonb,
         status = ${status},
         priority = ${priority},
+        start_date = ${startDate},
         deadline = ${deadline},
         category = ${category},
         budget = ${budget}

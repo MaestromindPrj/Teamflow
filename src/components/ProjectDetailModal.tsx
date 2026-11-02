@@ -19,7 +19,8 @@ import {
   Edit3,
   Users,
   Crown,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
@@ -43,6 +44,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
     users,
     projects,
     tasks,
+    updateProject,
     updateTask,
     deleteTask,
     deleteProject,
@@ -116,6 +118,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
 
   const totalTasksCount = allProjectTasks.length;
   const completedTasksCount = allProjectTasks.filter((t) => t.status === "Completed").length;
+  const hasCompletedTasks = completedTasksCount > 0;
   const progressPercent = totalTasksCount > 0 ? Math.round((completedTasksCount / totalTasksCount) * 100) : 0;
 
   const handleStatusChange = (taskId: string, newStatus: "To Do" | "In Progress" | "Review" | "Completed") => {
@@ -144,7 +147,46 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800 tracking-wider uppercase">
                 {project.code}
               </span>
-              <StatusBadge status={project.status} />
+              {canManageProject ? (
+                <div className="relative inline-flex items-center">
+                  <select
+                    value={project.status}
+                    onChange={(e) => {
+                      const nextStatus = e.target.value as any;
+                      if (nextStatus === "Planning" && hasCompletedTasks) return;
+                      updateProject(project.id, { status: nextStatus });
+                    }}
+                    className={`text-[11px] font-semibold rounded-md pl-2.5 pr-6 py-0.5 border cursor-pointer appearance-none focus:outline-hidden transition-colors ${
+                      project.status === "In Progress"
+                        ? "bg-[#e0f2fe] text-[#0284c7] border-sky-200/70 hover:bg-sky-100"
+                        : project.status === "In Review"
+                        ? "bg-[#ffa500]/15 text-[#ffa500] border-[#ffa500]/30 hover:bg-[#ffa500]/25"
+                        : project.status === "Completed"
+                        ? "bg-[#4ade1d]/15 text-[#4ade1d] border-[#4ade1d]/30 hover:bg-[#4ade1d]/25"
+                        : "bg-purple-50 text-purple-700 border-purple-200/70 hover:bg-purple-100"
+                    }`}
+                    title={
+                      hasCompletedTasks
+                        ? "Planning is disabled because one or more tasks are completed"
+                        : "Click to change project status"
+                    }
+                  >
+                    <option
+                      value="Planning"
+                      disabled={hasCompletedTasks}
+                      className={hasCompletedTasks ? "text-slate-400 bg-slate-100" : ""}
+                    >
+                      {hasCompletedTasks ? "Planning (Locked)" : "Planning"}
+                    </option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="In Review">In Review</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-current absolute right-1.5 pointer-events-none opacity-70" />
+                </div>
+              ) : (
+                <StatusBadge status={project.status} />
+              )}
               <PriorityBadge priority={project.priority} />
               <span className="text-[12px] text-slate-400 font-medium">
                 {project.category}
@@ -197,6 +239,12 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                 <span className="font-bold text-[#ffa500]">
                   {teamLead.id === currentUser.id ? "(You)" : teamLead.fullName}
                 </span>
+              </div>
+            )}
+            {project.status === "Planning" && project.startDate && (
+              <div className="flex items-center gap-1.5 text-slate-500">
+                <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                <span>Planned Start: <strong className="text-purple-700">{project.startDate}</strong></span>
               </div>
             )}
             <div className="flex items-center gap-1.5 text-slate-500">

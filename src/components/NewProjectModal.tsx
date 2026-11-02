@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, FolderPlus, Shield, Users, UserCheck, Crown, Sparkles } from "lucide-react";
+import { X, FolderPlus, Shield, Users, UserCheck, Crown, Sparkles, AlertCircle, Calendar } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import UserAvatar from "@/components/UserAvatar";
 
@@ -72,9 +72,15 @@ export default function NewProjectModal({
       setCategory(categories[0].name);
     }
   }, [categories, category]);
+  const [status, setStatus] = useState<"Planning" | "In Progress" | "In Review" | "Completed">("Planning");
   const [priority, setPriority] = useState<"High" | "Medium" | "Low">("Medium");
+  const [startDate, setStartDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  });
   const [deadline, setDeadline] = useState("");
   const [budget, setBudget] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const [selectedPmId, setSelectedPmId] = useState<string>(
     currentUser.role === "project_manager" ? currentUser.id : projectManagers[0]?.id || ""
@@ -110,6 +116,12 @@ export default function NewProjectModal({
     e.preventDefault();
     if (!name.trim() || !selectedLeadId) return;
 
+    if (status === "Planning" && !startDate) {
+      setError("Please specify the Planned Start Date for this project.");
+      return;
+    }
+    setError(null);
+
     const finalCode = (code.trim() || generateProjectCode(name, projects)).toUpperCase();
 
     const newProject = createProject({
@@ -117,7 +129,9 @@ export default function NewProjectModal({
       code: finalCode,
       description: description.trim(),
       category,
+      status,
       priority,
+      startDate: status === "Planning" ? startDate : new Date().toISOString().split("T")[0],
       deadline: deadline || (() => {
         const d = new Date();
         d.setDate(d.getDate() + 30);
@@ -206,15 +220,16 @@ export default function NewProjectModal({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          {/* Row 2: Category & Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
-                Category
+                Category *
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
+                className="w-full px-3.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
               >
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.name}>
@@ -226,30 +241,36 @@ export default function NewProjectModal({
 
             <div>
               <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+                Project Status *
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as "Planning" | "In Progress" | "In Review" | "Completed")}
+                className="w-full px-3.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
+              >
+                <option value="Planning">Planning</option>
+                <option value="In Progress">In Progress</option>
+                <option value="In Review">In Review</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Row 3: Priority & Budget */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
                 Priority
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as "High" | "Medium" | "Low")}
-                className="w-full px-3 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
+                className="w-full px-3.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
               >
                 <option value="High">High</option>
                 <option value="Medium">Medium</option>
                 <option value="Low">Low</option>
               </select>
-            </div>
-
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
-                Target Deadline
-              </label>
-              <input
-                type="date"
-                required
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                className="w-full px-3 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
-              />
             </div>
 
             <div>
@@ -261,10 +282,74 @@ export default function NewProjectModal({
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
                 placeholder="$50,000"
-                className="w-full px-3 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
+                className="w-full px-3.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
               />
             </div>
           </div>
+
+          {/* Row 4: Target Deadline & (only for Planning) Planned Start Date */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {status === "Planning" ? (
+              <>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[12px] font-semibold text-slate-700">
+                      Planned Start Date <span className="text-[#de2d1d]">*</span>
+                    </label>
+                    <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                      Required for Planning
+                    </span>
+                  </div>
+                  <input
+                    type="date"
+                    required
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    className="w-full px-3.5 py-2 text-[12px] bg-white border border-purple-300 focus:border-purple-600 bg-purple-50/20 rounded-lg focus:outline-hidden text-slate-800 transition-colors"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    When is this project planned to start execution?
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+                    Target Deadline <span className="text-[#de2d1d]">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                    className="w-full px-3.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+                  Target Deadline <span className="text-[#de2d1d]">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="w-full px-3.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
+                />
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <div className="p-3 bg-[#de2d1d]/10 border border-[#de2d1d]/30 rounded-lg text-[12px] text-[#de2d1d] font-medium flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           {currentUser.role === "ceo" && (
             <div>
