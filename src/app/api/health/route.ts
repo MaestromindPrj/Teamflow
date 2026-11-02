@@ -46,18 +46,7 @@ export async function GET(_req: NextRequest) {
         configured: cloudinaryConfigured,
       },
     },
-    diagnostic: {
-      hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
-      hasDatabaseUrlUnpooled: Boolean(process.env.DATABASE_URL_UNPOOLED),
-      hasPostgresUrl: Boolean(process.env.POSTGRES_URL),
-      hasAuthSecret: Boolean(process.env.AUTH_SECRET),
-      foundDbKeys: Object.keys(process.env).filter((k) =>
-        k.includes("DATA") || k.includes("POSTGRES") || k.includes("NEON") || k.includes("URL")
-      ),
-      allCustomKeys: Object.keys(process.env)
-        .filter((k) => !k.startsWith("npm_") && !k.startsWith("_") && !k.startsWith("NODE_"))
-        .sort(),
-    },
+  });
   });
 }
 
