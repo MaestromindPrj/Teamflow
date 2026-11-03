@@ -9,6 +9,7 @@ import {
   AttendanceRecord,
   PunchSession,
   LeaveRequest,
+  MediaDeletionRequest,
   ProjectCategory,
   DEFAULT_PROJECT_CATEGORIES,
   INITIAL_USERS,
@@ -226,6 +227,19 @@ interface TeamFlowContextType {
     status?: "Pending" | "Approved";
   }) => Promise<{ success: boolean; error?: string }>;
   reviewLeaveRequest: (id: string, status: "Approved" | "Rejected") => Promise<boolean>;
+  deleteTaskMedia: (taskId: string, attachmentId: string) => Promise<boolean>;
+  canUserDeleteMedia: (projectId: string) => boolean;
+  mediaDeletionRequests: MediaDeletionRequest[];
+  requestMediaDeletion: (params: {
+    taskId: string;
+    attachmentId: string;
+    reason: string;
+  }) => Promise<boolean>;
+  resolveMediaDeletionRequest: (
+    requestId: string,
+    action: "approve" | "reject",
+    notes?: string
+  ) => Promise<boolean>;
 }
 
 const TeamFlowContext = createContext<TeamFlowContextType | undefined>(undefined);
@@ -306,6 +320,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<ProjectCategory[]>(DEFAULT_PROJECT_CATEGORIES);
   const [rewardsLedger, setRewardsLedger] = useState<RewardLedgerEntry[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [mediaDeletionRequests, setMediaDeletionRequests] = useState<MediaDeletionRequest[]>([]);
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
@@ -368,6 +383,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             });
             setAttendance(deduped);
           }
+        } catch {}
+      }
+
+      const savedMediaRequests = localStorage.getItem("teamflow_media_deletion_requests_v1");
+      if (savedMediaRequests) {
+        try {
+          const parsed = JSON.parse(savedMediaRequests);
+          if (Array.isArray(parsed)) setMediaDeletionRequests(parsed);
         } catch {}
       }
 
@@ -511,8 +534,9 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("teamflow_attendance", JSON.stringify(attendance));
       localStorage.setItem("teamflow_user_clock_in_v3", JSON.stringify(userClockInData));
       localStorage.setItem("teamflow_categories", JSON.stringify(categories));
+      localStorage.setItem("teamflow_media_deletion_requests_v1", JSON.stringify(mediaDeletionRequests));
     } catch {}
-  }, [currentUserId, projects, tasks, attendance, userClockInData, categories, hasHydrated]);
+  }, [currentUserId, projects, tasks, attendance, userClockInData, categories, mediaDeletionRequests, hasHydrated]);
 
   const currentUser: User =
     users.find((u) => u.id === currentUserId) ||
@@ -1521,6 +1545,191 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     return list;
   };
 
+  const canUserDeleteMedia = (projectId: string): boolean => {
+    if (currentUser.role === "ceo") return true;
+    if (currentUser.role === "project_manager") return true;
+    return isUserTeamLead(currentUser.id, projectId);
+  };
+
+  const deleteTaskMedia = async (taskId: string, attachmentId: string): Promise<boolean> => {
+    const targetTask = tasks.find((t) => t.id === taskId);
+    if (!targetTask) return false;
+
+    const targetAtt = targetTask.attachments.find((att) => att.id === attachmentId);
+    const fileName = targetAtt?.name || "Media asset";
+
+    const roleLabel =
+      currentUser.role === "ceo"
+        ? "CEO"
+        : currentUser.role === "project_manager"
+        ? "Project Manager"
+        : "Team Lead";
+
+    const deleteActivityItem = {
+      id: `act-${Date.now()}`,
+      title: `Deliverable deleted: ${fileName}`,
+      detail: `Deleted by ${currentUser.fullName} (${roleLabel})`,
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    };
+
+    const updatedAttachments = targetTask.attachments.filter((att) => att.id !== attachmentId);
+    const updatedActivity = [deleteActivityItem, ...targetTask.activity];
+
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          return {
+            ...t,
+            attachments: updatedAttachments,
+            activity: updatedActivity,
+          };
+        }
+        return t;
+      })
+    );
+
+    setMediaDeletionRequests((prev) =>
+      prev.map((r) =>
+        r.attachmentId === attachmentId && r.status === "Pending"
+          ? { ...r, status: "Approved" }
+          : r
+      )
+    );
+
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attachments: updatedAttachments,
+          activity: updatedActivity,
+          updatedByName: currentUser.fullName,
+        }),
+      });
+    } catch (err) {
+      console.warn("Failed to persist media deletion to backend:", err);
+    }
+
+    return true;
+  };
+
+  const requestMediaDeletion = async ({
+    taskId,
+    attachmentId,
+    reason,
+  }: {
+    taskId: string;
+    attachmentId: string;
+    reason: string;
+  }): Promise<boolean> => {
+    const targetTask = tasks.find((t) => t.id === taskId);
+    if (!targetTask) return false;
+
+    const targetAtt = targetTask.attachments.find((att) => att.id === attachmentId);
+    if (!targetAtt) return false;
+
+    const project = projects.find((p) => p.id === targetTask.projectId);
+    const teamLead = users.find((u) => u.id === project?.teamLeadId);
+
+    const newRequest: MediaDeletionRequest = {
+      id: `del-req-${Date.now()}`,
+      attachmentId: targetAtt.id,
+      attachmentName: targetAtt.name,
+      attachmentUrl: targetAtt.url,
+      attachmentType: targetAtt.type,
+      attachmentSize: targetAtt.size,
+      taskId: targetTask.id,
+      taskTitle: targetTask.title,
+      projectId: targetTask.projectId,
+      projectName: project?.name || "Project",
+      projectCode: project?.code || "PROJ",
+      teamLeadId: project?.teamLeadId || "",
+      teamLeadName: teamLead?.fullName || "Team Lead",
+      requestedBy: currentUser.id,
+      requestedByName: currentUser.fullName,
+      requestedByRole: currentUser.role,
+      requestedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      reason: reason.trim() || "No specific reason provided.",
+      status: "Pending",
+    };
+
+    const newActivityItem = {
+      id: `act-${Date.now()}`,
+      title: `Deletion requested: ${targetAtt.name}`,
+      detail: `Requested by ${currentUser.fullName} to Team Lead ${teamLead?.fullName || "Project Lead"}. Reason: ${newRequest.reason}`,
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    };
+
+    setMediaDeletionRequests((prev) => [newRequest, ...prev]);
+
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          return {
+            ...t,
+            activity: [newActivityItem, ...t.activity],
+          };
+        }
+        return t;
+      })
+    );
+
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activity: [newActivityItem, ...targetTask.activity],
+          updatedByName: currentUser.fullName,
+        }),
+      });
+    } catch {}
+
+    return true;
+  };
+
+  const resolveMediaDeletionRequest = async (
+    requestId: string,
+    action: "approve" | "reject",
+    notes?: string
+  ): Promise<boolean> => {
+    const req = mediaDeletionRequests.find((r) => r.id === requestId);
+    if (!req) return false;
+
+    if (action === "approve") {
+      await deleteTaskMedia(req.taskId, req.attachmentId);
+      setMediaDeletionRequests((prev) =>
+        prev.map((r) => (r.id === requestId ? { ...r, status: "Approved" } : r))
+      );
+    } else {
+      setMediaDeletionRequests((prev) =>
+        prev.map((r) => (r.id === requestId ? { ...r, status: "Rejected" } : r))
+      );
+
+      const targetTask = tasks.find((t) => t.id === req.taskId);
+      if (targetTask) {
+        const rejectActivity = {
+          id: `act-${Date.now()}`,
+          title: `Deletion request declined: ${req.attachmentName}`,
+          detail: `Declined by ${currentUser.fullName}. Notes: ${notes || "Declined by project authority."}`,
+          date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        };
+        setTasks((prev) =>
+          prev.map((t) => (t.id === req.taskId ? { ...t, activity: [rejectActivity, ...t.activity] } : t))
+        );
+        fetch(`/api/tasks/${req.taskId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            activity: [rejectActivity, ...targetTask.activity],
+            updatedByName: currentUser.fullName,
+          }),
+        }).catch(() => null);
+      }
+    }
+    return true;
+  };
+
   const applyLeave = async (params: {
     userId: string;
     startDate: string;
@@ -1756,7 +1965,12 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         awardRewardPoints,
         leaveRequests,
         applyLeave,
-        reviewLeaveRequest
+        reviewLeaveRequest,
+        deleteTaskMedia,
+        canUserDeleteMedia,
+        mediaDeletionRequests,
+        requestMediaDeletion,
+        resolveMediaDeletionRequest
       }}
     >
       {children}

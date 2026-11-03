@@ -101,6 +101,28 @@ export interface LeaveRequest {
   createdAt?: string;
 }
 
+export interface MediaDeletionRequest {
+  id: string;
+  attachmentId: string;
+  attachmentName: string;
+  attachmentUrl?: string;
+  attachmentType?: string;
+  attachmentSize?: string;
+  taskId: string;
+  taskTitle: string;
+  projectId: string;
+  projectName: string;
+  projectCode: string;
+  teamLeadId: string;
+  teamLeadName: string;
+  requestedBy: string;
+  requestedByName: string;
+  requestedByRole: string;
+  requestedAt: string;
+  reason: string;
+  status: "Pending" | "Approved" | "Rejected";
+}
+
 export interface ProjectCategory {
   id: string;
   name: string;

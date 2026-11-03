@@ -15,7 +15,7 @@ interface HeaderProps {
 
 export default function Header({ title, subtitle, actionButton }: HeaderProps) {
   const router = useRouter();
-  const { currentUser, users, projects, tasks, rewardsLedger, isClockedIn, toggleClockInOut, logout, hasHydrated } = useTeamFlow();
+  const { currentUser, users, projects, tasks, rewardsLedger, isClockedIn, toggleClockInOut, logout, mediaDeletionRequests, hasHydrated } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -122,8 +122,31 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
       }
     }
 
+    // 3. Media Deletion Requests (notified to Team Lead, PM, and CEO)
+    if (Array.isArray(mediaDeletionRequests)) {
+      const pendingDelReqs = mediaDeletionRequests.filter((r) => {
+        if (r.status !== "Pending") return false;
+        if (isCeo) return true;
+        if (isPm) {
+          const proj = projects.find((p) => p.id === r.projectId);
+          return proj?.projectManagerId === currentUser.id;
+        }
+        return r.teamLeadId === currentUser.id;
+      });
+
+      pendingDelReqs.slice(0, 2).forEach((r) => {
+        list.push({
+          id: `notif-del-${r.id}`,
+          title: "Media Deletion Request",
+          detail: `${r.requestedByName} requested deletion of "${r.attachmentName}" in ${r.projectName}`,
+          time: "Action Needed",
+          link: "/media",
+        });
+      });
+    }
+
     return list;
-  }, [tasks, projects, users, currentUser, rewardsLedger]);
+  }, [tasks, projects, users, currentUser, rewardsLedger, mediaDeletionRequests]);
 
   const [dismissedNotifIds, setDismissedNotifIds] = useState<string[]>([]);
 

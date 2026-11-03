@@ -12,12 +12,16 @@ import {
   Archive,
   Download,
   Share2,
+  Trash2,
+  Send,
 } from "lucide-react";
 import Header from "@/components/Header";
 import { TaskItem } from "@/data/mockData";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import UserAvatar from "@/components/UserAvatar";
+import DeleteMediaConfirmModal from "@/components/DeleteMediaConfirmModal";
+import RequestMediaDeletionModal from "@/components/RequestMediaDeletionModal";
 
 function FigmaIcon({ className }: { className?: string }) {
   return (
@@ -40,11 +44,36 @@ function FigmaIcon({ className }: { className?: string }) {
 }
 
 export default function TaskDetailClient({ task }: { task: TaskItem }) {
-  const { currentUser } = useTeamFlow();
+  const { currentUser, projects, tasks, canUserDeleteMedia, deleteTaskMedia, mediaDeletionRequests } = useTeamFlow();
   const [taskStatus, setTaskStatus] = useState<TaskItem["status"]>(task.status);
   const [comments, setComments] = useState(task.discussion || []);
   const [replyText, setReplyText] = useState("");
   const [activities, setActivities] = useState(task.activity || []);
+
+  const currentTask = tasks.find((t) => t.id === task.id);
+  const currentProject = projects.find((p) => p.name === task.project || p.id === currentTask?.projectId);
+  const projectId = currentProject?.id || currentTask?.projectId || "";
+  const taskTitle = currentTask?.title || task.task || "Task";
+  const projectName = currentProject?.name || task.project || "Project";
+  const projectCode = currentProject?.code || "PROJ";
+
+  const [deleteTarget, setDeleteTarget] = useState<{
+    taskId: string;
+    attachmentId: string;
+    fileName: string;
+    projectName: string;
+    taskTitle: string;
+  } | null>(null);
+
+  const [requestTarget, setRequestTarget] = useState<{
+    attachmentId: string;
+    attachmentName: string;
+    taskId: string;
+    taskTitle: string;
+    projectId: string;
+    projectName: string;
+    projectCode: string;
+  } | null>(null);
 
   const handleSendComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,12 +179,57 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
                         </p>
                       </div>
                     </div>
-                    <button
-                      className="text-slate-400 hover:text-slate-700 p-1 rounded-md transition-colors shrink-0"
-                      title="Download"
-                    >
-                      <Download className="w-3.5 h-3.5 stroke-[1.8]" />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <a
+                        href={(file as { url?: string }).url || "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-slate-400 hover:text-slate-700 p-1 rounded-md transition-colors"
+                        title="View / Download"
+                      >
+                        <Download className="w-3.5 h-3.5 stroke-[1.8]" />
+                      </a>
+
+                      {canUserDeleteMedia(projectId) ? (
+                        <button
+                          onClick={() => {
+                            setDeleteTarget({
+                              taskId: task.id,
+                              attachmentId: file.id,
+                              fileName: file.name,
+                              projectName,
+                              taskTitle,
+                            });
+                          }}
+                          className="text-slate-400 hover:text-red-600 p-1 rounded-md transition-colors cursor-pointer"
+                          title="Delete deliverable"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 stroke-[1.8]" />
+                        </button>
+                      ) : mediaDeletionRequests.find((r) => r.attachmentId === file.id && r.status === "Pending") ? (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                          Requested
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setRequestTarget({
+                              attachmentId: file.id,
+                              attachmentName: file.name,
+                              taskId: task.id,
+                              taskTitle,
+                              projectId,
+                              projectName,
+                              projectCode,
+                            });
+                          }}
+                          className="text-amber-600 hover:text-amber-700 p-1 rounded-md transition-colors cursor-pointer"
+                          title="Request Team Lead to delete"
+                        >
+                          <Send className="w-3 h-3 stroke-[1.8]" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -284,6 +358,27 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal for CEO, PM, Team Lead */}
+      <DeleteMediaConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={async () => {
+          if (deleteTarget) {
+            await deleteTaskMedia(deleteTarget.taskId, deleteTarget.attachmentId);
+          }
+        }}
+        fileName={deleteTarget?.fileName || ""}
+        projectName={deleteTarget?.projectName || ""}
+        taskTitle={deleteTarget?.taskTitle || ""}
+      />
+
+      {/* Request Deletion Modal for Team Members */}
+      <RequestMediaDeletionModal
+        isOpen={Boolean(requestTarget)}
+        onClose={() => setRequestTarget(null)}
+        mediaItem={requestTarget}
+      />
     </div>
   );
 }

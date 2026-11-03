@@ -20,7 +20,8 @@ import {
   Users,
   Crown,
   AlertTriangle,
-  ChevronDown
+  ChevronDown,
+  Send
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
@@ -32,6 +33,8 @@ import UploadProjectMediaModal from "@/components/UploadProjectMediaModal";
 import AddTeamMemberModal from "@/components/AddTeamMemberModal";
 import UserAvatar from "@/components/UserAvatar";
 import InPageSubTabs from "@/components/InPageSubTabs";
+import DeleteMediaConfirmModal from "@/components/DeleteMediaConfirmModal";
+import RequestMediaDeletionModal from "@/components/RequestMediaDeletionModal";
 
 interface ProjectDetailModalProps {
   projectId: string | null;
@@ -50,7 +53,10 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
     deleteProject,
     getProjectTeamLead,
     getProjectManager,
-    isUserTeamLead
+    isUserTeamLead,
+    deleteTaskMedia,
+    canUserDeleteMedia,
+    mediaDeletionRequests
   } = useTeamFlow();
 
   const [activeTab, setActiveTab] = useState<"tasks" | "media" | "team">("tasks");
@@ -61,6 +67,24 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
   const [uploadTaskTarget, setUploadTaskTarget] = useState<{ id: string; title: string } | null>(null);
   const [selectedTaskFilter, setSelectedTaskFilter] = useState<string>("All");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const [mediaDeleteTarget, setMediaDeleteTarget] = useState<{
+    taskId: string;
+    attachmentId: string;
+    fileName: string;
+    projectName: string;
+    taskTitle: string;
+  } | null>(null);
+
+  const [mediaRequestTarget, setMediaRequestTarget] = useState<{
+    attachmentId: string;
+    attachmentName: string;
+    taskId: string;
+    taskTitle: string;
+    projectId: string;
+    projectName: string;
+    projectCode: string;
+  } | null>(null);
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -352,15 +376,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                   <p className="text-[12px] text-slate-400 mt-0.5">
                     No tasks found in this project under the selected filter.
                   </p>
-                  {canManageProject && (
-                    <button
-                      onClick={() => setIsCreateTaskOpen(true)}
-                      className="mt-3 px-4 py-1.5 bg-[#0084d4] text-white rounded-lg text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add Task Now</span>
-                    </button>
-                  )}
+                
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -504,15 +520,52 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                                       </p>
                                     </div>
                                   </div>
-                                  <a
-                                    href={file.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-slate-400 hover:text-slate-800 p-1"
-                                    title="View / Download"
-                                  >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                  </a>
+                                  <div className="flex items-center gap-1">
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-slate-400 hover:text-slate-800 p-1"
+                                      title="View / Download"
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                    {canUserDeleteMedia(project.id) ? (
+                                      <button
+                                        onClick={() =>
+                                          setMediaDeleteTarget({
+                                            taskId: task.id,
+                                            attachmentId: file.id,
+                                            fileName: file.name,
+                                            projectName: project.name,
+                                            taskTitle: task.title,
+                                          })
+                                        }
+                                        className="text-slate-400 hover:text-red-600 p-1 transition-colors cursor-pointer"
+                                        title="Delete deliverable"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() =>
+                                          setMediaRequestTarget({
+                                            attachmentId: file.id,
+                                            attachmentName: file.name,
+                                            taskId: task.id,
+                                            taskTitle: task.title,
+                                            projectId: project.id,
+                                            projectName: project.name,
+                                            projectCode: project.code,
+                                          })
+                                        }
+                                        className="text-amber-600 hover:text-amber-700 p-1 transition-colors cursor-pointer"
+                                        title="Request Team Lead to delete"
+                                      >
+                                        <Send className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -577,15 +630,65 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                         </p>
                       </div>
 
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold text-center border border-slate-200 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <Download className="w-3 h-3" />
-                        <span>Access Deliverable</span>
-                      </a>
+                      {/* Pending Deletion Indicator */}
+                      {mediaDeletionRequests.find((r) => r.attachmentId === file.id && r.status === "Pending") && (
+                        <div className="p-1.5 rounded bg-amber-50 border border-amber-200 text-[10px] text-amber-800">
+                          Deletion requested by <strong>{mediaDeletionRequests.find((r) => r.attachmentId === file.id && r.status === "Pending")?.requestedByName}</strong>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold text-center border border-slate-200 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>Access</span>
+                        </a>
+
+                        {canUserDeleteMedia(project.id) ? (
+                          <button
+                            onClick={() =>
+                              setMediaDeleteTarget({
+                                taskId: file.taskId,
+                                attachmentId: file.id,
+                                fileName: file.name,
+                                projectName: project.name,
+                                taskTitle: file.taskTitle,
+                              })
+                            }
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 border border-slate-200 hover:border-red-200 transition-colors cursor-pointer shrink-0"
+                            title="Delete deliverable"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        ) : mediaDeletionRequests.find((r) => r.attachmentId === file.id && r.status === "Pending") ? (
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 shrink-0">
+                            Requested
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              setMediaRequestTarget({
+                                attachmentId: file.id,
+                                attachmentName: file.name,
+                                taskId: file.taskId,
+                                taskTitle: file.taskTitle,
+                                projectId: project.id,
+                                projectName: project.name,
+                                projectCode: project.code,
+                              })
+                            }
+                            className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 shrink-0"
+                            title="Request designated Team Lead to delete this media"
+                          >
+                            <Send className="w-3 h-3" />
+                            <span>Request</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -799,6 +902,26 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
             </div>
           </div>
         )}
+        {/* Media Deletion Confirm Modal for CEO, PM, Team Lead */}
+        <DeleteMediaConfirmModal
+          isOpen={Boolean(mediaDeleteTarget)}
+          onClose={() => setMediaDeleteTarget(null)}
+          onConfirm={async () => {
+            if (mediaDeleteTarget) {
+              await deleteTaskMedia(mediaDeleteTarget.taskId, mediaDeleteTarget.attachmentId);
+            }
+          }}
+          fileName={mediaDeleteTarget?.fileName || ""}
+          projectName={mediaDeleteTarget?.projectName || ""}
+          taskTitle={mediaDeleteTarget?.taskTitle || ""}
+        />
+
+        {/* Media Deletion Request Modal for Team Members */}
+        <RequestMediaDeletionModal
+          isOpen={Boolean(mediaRequestTarget)}
+          onClose={() => setMediaRequestTarget(null)}
+          mediaItem={mediaRequestTarget}
+        />
       </div>
     </div>
   );
