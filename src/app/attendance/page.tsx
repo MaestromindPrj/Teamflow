@@ -36,7 +36,9 @@ export default function AttendancePage() {
     projects,
     userClockInData,
     leaveRequests,
-    hasHydrated
+    hasHydrated,
+    sleepNotice,
+    dismissSleepNotice,
   } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -193,6 +195,36 @@ export default function AttendancePage() {
       />
 
       <div className="px-7 py-6 space-y-6">
+        {sleepNotice && (
+          <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200/90 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px] shadow-2xs">
+            <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+              <span className="text-lg shrink-0">💤</span>
+              <div className="leading-snug">
+                <span className="font-bold">Device sleep detected:</span>{" "}
+                <span>
+                  Your workday was paused & clocked out at <strong>{sleepNotice.time}</strong> ({sleepNotice.duration} recorded).
+                  Click below whenever you are ready to resume.
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={toggleClockInOut}
+                className="px-3 py-1.5 text-[11px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-colors cursor-pointer"
+              >
+                Resume Workday
+              </button>
+              <button
+                type="button"
+                onClick={dismissSleepNotice}
+                className="px-2.5 py-1.5 text-[11px] font-semibold rounded-md bg-amber-200/60 hover:bg-amber-200 text-amber-800 transition-colors cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
         {isEmployer ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs flex flex-col justify-between">

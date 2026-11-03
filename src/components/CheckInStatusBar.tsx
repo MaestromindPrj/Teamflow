@@ -5,7 +5,7 @@ import { Clock, Play, Pause, CheckCircle2, AlertCircle, Calendar } from "lucide-
 import { useTeamFlow, getLocalDateString } from "@/context/TeamFlowContext";
 
 export default function CheckInStatusBar({ className = "" }: { className?: string }) {
-  const { currentUser, currentUserClockIn, toggleClockInOut, attendance } = useTeamFlow();
+  const { currentUser, currentUserClockIn, toggleClockInOut, attendance, sleepNotice, dismissSleepNotice } = useTeamFlow();
   const [tickerSeconds, setTickerSeconds] = useState<number>(0);
 
   const todayStr = getLocalDateString(new Date());
@@ -47,6 +47,35 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
 
   return (
     <div className={`bg-white rounded-lg border border-slate-200/90 shadow-2xs p-4 sm:p-5 transition-all flex flex-col justify-between ${className}`}>
+      {sleepNotice && (
+        <div className="mb-3.5 p-3 rounded-lg bg-amber-50 border border-amber-200/90 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-[12px] shadow-2xs">
+          <div className="flex items-start sm:items-center gap-2 min-w-0">
+            <span className="text-base shrink-0">💤</span>
+            <div className="leading-snug">
+              <span className="font-bold">Device sleep detected:</span>{" "}
+              <span>
+                Your session was paused & clocked out at <strong>{sleepNotice.time}</strong> ({sleepNotice.duration} recorded).
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={toggleClockInOut}
+              className="px-2.5 py-1 text-[11px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-colors cursor-pointer"
+            >
+              Resume Workday
+            </button>
+            <button
+              type="button"
+              onClick={dismissSleepNotice}
+              className="px-2 py-1 text-[11px] font-semibold rounded-md bg-amber-200/60 hover:bg-amber-200 text-amber-800 transition-colors cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
           <div

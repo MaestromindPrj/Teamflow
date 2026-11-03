@@ -184,6 +184,12 @@ export async function initDatabase() {
       await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;`;
       await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS initial_password TEXT;`;
       await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS discussion JSONB DEFAULT '[]'::jsonb;`;
+      await sql`ALTER TABLE clock_in_status ADD COLUMN IF NOT EXISTS clock_in_date VARCHAR(50);`;
+      await sql`ALTER TABLE clock_in_status ADD COLUMN IF NOT EXISTS sessions JSONB DEFAULT '[]'::jsonb;`;
+      await sql`ALTER TABLE clock_in_status ADD COLUMN IF NOT EXISTS last_heartbeat BIGINT;`;
+      await sql`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS sessions JSONB DEFAULT '[]'::jsonb;`;
+      await sql`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS leave_type VARCHAR(50);`;
+      await sql`ALTER TABLE attendance ADD COLUMN IF NOT EXISTS leave_reason TEXT;`;
 
       const defaultPassword = "Maestro@2026!";
       const defaultHash = hashPassword(defaultPassword);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import {
   User,
   Project,
@@ -27,6 +27,8 @@ export interface UserClockInState {
   elapsedSeconds?: number;
   clockInDate?: string;
   sessions?: PunchSession[];
+  lastHeartbeat?: number | null;
+  autoClockOutReason?: "sleep" | "tab_closed" | "heartbeat_timeout" | null;
 }
 
 export function getLocalDateString(d: Date = new Date()): string {
@@ -240,6 +242,8 @@ interface TeamFlowContextType {
     action: "approve" | "reject",
     notes?: string
   ) => Promise<boolean>;
+  sleepNotice: { time: string; duration: string; reason: string } | null;
+  dismissSleepNotice: () => void;
 }
 
 const TeamFlowContext = createContext<TeamFlowContextType | undefined>(undefined);
@@ -314,6 +318,13 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS_DATA);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE_DATA);
   const [userClockInData, setUserClockInData] = useState<Record<string, UserClockInState>>(DEFAULT_CLOCK_IN_DATA);
+  const [sleepNotice, setSleepNotice] = useState<{ time: string; duration: string; reason: string } | null>(null);
+  const dismissSleepNotice = useCallback(() => setSleepNotice(null), []);
+
+  const userClockInDataRef = useRef(userClockInData);
+  userClockInDataRef.current = userClockInData;
+  const currentUserIdRef = useRef(currentUserId);
+  currentUserIdRef.current = currentUserId;
   const [jobRoles, setJobRoles] = useState<{ id: string; name: string }[]>(DEFAULT_JOB_ROLES);
   const departments = jobRoles;
   const setDepartments = setJobRoles;
@@ -1227,6 +1238,319 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [checkAndHandleMidnightRollover]);
 
+  const handleAutoClockOut = useCallback((userId: string, targetTimestamp: number, reason: "sleep" | "tab_closed" | "heartbeat_timeout") => {
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) return;
+
+    setUserClockInData((prev) => {
+      const userState = prev[userId];
+      if (!userState || !userState.isClockedIn) return prev;
+
+      const clockInTs = userState.clockInTimestamp || targetTimestamp;
+      const effectiveTargetTs = Math.max(clockInTs, targetTimestamp);
+      const sessionSeconds = Math.max(1, Math.floor((effectiveTargetTs - clockInTs) / 1000));
+      const totalElapsed = (userState.elapsedSeconds || 0) + sessionSeconds;
+      const targetDateObj = new Date(effectiveTargetTs);
+      const clockOutTimeStr = targetDateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      const formattedDuration = formatSecondsToDuration(totalElapsed);
+      const sessionDuration = formatSecondsToDuration(sessionSeconds);
+      const clockInDate = userState.clockInDate || getLocalDateString(targetDateObj);
+
+      const existingSessions = userState.sessions ? [...userState.sessions] : [];
+      let updatedSessions: PunchSession[];
+      if (existingSessions.length > 0) {
+        updatedSessions = existingSessions.map((s, idx) => {
+          if (idx === existingSessions.length - 1) {
+            return {
+              ...s,
+              clockOut: clockOutTimeStr,
+              duration: sessionDuration,
+              elapsedSeconds: sessionSeconds,
+            };
+          }
+          return s;
+        });
+      } else {
+        updatedSessions = [
+          {
+            sessionNumber: 1,
+            clockIn: userState.clockInTimeString || clockOutTimeStr,
+            clockOut: clockOutTimeStr,
+            duration: formattedDuration,
+            elapsedSeconds: totalElapsed,
+          },
+        ];
+      }
+
+      const nextState: UserClockInState = {
+        isClockedIn: false,
+        clockInTimestamp: null,
+        clockInTimeString: userState.clockInTimeString || clockOutTimeStr,
+        clockOutTimeString: clockOutTimeStr,
+        elapsedSeconds: totalElapsed,
+        clockInDate,
+        sessions: updatedSessions,
+        lastHeartbeat: null,
+        autoClockOutReason: reason,
+      };
+
+      setAttendance((prevAtt) => {
+        const existing = prevAtt.find((r) => r.userId === userId && r.date === clockInDate);
+        if (existing) {
+          const updatedRecord: AttendanceRecord = {
+            ...existing,
+            clockOut: clockOutTimeStr,
+            duration: formattedDuration,
+            status: "Checked Out",
+            sessions: updatedSessions,
+          };
+          fetch("/api/attendance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedRecord),
+          }).catch(() => null);
+          return prevAtt.map((r) => (r.id === existing.id ? updatedRecord : r));
+        } else {
+          const newRecord: AttendanceRecord = {
+            id: `att-${userId}-${clockInDate}`,
+            userId: targetUser.id,
+            userName: targetUser.fullName,
+            userRole: targetUser.role,
+            date: clockInDate,
+            clockIn: userState.clockInTimeString || clockOutTimeStr,
+            clockOut: clockOutTimeStr,
+            duration: formattedDuration,
+            status: "Checked Out",
+            sessions: updatedSessions,
+          };
+          fetch("/api/attendance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newRecord),
+          }).catch(() => null);
+          return [newRecord, ...prevAtt];
+        }
+      });
+
+      fetch("/api/clock-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, ...nextState }),
+      }).catch(() => null);
+
+      if (userId === currentUserIdRef.current && reason === "sleep") {
+        setSleepNotice({
+          time: clockOutTimeStr,
+          duration: formattedDuration,
+          reason: "Device sleep detected",
+        });
+      }
+
+      return {
+        ...prev,
+        [userId]: nextState,
+      };
+    });
+  }, [users]);
+
+  // Active Application & Sleep Detection Lifecycle
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Multi-tab tracking key
+    const TAB_ID = "tab_" + Math.random().toString(36).substring(2, 9);
+    const TAB_STORAGE_KEY = "teamflow_open_tabs_v1";
+
+    const registerTab = () => {
+      try {
+        const raw = localStorage.getItem(TAB_STORAGE_KEY);
+        const tabs = raw ? JSON.parse(raw) : {};
+        tabs[TAB_ID] = Date.now();
+        localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(tabs));
+      } catch {}
+    };
+
+    const unregisterTab = (): number => {
+      try {
+        const raw = localStorage.getItem(TAB_STORAGE_KEY);
+        if (!raw) return 0;
+        const tabs = JSON.parse(raw);
+        delete tabs[TAB_ID];
+        const now = Date.now();
+        const active = Object.entries(tabs).filter(([, ts]) => now - Number(ts) < 8000);
+        const updated = Object.fromEntries(active);
+        localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(updated));
+        return Object.keys(updated).length;
+      } catch {
+        return 0;
+      }
+    };
+
+    registerTab();
+    const tabHeartbeat = setInterval(registerTab, 3000);
+
+    // Reload grace period restoration check
+    try {
+      const navEntries = typeof performance !== "undefined" && performance.getEntriesByType
+        ? performance.getEntriesByType("navigation")
+        : [];
+      const isReload = navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload";
+      const rawUnload = sessionStorage.getItem("teamflow_unload_state");
+      if (isReload && rawUnload) {
+        const unloadData = JSON.parse(rawUnload);
+        if (
+          unloadData.userId === currentUserIdRef.current &&
+          unloadData.state?.isClockedIn &&
+          Date.now() - unloadData.time < 5000
+        ) {
+          // Restore active clock-in session across quick reload
+          setUserClockInData((prev) => ({
+            ...prev,
+            [unloadData.userId]: unloadData.state,
+          }));
+          fetch("/api/clock-in", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: unloadData.userId, ...unloadData.state }),
+          }).catch(() => null);
+        }
+      }
+      sessionStorage.removeItem("teamflow_unload_state");
+    } catch {}
+
+    // Sleep Detection Engine (Web Worker avoids background tab throttling)
+    let worker: Worker | null = null;
+    let lastLocalTick = Date.now();
+
+    const onSleepDetected = (sleepStartedAt: number, gapMs: number) => {
+      const curUserId = currentUserIdRef.current;
+      const curState = userClockInDataRef.current[curUserId];
+      if (curState && curState.isClockedIn) {
+        console.warn(
+          `[TeamFlow] Device sleep detected (${Math.round(gapMs / 1000)}s gap). Clocking out at ${new Date(sleepStartedAt).toLocaleTimeString()}`
+        );
+        handleAutoClockOut(curUserId, sleepStartedAt, "sleep");
+      }
+    };
+
+    try {
+      const workerBlob = new Blob(
+        [
+          `
+          let last = Date.now();
+          setInterval(function() {
+            var now = Date.now();
+            var diff = now - last;
+            if (diff > 10000) {
+              postMessage({ type: 'SLEEP_DETECTED', sleepStartedAt: last, diff: diff });
+            }
+            last = now;
+          }, 2000);
+          `
+        ],
+        { type: "application/javascript" }
+      );
+      const workerUrl = URL.createObjectURL(workerBlob);
+      worker = new Worker(workerUrl);
+      worker.onmessage = (e) => {
+        if (e.data?.type === "SLEEP_DETECTED") {
+          onSleepDetected(e.data.sleepStartedAt, e.data.diff);
+        }
+      };
+    } catch (e) {
+      console.warn("[TeamFlow] Web Worker unavailable for sleep detection, falling back to window events", e);
+    }
+
+    // Window events fallback for sleep detection
+    const checkGap = () => {
+      const now = Date.now();
+      const diff = now - lastLocalTick;
+      if (diff > 10000) {
+        onSleepDetected(lastLocalTick, diff);
+      }
+      lastLocalTick = now;
+    };
+
+    const windowInterval = setInterval(checkGap, 2000);
+    window.addEventListener("focus", checkGap);
+    window.addEventListener("pageshow", checkGap);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkGap();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    // Periodic Heartbeat to backend (every 15s) while clocked in
+    const heartbeatInterval = setInterval(() => {
+      const curUserId = currentUserIdRef.current;
+      const curState = userClockInDataRef.current[curUserId];
+      if (curState && curState.isClockedIn) {
+        fetch("/api/clock-in/heartbeat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: curUserId }),
+        }).catch(() => null);
+      }
+    }, 15000);
+
+    // Page Unload / Application Close Auto Clock-Out
+    const handleUnload = () => {
+      const remainingTabs = unregisterTab();
+      if (remainingTabs > 0) return; // Keep clock-in active if other tabs of TeamFlow are still open
+
+      const curUserId = currentUserIdRef.current;
+      const curState = userClockInDataRef.current[curUserId];
+      if (curState && curState.isClockedIn) {
+        const now = Date.now();
+        const payload = JSON.stringify({
+          userId: curUserId,
+          timestamp: now,
+          reason: "tab_closed",
+        });
+
+        try {
+          sessionStorage.setItem(
+            "teamflow_unload_state",
+            JSON.stringify({ userId: curUserId, state: curState, time: now })
+          );
+        } catch {}
+
+        try {
+          fetch("/api/clock-in/auto-out", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true,
+          });
+        } catch {
+          if (navigator.sendBeacon) {
+            const blob = new Blob([payload], { type: "application/json" });
+            navigator.sendBeacon("/api/clock-in/auto-out", blob);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("pagehide", handleUnload);
+    window.addEventListener("beforeunload", handleUnload);
+
+    return () => {
+      clearInterval(tabHeartbeat);
+      clearInterval(windowInterval);
+      clearInterval(heartbeatInterval);
+      window.removeEventListener("focus", checkGap);
+      window.removeEventListener("pageshow", checkGap);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", handleUnload);
+      window.removeEventListener("beforeunload", handleUnload);
+      if (worker) {
+        worker.terminate();
+      }
+      unregisterTab();
+    };
+  }, [handleAutoClockOut]);
+
   const toggleUserClockIn = (userId: string) => {
     const targetUser = users.find((u) => u.id === userId);
     if (!targetUser) return;
@@ -1247,6 +1571,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     let nextState: UserClockInState;
 
     if (nextClockedIn) {
+      setSleepNotice(null);
       const isSameDay = userState.clockInDate === todayString;
       const prevElapsedToday = isSameDay ? (userState.elapsedSeconds || 0) : 0;
       const existingSessions: PunchSession[] = (isSameDay && userState.sessions) ? [...userState.sessions] : [];
@@ -1970,7 +2295,9 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         canUserDeleteMedia,
         mediaDeletionRequests,
         requestMediaDeletion,
-        resolveMediaDeletionRequest
+        resolveMediaDeletionRequest,
+        sleepNotice,
+        dismissSleepNotice
       }}
     >
       {children}
