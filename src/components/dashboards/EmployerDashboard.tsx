@@ -40,7 +40,7 @@ export default function EmployerDashboard() {
   const myCompletedTasks = myAssignedTasks.filter((t) => t.status === "Completed");
 
   return (
-    <div className="px-7 py-6 space-y-6">
+    <div className="px-7 py-6 space-y-6" suppressHydrationWarning>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
         <div className="flex flex-col justify-between gap-4 bg-linear-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-lg p-5 shadow-md border border-slate-800">
           <div className="space-y-1">

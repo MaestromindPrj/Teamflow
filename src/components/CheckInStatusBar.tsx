@@ -5,8 +5,21 @@ import { Clock, Play, Pause, CheckCircle2, AlertCircle, Calendar } from "lucide-
 import { useTeamFlow, getLocalDateString } from "@/context/TeamFlowContext";
 
 export default function CheckInStatusBar({ className = "" }: { className?: string }) {
-  const { currentUser, currentUserClockIn, toggleClockInOut, attendance, sleepNotice, dismissSleepNotice } = useTeamFlow();
+  const {
+    currentUser,
+    currentUserClockIn,
+    toggleClockInOut,
+    attendance,
+    sleepNotice,
+    dismissSleepNotice,
+    hasHydrated,
+  } = useTeamFlow();
+  const [mounted, setMounted] = useState(false);
   const [tickerSeconds, setTickerSeconds] = useState<number>(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const todayStr = getLocalDateString(new Date());
   const isOnLeaveToday = attendance.some(
@@ -45,8 +58,35 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
 
   const pad = (n: number) => String(n).padStart(2, "0");
 
+  if (!mounted || !hasHydrated) {
+    return (
+      <div
+        className={`bg-white rounded-lg border border-slate-200/90 shadow-2xs p-4 sm:p-5 transition-all flex flex-col justify-between ${className}`}
+        suppressHydrationWarning
+      >
+        <div className="flex items-start justify-between gap-3 animate-pulse">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 shrink-0" />
+            <div className="space-y-1.5 min-w-0">
+              <div className="h-4 w-32 bg-slate-200 rounded" />
+              <div className="h-3 w-48 bg-slate-100 rounded" />
+            </div>
+          </div>
+          <div className="w-12 h-6 bg-slate-200 rounded-full" />
+        </div>
+        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between animate-pulse">
+          <div className="h-8 w-28 bg-slate-100 rounded-lg" />
+          <div className="h-5 w-12 bg-slate-100 rounded" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`bg-white rounded-lg border border-slate-200/90 shadow-2xs p-4 sm:p-5 transition-all flex flex-col justify-between ${className}`}>
+    <div
+      className={`bg-white rounded-lg border border-slate-200/90 shadow-2xs p-4 sm:p-5 transition-all flex flex-col justify-between ${className}`}
+      suppressHydrationWarning
+    >
       {sleepNotice && (
         <div className="mb-3.5 p-3 rounded-lg bg-amber-50 border border-amber-200/90 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-[12px] shadow-2xs">
           <div className="flex items-start sm:items-center gap-2 min-w-0">
@@ -54,7 +94,7 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
             <div className="leading-snug">
               <span className="font-bold">Device sleep detected:</span>{" "}
               <span>
-                Your session was paused & clocked out at <strong>{sleepNotice.time}</strong> ({sleepNotice.duration} recorded).
+                Your session was paused & clocked out at <strong>{sleepNotice.time}</strong>.
               </span>
             </div>
           </div>
@@ -99,7 +139,7 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
               {isOnLeaveToday ? "Workday Status: On Leave" : "Workday Check-In"}
             </h3>
 
-            <p className="text-[12px] text-slate-500 leading-snug">
+            <p className="text-[12px] text-slate-500 leading-snug" suppressHydrationWarning>
               {isOnLeaveToday ? (
                 <span className="text-amber-800 font-medium">
                   You are marked on Approved Leave today. Standard work hours and punch logs are excused.
@@ -155,8 +195,8 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-lg px-3 py-1.5">
+      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between" suppressHydrationWarning>
+        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-lg px-3 py-1.5" suppressHydrationWarning>
           <div className="flex flex-col items-center">
             <span className="text-[16px] font-bold text-slate-900 font-mono leading-none">
               {pad(hours)}

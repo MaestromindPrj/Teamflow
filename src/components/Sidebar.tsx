@@ -41,8 +41,53 @@ export default function Sidebar() {
     return null;
   }
 
+  if (!mounted || !hasHydrated) {
+    return (
+      <aside className="w-56 md:w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 select-none" suppressHydrationWarning>
+        <div>
+          <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-[#0084d4] to-[#0284c7] flex items-center justify-center text-white shadow-xs">
+                <svg
+                  className="w-4.5 h-4.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="9" y="3" width="6" height="5" rx="1.5" />
+                  <rect x="3" y="15" width="6" height="5" rx="1.5" />
+                  <rect x="15" y="15" width="6" height="5" rx="1.5" />
+                  <path d="M12 8v4" />
+                  <path d="M6 12h12" />
+                  <path d="M6 12v3" />
+                  <path d="M18 12v3" />
+                </svg>
+              </div>
+              <div>
+                <span className="font-bold text-[16px] text-slate-900 tracking-tight block leading-tight">
+                  TeamFlow
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">
+                  Enterprise PM
+                </span>
+              </div>
+            </Link>
+          </div>
+          <div className="p-3 space-y-1.5 animate-pulse">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-9.5 bg-slate-100 rounded-lg" />
+            ))}
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
   const activeUser = currentUser.id ? currentUser : (users[0] || currentUser);
-  const role = mounted && hasHydrated ? activeUser.role : (activeUser.role || "ceo");
+  const role = activeUser.role || "employer";
   const isCeoOrPm = role === "ceo" || role === "project_manager";
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {

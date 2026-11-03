@@ -55,7 +55,7 @@ export default function ProjectManagerDashboard() {
   });
 
   return (
-    <div className="px-7 py-6 space-y-6">
+    <div className="px-7 py-6 space-y-6" suppressHydrationWarning>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
         
 

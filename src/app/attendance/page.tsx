@@ -196,14 +196,16 @@ export default function AttendancePage() {
 
       <div className="px-7 py-6 space-y-6">
         {sleepNotice && (
-          <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200/90 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px] shadow-2xs">
+          <div
+            className="p-3.5 rounded-lg bg-amber-50 border border-amber-200/90 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px] shadow-2xs"
+            suppressHydrationWarning
+          >
             <div className="flex items-start sm:items-center gap-2.5 min-w-0">
               <span className="text-lg shrink-0">💤</span>
               <div className="leading-snug">
                 <span className="font-bold">Device sleep detected:</span>{" "}
                 <span>
-                  Your workday was paused & clocked out at <strong>{sleepNotice.time}</strong> ({sleepNotice.duration} recorded).
-                  Click below whenever you are ready to resume.
+                  Your workday was paused & clocked out at <strong>{sleepNotice.time}</strong>.
                 </span>
               </div>
             </div>

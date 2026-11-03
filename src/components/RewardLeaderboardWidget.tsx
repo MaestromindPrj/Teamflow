@@ -50,7 +50,7 @@ export default function RewardLeaderboardWidget() {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
+    <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4" suppressHydrationWarning>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-100">
         <div>
           <h3 className="text-[15px] font-bold text-slate-900 tracking-tight">

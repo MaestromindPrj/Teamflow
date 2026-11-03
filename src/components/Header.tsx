@@ -238,7 +238,10 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
   };
 
   return (
-    <header className="px-7 pt-6 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 bg-white/70 backdrop-blur-xs sticky top-0 z-30">
+    <header
+      className="px-7 pt-6 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 bg-white/70 backdrop-blur-xs sticky top-0 z-30"
+      suppressHydrationWarning
+    >
       <div>
         <h1 className="text-[20px] font-bold text-slate-900 tracking-tight leading-snug">
           {title}

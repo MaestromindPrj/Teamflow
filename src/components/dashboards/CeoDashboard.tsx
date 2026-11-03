@@ -51,7 +51,7 @@ export default function CeoDashboard() {
   const attendanceRate = totalWorkforce.length > 0 ? Math.round((presentCount / totalWorkforce.length) * 100) : 0;
 
   return (
-    <div className="px-7 py-6 space-y-6">
+    <div className="px-7 py-6 space-y-6" suppressHydrationWarning>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
           <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
