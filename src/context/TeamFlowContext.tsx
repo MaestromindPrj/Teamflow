@@ -1132,6 +1132,16 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             }
 
             const existingToday = updatedList.find((r) => r.userId === userId && r.date === todayString);
+            const initialTodaySessions: PunchSession[] = [
+              {
+                sessionNumber: 1,
+                clockIn: "12:00 AM",
+                clockOut: null,
+                duration: undefined,
+                elapsedSeconds: 0,
+              },
+            ];
+
             if (!existingToday && targetUser) {
               const newTodayRecord: AttendanceRecord = {
                 id: `att-rec-${Date.now()}-${userId}`,
@@ -1143,6 +1153,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
                 clockOut: "—",
                 duration: "00h 00m 01s",
                 status: "Present",
+                sessions: initialTodaySessions,
               };
               updatedList = [newTodayRecord, ...updatedList];
               fetch("/api/attendance", {
@@ -1155,14 +1166,22 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             return updatedList;
           });
 
-          const secondsSinceMidnight = Math.max(0, Math.floor((Date.now() - midnightTimestamp) / 1000));
           const rolledState: UserClockInState = {
             isClockedIn: true,
             clockInTimestamp: midnightTimestamp,
             clockInTimeString: "12:00 AM",
             clockOutTimeString: null,
-            elapsedSeconds: secondsSinceMidnight,
+            elapsedSeconds: 0,
             clockInDate: todayString,
+            sessions: [
+              {
+                sessionNumber: 1,
+                clockIn: "12:00 AM",
+                clockOut: null,
+                duration: undefined,
+                elapsedSeconds: 0,
+              },
+            ],
           };
           nextData[userId] = rolledState;
 
@@ -1268,7 +1287,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       if (clockInDate !== todayString && userState.clockInTimestamp) {
         const midnightToday = getStartOfTodayTimestamp(now);
         const day1Seconds = Math.max(0, Math.floor((midnightToday - userState.clockInTimestamp) / 1000));
-        const day1Duration = formatSecondsToDuration(day1Seconds);
+        const totalDay1Seconds = (userState.elapsedSeconds || 0) + day1Seconds;
+        const day1Duration = formatSecondsToDuration(totalDay1Seconds);
 
         setAttendance((prev) => {
           const prevRec = prev.find((r) => r.userId === userId && r.date === clockInDate);
@@ -1291,6 +1311,15 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
         const todaySeconds = Math.max(1, Math.floor((Date.now() - midnightToday) / 1000));
         const todayDuration = formatSecondsToDuration(todaySeconds);
+        const todaySessions: PunchSession[] = [
+          {
+            sessionNumber: 1,
+            clockIn: "12:00 AM",
+            clockOut: timeString,
+            duration: todayDuration,
+            elapsedSeconds: todaySeconds,
+          },
+        ];
 
         nextState = {
           isClockedIn: false,
@@ -1299,6 +1328,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           clockOutTimeString: timeString,
           elapsedSeconds: todaySeconds,
           clockInDate: todayString,
+          sessions: todaySessions,
         };
 
         setAttendance((prev) => {
@@ -1313,6 +1343,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             clockOut: timeString,
             duration: todayDuration,
             status: "Checked Out",
+            sessions: todaySessions,
           };
           fetch("/api/attendance", {
             method: "POST",
