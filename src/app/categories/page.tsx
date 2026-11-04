@@ -196,32 +196,12 @@ export default function CategoriesPage() {
                               <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          <input
-                            type="text"
-                            value={editingCatDesc}
-                            onChange={(e) => setEditingCatDesc(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") handleSaveEdit(cat.id, cat.name);
-                              if (e.key === "Escape") setEditingCatId(null);
-                            }}
-                            placeholder="Brief description..."
-                            className="w-full px-2.5 py-1 text-[11px] bg-slate-50 border border-slate-200 rounded-md focus:outline-hidden text-slate-700"
-                          />
                         </div>
                       ) : (
                         <div className="min-w-0 flex-1">
                           <h4 className="text-[14px] font-bold text-slate-900 truncate flex items-center gap-2">
                             <span>{cat.name}</span>
                           </h4>
-                          {cat.description ? (
-                            <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                              {cat.description}
-                            </p>
-                          ) : (
-                            <p className="text-[11px] text-slate-400 mt-0.5 italic">
-                              No description provided
-                            </p>
-                          )}
                         </div>
                       )}
 
@@ -297,4 +277,3 @@ export default function CategoriesPage() {
     </div>
   );
 }
-

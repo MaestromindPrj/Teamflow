@@ -8,11 +8,10 @@ import {
   Shield,
   UserCheck,
   AlertCircle,
-  KeyRound,
-  RefreshCw,
   Copy,
   Check,
-  CheckCircle2
+  CheckCircle2,
+  Mail
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 
@@ -43,7 +42,6 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
   const [selectedJobRole, setSelectedJobRole] = useState<string>(
     availableRoles[0]?.name || "Software Developer"
   );
-  const [initialPassword, setInitialPassword] = useState(() => generateInitialPassword());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
@@ -54,6 +52,8 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
     role: string;
     jobTitle: string;
     password: string;
+    emailSent?: boolean;
+    emailError?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -74,19 +74,12 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
 
   if (!isOpen) return null;
 
-  const handleRegeneratePassword = () => {
-    setInitialPassword(generateInitialPassword());
-  };
-
-  const handleCopyPassword = () => {
-    navigator.clipboard.writeText(initialPassword);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const handleCopyAllCredentials = () => {
     if (!createdCredentials) return;
-    const text = `MaestroMinds TeamFlow Account Created:\nName: ${createdCredentials.name}\nEmail: ${createdCredentials.email}\nRole: ${createdCredentials.role}\nJob Role: ${createdCredentials.jobTitle}\nInitial Password: ${createdCredentials.password}\nLogin Portal: /login`;
+    const portalUrl = typeof window !== "undefined" && !window.location.origin.includes("localhost")
+      ? `${window.location.origin}/login`
+      : "https://teamflow-topaz.vercel.app/login";
+    const text = `MaestroMinds TeamFlow Account Created:\nName: ${createdCredentials.name}\nEmail: ${createdCredentials.email}\nRole: ${createdCredentials.role}\nJob Role: ${createdCredentials.jobTitle}\nInitial Password: ${createdCredentials.password}\nLogin Portal: ${portalUrl}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -96,7 +89,6 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
     setFullName("");
     setEmailUsername("");
     setRole("employer");
-    setInitialPassword(generateInitialPassword());
     setCreatedCredentials(null);
     setErrorMessage("");
     setCopied(false);
@@ -122,12 +114,12 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
     const companyEmail = rawEmailInput.includes("@")
       ? rawEmailInput
       : `${rawEmailInput}@maestrominds.co.in`;
-    const passwordToUse = initialPassword.trim() || generateInitialPassword();
+    const passwordToUse = generateInitialPassword();
     const finalJobTitle = role === "employer" ? (selectedJobRole || "Software Developer") : "Project Manager";
 
     setIsSubmitting(true);
     try {
-      await addTeamMember({
+      const result = await addTeamMember({
         fullName: trimmedName,
         email: companyEmail,
         role,
@@ -142,6 +134,8 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
         role: role === "employer" ? "Employer" : "Project Manager",
         jobTitle: finalJobTitle,
         password: passwordToUse,
+        emailSent: result?.emailSent,
+        emailError: result?.emailError,
       });
     } catch (err: unknown) {
       setIsSubmitting(false);
@@ -179,11 +173,22 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
           <div className="p-6 space-y-5">
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-[14px] font-bold text-emerald-950">
+              <div className="space-y-1 min-w-0 flex-1 text-left">
+                <h3 className="text-[14px] font-bold text-emerald-950 text-left">
                   Team Member Account Created!
                 </h3>
-               
+                {createdCredentials.emailSent ? (
+                  <div className="text-[12px] text-emerald-700 font-medium text-left flex items-start gap-1.5 pt-0.5">
+                    <Mail className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                    <span className="text-left flex-1 leading-snug">
+                      Credentials automatically sent to <strong className="font-semibold text-emerald-900">{createdCredentials.email}</strong> via Gmail.
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-[12px] text-slate-600 text-left">
+                    Account is active and ready. Share or copy credentials below.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -311,7 +316,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                 </span>
                 {!emailUsername.includes("@") && emailUsername.trim() && (
                   <span className="text-slate-400 ml-1">
-                    (Tip: You can also enter a real email like @gmail.com)
+
                   </span>
                 )}
               </p>
@@ -343,42 +348,6 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
               </div>
             )}
 
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[12px] font-semibold text-slate-800 flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-[#0084d4]" />
-                  <span>Initial Temporary Password</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={handleRegeneratePassword}
-                  className="text-[11px] font-semibold text-[#0084d4] hover:text-[#0277bd] flex items-center gap-1 cursor-pointer"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Regenerate</span>
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={initialPassword}
-                  onChange={(e) => setInitialPassword(e.target.value)}
-                  className="w-full px-3 py-1.5 font-mono text-[13px] font-semibold bg-white border border-slate-200 rounded-md text-slate-900 focus:outline-hidden focus:border-[#0084d4]"
-                />
-                <button
-                  type="button"
-                  onClick={handleCopyPassword}
-                  className="px-2.5 py-1.5 rounded-md border border-slate-200 hover:bg-slate-100 text-slate-600 text-[11px] font-semibold flex items-center gap-1 cursor-pointer shrink-0"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? "Copied" : "Copy"}</span>
-                </button>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                Share this auto-generated password with the new team member to log in.
-              </p>
-            </div>
-
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
               <button
                 type="button"
@@ -394,7 +363,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                 className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                <span>{isSubmitting ? "Onboarding..." : "Add Member & Issue Credentials"}</span>
+                <span>{isSubmitting ? "Onboarding..." : "Add Team Member"}</span>
               </button>
             </div>
           </form>

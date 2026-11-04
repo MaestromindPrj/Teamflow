@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const taskId = formData.get("taskId") as string | null;
+    const projectId = formData.get("projectId") as string | null;
     const customName = formData.get("name") as string | null;
     const uploadedBy = (formData.get("uploadedBy") as string) || "u-emp-1";
     const uploadedByName = (formData.get("uploadedByName") as string) || "Team Member";
@@ -41,6 +42,44 @@ export async function POST(req: NextRequest) {
 
     const fileName = customName?.trim() || file.name;
     const detectedType = detectFileType(fileName, file.type);
+
+    if (isDbConfigured() && (taskId || projectId)) {
+      try {
+        await initDatabase();
+        const sql = getDb();
+        let targetProjId = projectId;
+        if (!targetProjId && taskId) {
+          const taskRow = await sql`SELECT project_id FROM tasks WHERE id = ${taskId} LIMIT 1;`;
+          if (taskRow.length > 0) {
+            targetProjId = taskRow[0].project_id as string;
+          }
+        }
+
+        if (targetProjId) {
+          const projTasks = await sql`SELECT attachments FROM tasks WHERE project_id = ${targetProjId};`;
+          const projRows = await sql`SELECT attachments FROM projects WHERE id = ${targetProjId} LIMIT 1;`;
+          const projectDirectAtts = (projRows[0]?.attachments as TaskAttachment[]) || [];
+          const taskAtts = projTasks.flatMap((t) => (t.attachments as TaskAttachment[]) || []);
+          const allProjectAtts = [...projectDirectAtts, ...taskAtts];
+
+          const isDuplicate = allProjectAtts.some(
+            (a) => a.name.trim().toLowerCase() === fileName.trim().toLowerCase()
+          );
+          if (isDuplicate) {
+            return NextResponse.json(
+              {
+                error: `A file named "${fileName}" is already uploaded to this project. Duplicate uploads are blocked to conserve storage.`,
+                isDuplicate: true,
+              },
+              { status: 409 }
+            );
+          }
+        }
+      } catch (checkErr) {
+        console.warn("Project duplicate check warning:", checkErr);
+      }
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
@@ -117,6 +156,23 @@ export async function POST(req: NextRequest) {
         }
       } catch (dbErr) {
         console.warn("Could not save attachment directly to DB task:", dbErr);
+      }
+    } else if (projectId && isDbConfigured()) {
+      try {
+        await initDatabase();
+        const sql = getDb();
+        const existing = await sql`SELECT attachments FROM projects WHERE id = ${projectId} LIMIT 1;`;
+        if (existing.length > 0) {
+          const currentAttachments = (existing[0].attachments as TaskAttachment[]) || [];
+          const updatedAttachments = [attachment, ...currentAttachments];
+          await sql`
+            UPDATE projects SET
+              attachments = ${JSON.stringify(updatedAttachments)}::jsonb
+            WHERE id = ${projectId};
+          `;
+        }
+      } catch (dbErr) {
+        console.warn("Could not save attachment directly to DB project:", dbErr);
       }
     }
 

@@ -21,7 +21,8 @@ import {
   Crown,
   AlertTriangle,
   ChevronDown,
-  Send
+  Send,
+  Cpu
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
@@ -39,9 +40,16 @@ import RequestMediaDeletionModal from "@/components/RequestMediaDeletionModal";
 interface ProjectDetailModalProps {
   projectId: string | null;
   onClose: () => void;
+  initialTaskId?: string | null;
+  initialTab?: "tasks" | "media" | "team";
 }
 
-export default function ProjectDetailModal({ projectId, onClose }: ProjectDetailModalProps) {
+export default function ProjectDetailModal({
+  projectId,
+  onClose,
+  initialTaskId,
+  initialTab,
+}: ProjectDetailModalProps) {
   const {
     currentUser,
     users,
@@ -55,6 +63,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
     getProjectManager,
     isUserTeamLead,
     deleteTaskMedia,
+    deleteProjectMedia,
     canUserDeleteMedia,
     mediaDeletionRequests
   } = useTeamFlow();
@@ -98,6 +107,21 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showDeleteConfirm]);
 
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, projectId]);
+
+  useEffect(() => {
+    if (initialTaskId && projectId) {
+      const target = tasks.find((t) => t.id === initialTaskId);
+      if (target) {
+        setEditingTask(target);
+      }
+    }
+  }, [initialTaskId, projectId, tasks]);
+
   if (!projectId) return null;
   const project = projects.find((p) => p.id === projectId);
   if (!project) return null;
@@ -111,7 +135,14 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
   const canDeleteProject = isCeo || isPm;
   const canAddTeamMember = isCeo || isPm;
 
-  const allProjectTasks = tasks.filter((t) => t.projectId === project.id);
+  const currentProject = projects.find((p) => p.id === project.id) || project;
+
+  const allProjectTasks = tasks.filter(
+    (t) =>
+      t.projectId === currentProject.id &&
+      t.title !== "Project Assets & Deliverables" &&
+      t.title !== "Project Deliverables & Assets"
+  );
 
   const visibleTasks = allProjectTasks.filter((t) => {
     if (selectedTaskFilter !== "All") {
@@ -123,20 +154,25 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
   const canManageProject = isCeo || isPm || isLead;
   const canAddOrEditTask = canManageProject;
 
-  const projectMedia = allProjectTasks.flatMap((t) =>
-    t.attachments.map((att) => ({
+  const projectLevelMedia = (currentProject.attachments || []).map((att) => ({
+    ...att,
+    taskId: "",
+    taskTitle: "Project Deliverable",
+    taskAssignee: "Project Level",
+    isProjectMedia: true
+  }));
+
+  const taskLevelMedia = allProjectTasks.flatMap((t) =>
+    (t.attachments || []).map((att) => ({
       ...att,
       taskId: t.id,
       taskTitle: t.title,
-      taskAssignee: users.find((u) => u.id === t.assignedTo)?.fullName || "Team Member"
+      taskAssignee: users.find((u) => u.id === t.assignedTo)?.fullName || "Team Member",
+      isProjectMedia: false
     }))
-  ).filter((m) => {
-    if (isRegularEmployer) {
-      const parentTask = allProjectTasks.find((t) => t.id === m.taskId);
-      return parentTask?.assignedTo === currentUser.id;
-    }
-    return true;
-  });
+  );
+
+  const projectMedia = [...projectLevelMedia, ...taskLevelMedia];
 
   const projectMembers = users.filter((u) => project.teamMemberIds.includes(u.id));
 
@@ -219,9 +255,6 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
             <h2 className="text-[19px] font-bold text-slate-900 tracking-tight leading-snug">
               {project.name}
             </h2>
-            <p className="text-[12px] text-slate-500 font-normal mt-1 leading-relaxed">
-              {project.description}
-            </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -275,6 +308,24 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
               <span>Deadline: <strong className="text-slate-800">{project.deadline}</strong></span>
             </div>
+            {project.techStack && project.techStack.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1 text-slate-400">
+                  <Cpu className="w-3.5 h-3.5 text-[#0084d4]" />
+                  <span>Tech:</span>
+                </div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {project.techStack.map((tech) => (
+                    <span
+                      key={tech}
+                      className="px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -622,15 +673,20 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                       </div>
 
                       <div className="pt-2 border-t border-slate-100 text-[11px] space-y-1">
-                        <p className="text-slate-500 truncate">
-                          Task: <span className="font-medium text-slate-800">{file.taskTitle}</span>
-                        </p>
+                        {file.isProjectMedia ? (
+                          <p className="text-slate-500 truncate">
+                            Source: <span className="font-semibold text-[#0084d4] bg-sky-50 px-1.5 py-0.5 rounded">Project Deliverable</span>
+                          </p>
+                        ) : (
+                          <p className="text-slate-500 truncate">
+                            Task: <span className="font-medium text-slate-800">{file.taskTitle}</span>
+                          </p>
+                        )}
                         <p className="text-slate-400">
                           Uploaded by: <strong className="text-slate-700">{file.uploadedByName}</strong>
                         </p>
                       </div>
 
-                      {/* Pending Deletion Indicator */}
                       {mediaDeletionRequests.find((r) => r.attachmentId === file.id && r.status === "Pending") && (
                         <div className="p-1.5 rounded bg-amber-50 border border-amber-200 text-[10px] text-amber-800">
                           Deletion requested by <strong>{mediaDeletionRequests.find((r) => r.attachmentId === file.id && r.status === "Pending")?.requestedByName}</strong>
@@ -642,7 +698,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                           href={file.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex-1 py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold text-center border border-slate-200 transition-colors flex items-center justify-center gap-1.5"
+                          className="flex-1 h-8 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold text-center border border-slate-200 transition-colors inline-flex items-center justify-center gap-1.5"
                         >
                           <Download className="w-3 h-3" />
                           <span>Access</span>
@@ -659,13 +715,13 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                                 taskTitle: file.taskTitle,
                               })
                             }
-                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 border border-slate-200 hover:border-red-200 transition-colors cursor-pointer shrink-0"
+                            className="w-8 h-8 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 border border-slate-200 hover:border-red-200 transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center"
                             title="Delete deliverable"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         ) : mediaDeletionRequests.find((r) => r.attachmentId === file.id && r.status === "Pending") ? (
-                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 shrink-0">
+                          <span className="h-8 px-2.5 text-[10px] font-bold text-amber-700 bg-amber-50 rounded-lg border border-amber-200 shrink-0 inline-flex items-center justify-center">
                             Requested
                           </span>
                         ) : (
@@ -681,7 +737,7 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
                                 projectCode: project.code,
                               })
                             }
-                            className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 shrink-0"
+                            className="h-8 px-2.5 text-[11px] font-semibold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-1 shrink-0"
                             title="Request designated Team Lead to delete this media"
                           >
                             <Send className="w-3 h-3" />
@@ -902,13 +958,16 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
             </div>
           </div>
         )}
-        {/* Media Deletion Confirm Modal for CEO, PM, Team Lead */}
         <DeleteMediaConfirmModal
           isOpen={Boolean(mediaDeleteTarget)}
           onClose={() => setMediaDeleteTarget(null)}
           onConfirm={async () => {
             if (mediaDeleteTarget) {
-              await deleteTaskMedia(mediaDeleteTarget.taskId, mediaDeleteTarget.attachmentId);
+              if (mediaDeleteTarget.taskId) {
+                await deleteTaskMedia(mediaDeleteTarget.taskId, mediaDeleteTarget.attachmentId);
+              } else {
+                await deleteProjectMedia(project.id, mediaDeleteTarget.attachmentId);
+              }
             }
           }}
           fileName={mediaDeleteTarget?.fileName || ""}
@@ -916,7 +975,6 @@ export default function ProjectDetailModal({ projectId, onClose }: ProjectDetail
           taskTitle={mediaDeleteTarget?.taskTitle || ""}
         />
 
-        {/* Media Deletion Request Modal for Team Members */}
         <RequestMediaDeletionModal
           isOpen={Boolean(mediaRequestTarget)}
           onClose={() => setMediaRequestTarget(null)}

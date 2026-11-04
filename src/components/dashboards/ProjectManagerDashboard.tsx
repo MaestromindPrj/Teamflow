@@ -23,6 +23,7 @@ import NewProjectModal from "@/components/NewProjectModal";
 import CheckInStatusBar from "@/components/CheckInStatusBar";
 import RewardLeaderboardWidget from "@/components/RewardLeaderboardWidget";
 import UserAvatar from "@/components/UserAvatar";
+import DashboardCalendarWidget from "@/components/DashboardCalendarWidget";
 
 export default function ProjectManagerDashboard() {
   const { currentUser, users, projects, tasks } = useTeamFlow();
@@ -86,65 +87,95 @@ export default function ProjectManagerDashboard() {
         <CheckInStatusBar />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Projects Under Me</span>
-            <div className="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
-              <FolderKanban className="w-4 h-4" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <FolderKanban className="w-5 h-5 stroke-[2]" />
+              </div>
+            
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+                {myProjects.length}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                Projects Under Me
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+              <span>Active managed initiatives</span>
             </div>
           </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
-            {myProjects.length}
+
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Users className="w-5 h-5 stroke-[2]" />
+              </div>
+           
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+                {teamMembers.length}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                Team Members
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+              <span>Across your project teams</span>
+            </div>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
-            Active managed initiatives
+
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-sky-50 text-[#0084d4] border border-sky-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Clock className="w-5 h-5 stroke-[2]" />
+              </div>
+             
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+                {inProgressTasks}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                Tasks In Progress
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0084d4]" />
+              <span>{reviewTasks} pending review</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <CheckCircle2 className="w-5 h-5 stroke-[2]" />
+              </div>
+            
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+                {completedTasks}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                Completed Tasks
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
+              <span>Out of {myTasks.length} total tasks</span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Team Members</span>
-            <div className="w-7 h-7 rounded-md bg-[#4ade1d]/15 text-[#4ade1d] flex items-center justify-center">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
-            {teamMembers.length}
-          </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
-            Across your project teams
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Tasks In Progress</span>
-            <div className="w-7 h-7 rounded-md bg-sky-50 text-[#0084d4] flex items-center justify-center">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
-            {inProgressTasks}
-          </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
-            {reviewTasks} pending review
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Completed Tasks</span>
-            <div className="w-7 h-7 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
-            {completedTasks}
-          </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
-            Out of {myTasks.length} total tasks
-          </div>
+        <div className="lg:col-span-5 flex">
+          <DashboardCalendarWidget className="w-full h-full" />
         </div>
       </div>
 
@@ -217,9 +248,18 @@ export default function ProjectManagerDashboard() {
                       <h3 className="text-[16px] font-bold text-slate-900 group-hover:text-[#0084d4] transition-colors">
                         {project.name}
                       </h3>
-                      <p className="text-[12px] text-slate-500 font-normal line-clamp-2 mt-1">
-                        {project.description}
-                      </p>
+                      {project.techStack && project.techStack.length > 0 && (
+                        <div className="flex items-center gap-1 flex-wrap mt-2">
+                          {project.techStack.map((tech) => (
+                            <span
+                              key={tech}
+                              className="px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60"
+                            >
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {lead && (

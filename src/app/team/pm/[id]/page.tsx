@@ -304,9 +304,18 @@ function ProjectManagerDetailContent() {
                               {project.category}
                             </span>
                           </div>
-                          <p className="text-[12px] text-slate-500 max-w-3xl leading-relaxed">
-                            {project.description}
-                          </p>
+                          {project.techStack && project.techStack.length > 0 && (
+                            <div className="flex items-center gap-1 flex-wrap mt-2">
+                              {project.techStack.map((tech) => (
+                                <span
+                                  key={tech}
+                                  className="px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60"
+                                >
+                                  {tech}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         <button
@@ -398,7 +407,7 @@ function ProjectManagerDetailContent() {
                         <div className="flex items-center gap-2">
                           <span>Deadline: <strong className="text-slate-800">{project.deadline}</strong></span>
                           <span>&bull;</span>
-                          <span>Budget: <strong className="text-slate-800">{project.budget || "$50,000"}</strong></span>
+                          <span>Budget: <strong className="text-slate-800">{project.budget || "₹50,000"}</strong></span>
                           <span>&bull;</span>
                           <span>Tasks: <strong className="text-slate-800">{doneTasks}/{projectTasks.length} Completed</strong></span>
                         </div>

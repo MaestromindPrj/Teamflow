@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   FolderKanban,
   Search,
@@ -23,11 +24,30 @@ import NewProjectModal from "@/components/NewProjectModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
 import UserAvatar from "@/components/UserAvatar";
 
-export default function ProjectsPage() {
+function ProjectsContent() {
+  const searchParams = useSearchParams();
+  const paramProjectId = searchParams.get("projectId") || searchParams.get("id");
+  const paramTaskId = searchParams.get("taskId");
+  const paramTab = searchParams.get("tab") as "tasks" | "media" | "team" | null;
+
   const { users, projects, tasks, updateProject, currentUser, hasHydrated } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(paramProjectId || null);
+  const [initialTaskId, setInitialTaskId] = useState<string | null>(paramTaskId || null);
+  const [initialTab, setInitialTab] = useState<"tasks" | "media" | "team" | undefined>(paramTab || undefined);
+
+  useEffect(() => {
+    if (paramProjectId) {
+      setSelectedProjectId(paramProjectId);
+    }
+    if (paramTaskId) {
+      setInitialTaskId(paramTaskId);
+    }
+    if (paramTab) {
+      setInitialTab(paramTab);
+    }
+  }, [paramProjectId, paramTaskId, paramTab]);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [projectSearch, setProjectSearch] = useState("");
   const [projectStatusFilter, setProjectStatusFilter] = useState<string>("All");
@@ -250,9 +270,18 @@ export default function ProjectsPage() {
                     <h3 className="text-[16px] font-bold text-slate-900 group-hover:text-[#0084d4] transition-colors">
                       {project.name}
                     </h3>
-                    <p className="text-[12px] text-slate-500 font-normal line-clamp-2 mt-1">
-                      {project.description}
-                    </p>
+                    {project.techStack && project.techStack.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                        {project.techStack.map((tech) => (
+                          <span
+                            key={tech}
+                            className="px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-100 text-[11px]">
@@ -336,7 +365,12 @@ export default function ProjectsPage() {
 
       <ProjectDetailModal
         projectId={selectedProjectId}
-        onClose={() => setSelectedProjectId(null)}
+        initialTaskId={initialTaskId}
+        initialTab={initialTab}
+        onClose={() => {
+          setSelectedProjectId(null);
+          setInitialTaskId(null);
+        }}
       />
 
       <NewProjectModal
@@ -345,5 +379,13 @@ export default function ProjectsPage() {
         onCreated={(id) => setSelectedProjectId(id)}
       />
     </div>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <Suspense fallback={<div className="flex-1 p-7 text-slate-400">Loading projects...</div>}>
+      <ProjectsContent />
+    </Suspense>
   );
 }

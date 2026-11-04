@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, FolderPlus, Shield, Users, UserCheck, Crown, Sparkles, AlertCircle, Calendar } from "lucide-react";
-import { useTeamFlow } from "@/context/TeamFlowContext";
+import { X, FolderPlus, Shield, Users, UserCheck, Crown, Sparkles, AlertCircle, Calendar, Plus } from "lucide-react";
+import { useTeamFlow, TechStackItem } from "@/context/TeamFlowContext";
 import UserAvatar from "@/components/UserAvatar";
 
 interface NewProjectModalProps {
@@ -53,14 +53,44 @@ export default function NewProjectModal({
   onClose,
   onCreated
 }: NewProjectModalProps) {
-  const { currentUser, users, projects, categories, createProject } = useTeamFlow();
+  const { currentUser, users, projects, categories, createProject, techStacks, createTechStack } = useTeamFlow();
+  const [selectedTechStack, setSelectedTechStack] = useState<string[]>([]);
+  const [customTechInput, setCustomTechInput] = useState("");
+  const [isAddingTech, setIsAddingTech] = useState(false);
+
+  const handleAddCustomTech = async () => {
+    const trimmed = customTechInput.trim();
+    if (!trimmed) return;
+
+    const existing = techStacks.find(
+      (t) => t.name.toLowerCase() === trimmed.toLowerCase()
+    );
+
+    if (existing) {
+      if (!selectedTechStack.includes(existing.name)) {
+        setSelectedTechStack((prev) => [...prev, existing.name]);
+      }
+      setCustomTechInput("");
+      return;
+    }
+
+    setIsAddingTech(true);
+    const success = await createTechStack(trimmed);
+    setIsAddingTech(false);
+
+    if (success) {
+      setSelectedTechStack((prev) =>
+        prev.includes(trimmed) ? prev : [...prev, trimmed]
+      );
+      setCustomTechInput("");
+    }
+  };
 
   const projectManagers = users.filter((u) => u.role === "project_manager");
   const employers = users.filter((u) => u.role === "employer");
 
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-  const [description, setDescription] = useState("");
 
   useEffect(() => {
     setCode(generateProjectCode(name, projects));
@@ -116,6 +146,11 @@ export default function NewProjectModal({
     e.preventDefault();
     if (!name.trim() || !selectedLeadId) return;
 
+    if (!selectedTechStack || selectedTechStack.length === 0) {
+      setError("Please select at least one technology stack.");
+      return;
+    }
+
     if (status === "Planning" && !startDate) {
       setError("Please specify the Planned Start Date for this project.");
       return;
@@ -127,7 +162,7 @@ export default function NewProjectModal({
     const newProject = createProject({
       name: name.trim(),
       code: finalCode,
-      description: description.trim(),
+      description: "",
       category,
       status,
       priority,
@@ -137,10 +172,11 @@ export default function NewProjectModal({
         d.setDate(d.getDate() + 30);
         return d.toISOString().split("T")[0];
       })(),
-      budget: budget || "$50,000",
+      budget: budget || "₹50,000",
       projectManagerId: selectedPmId,
       teamLeadId: selectedLeadId,
-      teamMemberIds: selectedMemberIds
+      teamMemberIds: selectedMemberIds,
+      techStack: selectedTechStack,
     });
 
     onCreated(newProject.id);
@@ -207,20 +243,75 @@ export default function NewProjectModal({
             </div>
           </div>
 
+          {/* Technology Stack FIRST */}
           <div>
-            <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
-              Project Description
-            </label>
-            <textarea
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Outline high-level milestones, target deliverables, and technology stack..."
-              className="w-full px-3.5 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900 resize-none"
-            />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[12px] font-semibold text-slate-700">
+                Technology Stack <span className="text-[#de2d1d]">*</span>
+              </label>
+              <span className="text-[11px] text-slate-400">
+                {selectedTechStack.length} selected
+              </span>
+            </div>
+            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg max-h-36 overflow-y-auto">
+              {techStacks.length === 0 ? (
+                <p className="text-[12px] text-slate-400">No tech stacks configured yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {techStacks.map((tech: TechStackItem) => {
+                    const isSelected = selectedTechStack.includes(tech.name);
+                    return (
+                      <button
+                        type="button"
+                        key={tech.id}
+                        onClick={() => {
+                          setSelectedTechStack((prev) =>
+                            isSelected ? prev.filter((t) => t !== tech.name) : [...prev, tech.name]
+                          );
+                        }}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-[#0084d4] text-white shadow-2xs border border-[#0084d4]"
+                            : "bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span>{isSelected ? "✓" : "+"}</span>
+                        <span>{tech.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Add Other Tech Stack Input */}
+            <div className="mt-2 flex items-center gap-2.5 w-full">
+              <input
+                type="text"
+                value={customTechInput}
+                onChange={(e) => setCustomTechInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustomTech();
+                  }
+                }}
+                placeholder="Add other tech stack (e.g. Redis, Vue.js, Go)..."
+                className="flex-1 w-full px-3.5 py-2.5 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 placeholder:text-slate-400"
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomTech}
+                disabled={!customTechInput.trim() || isAddingTech}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 text-[13px] font-semibold text-white bg-[#0084d4] hover:bg-[#0277bd] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-2xs transition-colors shrink-0 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{isAddingTech ? "Adding..." : "Add"}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Row 2: Category & Status */}
+          {/* Row 2: Category & Status (BELOW Technology Stack) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
@@ -281,7 +372,7 @@ export default function NewProjectModal({
                 type="text"
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
-                placeholder="$50,000"
+                placeholder="₹50,000"
                 className="w-full px-3.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
               />
             </div>

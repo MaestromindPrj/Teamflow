@@ -38,14 +38,14 @@ export async function GET(req: NextRequest) {
     let rows;
     if (userId) {
       rows = await sql`
-        SELECT id, user_id, user_name, user_role, start_date, end_date, leave_type, reason, status, applied_by_id, applied_by_name, reviewed_by_id, reviewed_by_name, created_at
+        SELECT id, user_id, user_name, user_role, start_date, end_date, leave_type, reason, status, applied_by_id, applied_by_name, reviewed_by_id, reviewed_by_name, reviewed_by_role, created_at
         FROM leave_requests
         WHERE user_id = ${userId}
         ORDER BY created_at DESC;
       `;
     } else {
       rows = await sql`
-        SELECT id, user_id, user_name, user_role, start_date, end_date, leave_type, reason, status, applied_by_id, applied_by_name, reviewed_by_id, reviewed_by_name, created_at
+        SELECT id, user_id, user_name, user_role, start_date, end_date, leave_type, reason, status, applied_by_id, applied_by_name, reviewed_by_id, reviewed_by_name, reviewed_by_role, created_at
         FROM leave_requests
         ORDER BY created_at DESC;
       `;
@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
       appliedByName: r.applied_by_name as string,
       reviewedById: (r.reviewed_by_id as string) || undefined,
       reviewedByName: (r.reviewed_by_name as string) || undefined,
+      reviewedByRole: (r.reviewed_by_role as "ceo" | "project_manager") || undefined,
       createdAt: r.created_at ? new Date(r.created_at as string).toISOString() : undefined,
     }));
 
@@ -96,6 +97,7 @@ export async function POST(req: NextRequest) {
       appliedByName,
       reviewedById,
       reviewedByName,
+      reviewedByRole,
     } = body;
 
     if (!userId || !startDate || !leaveType) {
@@ -110,7 +112,7 @@ export async function POST(req: NextRequest) {
 
     await sql`
       INSERT INTO leave_requests (
-        id, user_id, user_name, user_role, start_date, end_date, leave_type, reason, status, applied_by_id, applied_by_name, reviewed_by_id, reviewed_by_name
+        id, user_id, user_name, user_role, start_date, end_date, leave_type, reason, status, applied_by_id, applied_by_name, reviewed_by_id, reviewed_by_name, reviewed_by_role
       ) VALUES (
         ${requestId},
         ${userId},
@@ -124,7 +126,8 @@ export async function POST(req: NextRequest) {
         ${appliedById || userId},
         ${appliedByName || userName || ""},
         ${reviewedById || (leaveStatus === "Approved" ? appliedById : null)},
-        ${reviewedByName || (leaveStatus === "Approved" ? appliedByName : null)}
+        ${reviewedByName || (leaveStatus === "Approved" ? appliedByName : null)},
+        ${reviewedByRole || null}
       );
     `;
 
@@ -195,6 +198,7 @@ export async function POST(req: NextRequest) {
       appliedByName: appliedByName || userName || "",
       reviewedById: reviewedById || (leaveStatus === "Approved" ? appliedById : undefined),
       reviewedByName: reviewedByName || (leaveStatus === "Approved" ? appliedByName : undefined),
+      reviewedByRole: (reviewedByRole as "ceo" | "project_manager") || undefined,
     };
 
     return NextResponse.json({ success: true, leaveRequest: createdRecord });
@@ -213,7 +217,7 @@ export async function PATCH(req: NextRequest) {
   try {
     await initDatabase();
     const body = await req.json();
-    const { id, status, reviewedById, reviewedByName } = body;
+    const { id, status, reviewedById, reviewedByName, reviewedByRole } = body;
 
     if (!id || !status) {
       return NextResponse.json({ error: "Missing required fields (id, status)" }, { status: 400 });
@@ -239,7 +243,8 @@ export async function PATCH(req: NextRequest) {
       SET
         status = ${status},
         reviewed_by_id = ${reviewedById || null},
-        reviewed_by_name = ${reviewedByName || null}
+        reviewed_by_name = ${reviewedByName || null},
+        reviewed_by_role = ${reviewedByRole || null}
       WHERE id = ${id};
     `;
 

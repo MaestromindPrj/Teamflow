@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   FolderKanban,
   Download,
@@ -27,7 +28,9 @@ import InPageSubTabs from "@/components/InPageSubTabs";
 import DeleteMediaConfirmModal from "@/components/DeleteMediaConfirmModal";
 import RequestMediaDeletionModal from "@/components/RequestMediaDeletionModal";
 
-export default function MediaHubPage() {
+function MediaHubContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
   const {
     currentUser,
     projects,
@@ -35,6 +38,7 @@ export default function MediaHubPage() {
     isUserTeamLead,
     canUserDeleteMedia,
     deleteTaskMedia,
+    deleteProjectMedia,
     mediaDeletionRequests,
     resolveMediaDeletionRequest,
     hasHydrated
@@ -44,17 +48,23 @@ export default function MediaHubPage() {
   useEffect(() => setMounted(true), []);
 
   const [selectedType, setSelectedType] = useState<string>("All");
+
+  useEffect(() => {
+    if (tabParam === "requests") {
+      setSelectedType("requests");
+    }
+  }, [tabParam]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Delete modal state (for CEO, PM, Team Lead)
   const [deleteTarget, setDeleteTarget] = useState<{
     taskId: string;
     attachmentId: string;
     fileName: string;
     projectName: string;
     taskTitle: string;
+    projectId?: string;
   } | null>(null);
 
   // Request deletion modal state (for Team Members)
@@ -71,22 +81,41 @@ export default function MediaHubPage() {
   const isCeo = currentUser.role === "ceo";
   const isPm = currentUser.role === "project_manager";
 
-  // Flat list of all media across all tasks
   const allMediaItems = useMemo(() => {
-    return tasks.flatMap((t) => {
-      const proj = projects.find((p) => p.id === t.projectId);
-      return (t.attachments || []).map((att) => ({
+    const projectMediaList = projects.flatMap((p) => {
+      return (p.attachments || []).map((att) => ({
         ...att,
-        taskId: t.id,
-        projectId: t.projectId,
-        projectCode: proj?.code || "PROJ",
-        projectName: proj?.name || "Unknown Project",
-        projectManagerId: proj?.projectManagerId,
-        teamLeadId: proj?.teamLeadId,
-        taskTitle: t.title,
-        taskAssignedTo: t.assignedTo
+        taskId: "",
+        projectId: p.id,
+        projectCode: p.code || "PROJ",
+        projectName: p.name || "Unknown Project",
+        projectManagerId: p.projectManagerId,
+        teamLeadId: p.teamLeadId,
+        taskTitle: "Project Deliverable",
+        taskAssignedTo: "",
+        isProjectMedia: true
       }));
     });
+
+    const taskMediaList = tasks
+      .filter((t) => t.title !== "Project Assets & Deliverables" && t.title !== "Project Deliverables & Assets")
+      .flatMap((t) => {
+        const proj = projects.find((p) => p.id === t.projectId);
+        return (t.attachments || []).map((att) => ({
+          ...att,
+          taskId: t.id,
+          projectId: t.projectId,
+          projectCode: proj?.code || "PROJ",
+          projectName: proj?.name || "Unknown Project",
+          projectManagerId: proj?.projectManagerId,
+          teamLeadId: proj?.teamLeadId,
+          taskTitle: t.title,
+          taskAssignedTo: t.assignedTo,
+          isProjectMedia: false
+        }));
+      });
+
+    return [...projectMediaList, ...taskMediaList];
   }, [tasks, projects]);
 
   // Filter media visible to current user based on roles
@@ -99,6 +128,9 @@ export default function MediaHubPage() {
       // Team Lead can view deliverables for projects they lead
       const isLeadOnProj = isUserTeamLead(currentUser.id, item.projectId);
       if (isLeadOnProj) return true;
+      // Team members assigned to the project can view project deliverables
+      const proj = projects.find((p) => p.id === item.projectId);
+      if (proj && (proj.teamMemberIds.includes(currentUser.id) || proj.teamLeadId === currentUser.id)) return true;
       // Team Member can view deliverables assigned to them or uploaded by them
       return item.taskAssignedTo === currentUser.id || item.uploadedBy === currentUser.id;
     }).filter((item) => {
@@ -332,6 +364,11 @@ export default function MediaHubPage() {
                         <div className="text-[10px] text-slate-400 pt-0.5">
                           Assigned Team Lead: <strong className="text-slate-600">{req.teamLeadName}</strong>
                         </div>
+                        {req.status !== "Pending" && req.reviewedByName && (
+                          <div className="pt-1 border-t border-slate-200/50 text-[11px] text-slate-600">
+                            {req.status === "Approved" ? "Accepted" : "Rejected"} by: <strong className="text-slate-800">{req.reviewedByName} {req.reviewedByRole ? `(${req.reviewedByRole})` : ""}</strong> &bull; {req.reviewedAt}
+                          </div>
+                        )}
                       </div>
 
                       {isPending && (
@@ -454,6 +491,7 @@ export default function MediaHubPage() {
                                     fileName: file.name,
                                     projectName: file.projectName,
                                     taskTitle: file.taskTitle,
+                                    projectId: file.projectId,
                                   })
                                 }
                                 className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
@@ -517,6 +555,7 @@ export default function MediaHubPage() {
                                   fileName: file.name,
                                   projectName: file.projectName,
                                   taskTitle: file.taskTitle,
+                                  projectId: file.projectId,
                                 })
                               }
                               className="text-[11px] font-semibold text-red-600 hover:text-red-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
@@ -559,13 +598,16 @@ export default function MediaHubPage() {
         )}
       </div>
 
-      {/* Delete Confirmation Modal for CEO, PM, Team Lead */}
       <DeleteMediaConfirmModal
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         onConfirm={async () => {
           if (deleteTarget) {
-            await deleteTaskMedia(deleteTarget.taskId, deleteTarget.attachmentId);
+            if (deleteTarget.taskId) {
+              await deleteTaskMedia(deleteTarget.taskId, deleteTarget.attachmentId);
+            } else if (deleteTarget.projectId) {
+              await deleteProjectMedia(deleteTarget.projectId, deleteTarget.attachmentId);
+            }
           }
         }}
         fileName={deleteTarget?.fileName || ""}
@@ -590,5 +632,13 @@ export default function MediaHubPage() {
         onClose={() => setIsUploadModalOpen(false)}
       />
     </div>
+  );
+}
+
+export default function MediaHubPage() {
+  return (
+    <Suspense fallback={<div className="flex-1 p-7 text-slate-400">Loading media library...</div>}>
+      <MediaHubContent />
+    </Suspense>
   );
 }

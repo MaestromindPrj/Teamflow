@@ -12,19 +12,23 @@ import {
   Settings,
   Image as ImageIcon,
   Briefcase,
-  Layers
+  Layers,
+  CalendarRange,
+  Cpu
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutGrid },
   { name: "Projects", href: "/projects", icon: FolderKanban },
-  { name: "Categories", href: "/categories", icon: Layers },
   { name: "Attendance", href: "/attendance", icon: Calendar },
+  { name: "Company Holidays", href: "/office-leaves", icon: CalendarRange },
   { name: "Team Directory", href: "/team", icon: Users },
+  { name: "Rewards", href: "/rewards", icon: Award },
+  { name: "Tech Stack", href: "/tech-stacks", icon: Cpu },
+  { name: "Categories", href: "/categories", icon: Layers },
   { name: "Job Roles", href: "/job-roles", icon: Briefcase },
   { name: "Media & Assets", href: "/media", icon: ImageIcon },
-  { name: "Rewards", href: "/rewards", icon: Award },
   { name: "Settings", href: "/settings", icon: Settings }
 ];
 
@@ -91,7 +95,14 @@ export default function Sidebar() {
   const isCeoOrPm = role === "ceo" || role === "project_manager";
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if ((item.href === "/job-roles" || item.href === "/departments" || item.href === "/categories") && !isCeoOrPm) {
+    if (
+      (item.href === "/job-roles" ||
+        item.href === "/departments" ||
+        item.href === "/categories" ||
+        item.href === "/office-leaves" ||
+        item.href === "/tech-stacks") &&
+      !isCeoOrPm
+    ) {
       return false;
     }
     if (role === "ceo" && item.href === "/media") {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Clock,
   Calendar,
@@ -26,7 +27,9 @@ import { AttendanceRecord } from "@/data/teamflowData";
 import InPageSubTabs, { SubTabItem } from "@/components/InPageSubTabs";
 import UserAvatar from "@/components/UserAvatar";
 
-export default function AttendancePage() {
+function AttendanceContent() {
+  const searchParams = useSearchParams();
+  const viewParam = searchParams.get("view");
   const {
     currentUser,
     attendance,
@@ -57,6 +60,14 @@ export default function AttendancePage() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (viewParam === "requests") {
+      setIsLeaveRequestsOpen(true);
+    } else if (viewParam === "apply") {
+      setIsApplyLeaveOpen(true);
+    }
+  }, [viewParam]);
 
   const isCeo = currentUser.role === "ceo";
   const isPm = currentUser.role === "project_manager";
@@ -710,5 +721,13 @@ export default function AttendancePage() {
         onOpenApplyModal={() => setIsApplyLeaveOpen(true)}
       />
     </div>
+  );
+}
+
+export default function AttendancePage() {
+  return (
+    <Suspense fallback={<div className="flex-1 p-7 text-slate-400">Loading attendance...</div>}>
+      <AttendanceContent />
+    </Suspense>
   );
 }

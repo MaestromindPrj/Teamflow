@@ -52,7 +52,6 @@ export async function GET(_req: NextRequest) {
       hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
       hasDatabaseUrlUnpooled: Boolean(process.env.DATABASE_URL_UNPOOLED),
       hasPostgresUrl: Boolean(process.env.POSTGRES_URL),
-      urlPrefix: (process.env.DATABASE_URL || "").substring(0, 12),
     },
   });
 }

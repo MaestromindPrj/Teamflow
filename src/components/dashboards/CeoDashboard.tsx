@@ -27,6 +27,7 @@ import UserAvatar from "@/components/UserAvatar";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import NewProjectModal from "@/components/NewProjectModal";
 import RewardLeaderboardWidget from "@/components/RewardLeaderboardWidget";
+import DashboardCalendarWidget from "@/components/DashboardCalendarWidget";
 
 export default function CeoDashboard() {
   const { users, projects, tasks, attendance, userClockInData, currentUser } = useTeamFlow();
@@ -52,82 +53,97 @@ export default function CeoDashboard() {
 
   return (
     <div className="px-7 py-6 space-y-6" suppressHydrationWarning>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Total Projects</span>
-            <div className="w-7 h-7 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
-              <FolderKanban className="w-4 h-4" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <FolderKanban className="w-5 h-5 stroke-[2]" />
+              </div>
+            
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none" suppressHydrationWarning>
+                {totalProjects}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                Total Projects
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5" suppressHydrationWarning>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-emerald-700 font-semibold">{activeProjects} active</span>
+              <span>&bull;</span>
+              <span>{totalProjects - activeProjects} closed/review</span>
             </div>
           </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none" suppressHydrationWarning>
-            {totalProjects}
+
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Users className="w-5 h-5 stroke-[2]" />
+              </div>
+             
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none" suppressHydrationWarning>
+                {users.length}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                Total Workforce
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5" suppressHydrationWarning>
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+              <span>{projectManagers.length} PMs &bull; {employers.length} Employers</span>
+            </div>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium flex items-center gap-1" suppressHydrationWarning>
-            <span className="text-[#4ade1d] font-semibold">{activeProjects} active</span>
-            <span>&bull;</span>
-            <span>{totalProjects - activeProjects} closed/review</span>
+
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Calendar className="w-5 h-5 stroke-[2]" />
+              </div>
+            
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none" suppressHydrationWarning>
+                {attendanceRate}%
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                Company Attendance
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5" suppressHydrationWarning>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>{presentCount} team members checked in today</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-sky-50 text-[#0084d4] border border-sky-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <TrendingUp className="w-5 h-5 stroke-[2]" />
+              </div>
+           
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none" suppressHydrationWarning>
+                {overallProgress}%
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                Work Completion
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5" suppressHydrationWarning>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0084d4]" />
+              <span>{completedTasks}/{totalTasks} total tasks done</span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Total Workforce</span>
-            <div className="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none" suppressHydrationWarning>
-            {users.length}
-          </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium" suppressHydrationWarning>
-            {projectManagers.length} PMs &bull; {employers.length} Employers
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Company Attendance</span>
-            <div className="w-7 h-7 rounded-md bg-[#4ade1d]/15 text-[#4ade1d] flex items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none" suppressHydrationWarning>
-            {attendanceRate}%
-          </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium" suppressHydrationWarning>
-            {presentCount} checked in today
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Management &amp; PMs</span>
-            <div className="w-7 h-7 rounded-md bg-[#ffa500]/15 text-[#ffa500] flex items-center justify-center">
-              <Shield className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none" suppressHydrationWarning>
-            {projectManagers.length}
-          </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium" suppressHydrationWarning>
-            Overseeing {projects.length} initiatives
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Work Completion</span>
-            <div className="w-7 h-7 rounded-md bg-sky-50 text-[#0084d4] flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none" suppressHydrationWarning>
-            {overallProgress}%
-          </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium" suppressHydrationWarning>
-            {completedTasks}/{totalTasks} total tasks done
-          </div>
+        <div className="lg:col-span-5 flex">
+          <DashboardCalendarWidget className="w-full h-full" />
         </div>
       </div>
 
@@ -247,9 +263,18 @@ export default function CeoDashboard() {
                               <StatusBadge status={proj.status} />
                               <PriorityBadge priority={proj.priority} />
                             </div>
-                            <p className="text-[12px] text-slate-500 max-w-2xl line-clamp-2">
-                              {proj.description}
-                            </p>
+                            {proj.techStack && proj.techStack.length > 0 && (
+                              <div className="flex items-center gap-1 flex-wrap pt-1">
+                                {proj.techStack.map((tech) => (
+                                  <span
+                                    key={tech}
+                                    className="px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60"
+                                  >
+                                    {tech}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-100 bg-slate-50/60 p-3 rounded-lg">

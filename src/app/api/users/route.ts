@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isDbConfigured, initDatabase, getDb } from "@/lib/db";
 import { INITIAL_USERS, User } from "@/data/teamflowData";
 import { hashPassword, generateInitialPassword } from "@/lib/auth";
+import { sendNewUserCredentialsEmail } from "@/lib/email";
 
 export async function GET() {
   if (!isDbConfigured()) {
@@ -72,10 +73,36 @@ export async function POST(req: NextRequest) {
         initial_password = COALESCE(users.initial_password, EXCLUDED.initial_password);
     `;
 
+    let emailSent = false;
+    let emailError: string | undefined;
+
+    if (body.sendWelcomeEmail) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://teamflow-topaz.vercel.app";
+      const loginUrl = `${appUrl}/login`;
+
+      try {
+        const emailResult = await sendNewUserCredentialsEmail({
+          toEmail: email,
+          recipientName: fullName,
+          role: role === "project_manager" ? "Project Manager" : "Employer",
+          jobTitle: jobTitle || (role === "project_manager" ? "Project Manager" : "Software Developer"),
+          initialPassword,
+          loginUrl,
+        });
+        emailSent = emailResult.success;
+        emailError = emailResult.error;
+      } catch (e: unknown) {
+        emailSent = false;
+        emailError = e instanceof Error ? e.message : "Failed to dispatch email";
+      }
+    }
+
     return NextResponse.json({
       success: true,
       user: body,
       initialPassword,
+      emailSent,
+      emailError,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to create/update user";

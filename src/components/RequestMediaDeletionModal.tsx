@@ -41,6 +41,7 @@ export default function RequestMediaDeletionModal({
     try {
       await requestMediaDeletion({
         taskId: mediaItem.taskId,
+        projectId: mediaItem.projectId,
         attachmentId: mediaItem.attachmentId,
         reason: reason.trim(),
       });
@@ -56,9 +57,8 @@ export default function RequestMediaDeletionModal({
   };
 
   const QUICK_REASONS = [
-    "Outdated version / superseded by newer deliverable",
+    "Outdated version",
     "Uploaded wrong file by mistake",
-    "Duplicate deliverable upload",
     "Client requested revision removal",
   ];
 

@@ -259,11 +259,9 @@ export default function AttendanceDetailModal({
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <div className="space-y-1 text-[12px]">
                     <div className="font-bold text-amber-950">
-                      Approved Workforce Leave Recorded
+                      Approved Leave Recorded
                     </div>
-                    <p className="text-amber-800">
-                      Employee was granted scheduled time off for this date. Biometric and portal check-in sessions are excused.
-                    </p>
+                    
                     {record.leaveType && (
                       <div className="pt-1 flex items-center gap-2">
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-200/70 text-amber-900">

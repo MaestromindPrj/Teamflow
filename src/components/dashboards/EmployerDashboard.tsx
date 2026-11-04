@@ -22,6 +22,7 @@ import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import CheckInStatusBar from "@/components/CheckInStatusBar";
 import RewardLeaderboardWidget from "@/components/RewardLeaderboardWidget";
+import DashboardCalendarWidget from "@/components/DashboardCalendarWidget";
 
 export default function EmployerDashboard() {
   const { currentUser, users, projects, tasks, isUserTeamLead } = useTeamFlow();
@@ -59,65 +60,103 @@ export default function EmployerDashboard() {
           <CheckInStatusBar />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>My Assigned Tasks</span>
-            <div className="w-7 h-7 rounded-md bg-sky-50 text-[#0084d4] flex items-center justify-center">
-              <CheckSquare className="w-4 h-4" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-sky-50 text-[#0084d4] border border-sky-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <CheckSquare className="w-5 h-5 stroke-[2]" />
+              </div>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-[#0084d4] border border-sky-100">
+                Direct
+              </span>
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+                {myAssignedTasks.length}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                My Assigned Tasks
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0084d4]" />
+              <span>Assigned directly to you</span>
             </div>
           </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
-            {myAssignedTasks.length}
+
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Clock className="w-5 h-5 stroke-[2]" />
+              </div>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                Active
+              </span>
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+                {myInProgressTasks.length}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                In Progress Work
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+              <span>Currently actively working</span>
+            </div>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
-            Assigned directly to you
+
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <CheckCircle2 className="w-5 h-5 stroke-[2]" />
+              </div>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                Delivered
+              </span>
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+                {myCompletedTasks.length}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                Completed Tasks
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
+              <span>{myReviewTasks.length} tasks pending review</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/80 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Crown className="w-5 h-5 stroke-[2]" />
+              </div>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/80">
+                Lead
+              </span>
+            </div>
+            <div className="my-3">
+              <div className="text-[28px] font-bold text-slate-900 tracking-tight leading-none">
+                {teamLeadProjects.length}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-700 mt-1">
+                Team Lead Projects
+              </div>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-amber-700 font-medium gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>Leading technical delivery</span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>In Progress Work</span>
-            <div className="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
-            {myInProgressTasks.length}
-          </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
-            Currently actively working
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Completed Tasks</span>
-            <div className="w-7 h-7 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-[26px] font-bold text-slate-900 leading-none">
-            {myCompletedTasks.length}
-          </div>
-          <div className="mt-2 text-[11px] text-slate-400 font-medium">
-            {myReviewTasks.length} pending review
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between text-[12px] text-slate-500 font-medium">
-            <span>Team Lead Projects</span>
-            <div className="w-7 h-7 rounded-md bg-[#ffa500]/15 text-[#ffa500] flex items-center justify-center">
-              <Crown className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-[26px] font-bold text-[#ffa500] leading-none">
-            {teamLeadProjects.length}
-          </div>
-          <div className="mt-2 text-[11px] text-[#ffa500] font-medium">
-            Leading the projects
-          </div>
+        <div className="lg:col-span-5 flex">
+          <DashboardCalendarWidget className="w-full h-full" />
         </div>
       </div>
 
@@ -193,9 +232,18 @@ export default function EmployerDashboard() {
                     <h3 className="text-[16px] font-bold text-slate-900 group-hover:text-[#0084d4] transition-colors">
                       {project.name}
                     </h3>
-                    <p className="text-[12px] text-slate-500 font-normal line-clamp-2 mt-1">
-                      {project.description}
-                    </p>
+                    {project.techStack && project.techStack.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap mt-2">
+                        {project.techStack.map((tech) => (
+                          <span
+                            key={tech}
+                            className="px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between">

@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { isDbConfigured, initDatabase, getDb } from "@/lib/db";
 import { INITIAL_PROJECTS, Project } from "@/data/teamflowData";
 
+function resolveDefaultTechStack(category: string, currentTechStack?: unknown): string[] {
+  if (Array.isArray(currentTechStack) && currentTechStack.length > 0) {
+    return currentTechStack as string[];
+  }
+  const cat = (category || "").toLowerCase();
+  if (cat.includes("web")) return ["React", "Next.js", "TypeScript", "Tailwind CSS"];
+  if (cat.includes("mobile")) return ["Flutter", "Node.js", "PostgreSQL", "Docker"];
+  if (cat.includes("cloud") || cat.includes("data")) return ["Python", "AWS", "PostgreSQL", "Docker"];
+  if (cat.includes("design")) return ["Figma", "React", "TypeScript", "Tailwind CSS"];
+  return ["React", "TypeScript", "Node.js", "PostgreSQL"];
+}
+
 export async function GET() {
   if (!isDbConfigured()) {
     return NextResponse.json({ projects: INITIAL_PROJECTS, source: "mock" });
@@ -11,7 +23,7 @@ export async function GET() {
     await initDatabase();
     const sql = getDb();
     const rows = await sql`
-      SELECT id, name, code, description, project_manager_id, team_lead_id, team_member_ids, status, priority, start_date, deadline, category, budget
+      SELECT id, name, code, project_manager_id, team_lead_id, team_member_ids, status, priority, start_date, deadline, category, budget, tech_stack, attachments
       FROM projects
       ORDER BY id ASC;
     `;
@@ -20,7 +32,6 @@ export async function GET() {
       id: r.id as string,
       name: r.name as string,
       code: r.code as string,
-      description: (r.description as string) || "",
       projectManagerId: (r.project_manager_id as string) || "",
       teamLeadId: (r.team_lead_id as string) || "",
       teamMemberIds: (r.team_member_ids as string[]) || [],
@@ -30,6 +41,8 @@ export async function GET() {
       deadline: (r.deadline as string) || "",
       category: (r.category as string) || "General",
       budget: (r.budget as string) || "",
+      techStack: resolveDefaultTechStack(r.category as string, r.tech_stack),
+      attachments: (r.attachments as any) || [],
     }));
 
     return NextResponse.json({ projects, source: "database" });
@@ -59,6 +72,7 @@ export async function POST(req: NextRequest) {
       category,
       budget,
       status,
+      techStack,
     } = body;
 
     if (!name) {
@@ -69,18 +83,18 @@ export async function POST(req: NextRequest) {
     const fallbackCode = (code || `PRJ-${Math.floor(10 + Math.random() * 90)}`).toUpperCase();
     const finalMembers = Array.from(new Set([...(teamMemberIds || []), teamLeadId].filter(Boolean)));
     const startDate = body.startDate || new Date().toISOString().split("T")[0];
+    const finalTechStack = resolveDefaultTechStack(category || "General", techStack);
 
     const sql = getDb();
     await sql`
       INSERT INTO projects (
-        id, name, code, description, project_manager_id, team_lead_id, team_member_ids,
-        status, priority, start_date, deadline, category, budget
+        id, name, code, project_manager_id, team_lead_id, team_member_ids,
+        status, priority, start_date, deadline, category, budget, tech_stack
       )
       VALUES (
         ${id},
         ${name},
         ${fallbackCode},
-        ${description || ""},
         ${projectManagerId || ""},
         ${teamLeadId || ""},
         ${JSON.stringify(finalMembers)}::jsonb,
@@ -89,12 +103,12 @@ export async function POST(req: NextRequest) {
         ${startDate},
         ${deadline || ""},
         ${category || "General"},
-        ${budget || "$50,000"}
+        ${budget || "₹50,000"},
+        ${JSON.stringify(finalTechStack)}::jsonb
       )
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         code = EXCLUDED.code,
-        description = EXCLUDED.description,
         project_manager_id = EXCLUDED.project_manager_id,
         team_lead_id = EXCLUDED.team_lead_id,
         team_member_ids = EXCLUDED.team_member_ids,
@@ -102,14 +116,14 @@ export async function POST(req: NextRequest) {
         priority = EXCLUDED.priority,
         deadline = EXCLUDED.deadline,
         category = EXCLUDED.category,
-        budget = EXCLUDED.budget;
+        budget = EXCLUDED.budget,
+        tech_stack = EXCLUDED.tech_stack;
     `;
 
     const newProject: Project = {
       id,
       name,
       code: fallbackCode,
-      description: description || "",
       projectManagerId: projectManagerId || "",
       teamLeadId: teamLeadId || "",
       teamMemberIds: finalMembers,
@@ -118,7 +132,8 @@ export async function POST(req: NextRequest) {
       startDate,
       deadline: deadline || "",
       category: category || "General",
-      budget: budget || "$50,000",
+      budget: budget || "₹50,000",
+      techStack: Array.isArray(techStack) ? techStack : [],
     };
 
     return NextResponse.json({ success: true, project: newProject }, { status: 201 });

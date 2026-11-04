@@ -53,8 +53,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Category name is required" }, { status: 400 });
     }
 
-    const id = body.id || `cat-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
     const sql = getDb();
+
+    // Check if category with this name already exists (case-insensitive)
+    const existing = await sql`
+      SELECT id, name, description FROM project_categories WHERE LOWER(name) = LOWER(${name}) LIMIT 1;
+    `;
+    if (existing.length > 0) {
+      return NextResponse.json({
+        success: true,
+        category: {
+          id: existing[0].id as string,
+          name: existing[0].name as string,
+          description: (existing[0].description as string) || "",
+          projectCount: 0,
+        },
+      });
+    }
+
+    const id = body.id || `cat-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
 
     await sql`
       INSERT INTO project_categories (id, name, description)

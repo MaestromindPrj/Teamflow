@@ -130,6 +130,23 @@ const DEFAULT_CLOCK_IN_DATA: Record<string, UserClockInState> = {
   }
 };
 
+export interface OfficeLeave {
+  id: string;
+  title: string;
+  date: string;
+  endDate?: string;
+  declaredById?: string;
+  declaredByName?: string;
+  declaredByRole?: "ceo" | "project_manager" | string;
+  createdAt?: string;
+}
+
+export interface TechStackItem {
+  id: string;
+  name: string;
+  createdAt?: string;
+}
+
 interface TeamFlowContextType {
   currentUser: User;
   users: User[];
@@ -144,7 +161,7 @@ interface TeamFlowContextType {
   createProject: (projectData: {
     name: string;
     code?: string;
-    description: string;
+    description?: string;
     projectManagerId: string;
     teamLeadId: string;
     teamMemberIds: string[];
@@ -154,6 +171,7 @@ interface TeamFlowContextType {
     category: string;
     budget?: string;
     status?: "Planning" | "In Progress" | "In Review" | "Completed";
+    techStack?: string[];
   }) => Project;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
@@ -178,7 +196,18 @@ interface TeamFlowContextType {
       url?: string;
       rawFile?: File | null;
     }
-  ) => void;
+  ) => Promise<{ success: boolean; error?: string; isDuplicate?: boolean }>;
+  uploadProjectMedia: (
+    projectId: string,
+    file: {
+      name: string;
+      size: string;
+      type: "image" | "pdf" | "figma" | "zip" | "doc";
+      url?: string;
+      rawFile?: File | null;
+    }
+  ) => Promise<{ success: boolean; error?: string; isDuplicate?: boolean }>;
+  deleteProjectMedia: (projectId: string, attachmentId: string) => Promise<boolean>;
   toggleClockInOut: () => void;
   toggleUserClockIn: (userId: string) => void;
   isClockedIn: boolean;
@@ -208,7 +237,7 @@ interface TeamFlowContextType {
     jobTitle?: string;
     department?: string;
     initialPassword?: string;
-  }) => Promise<User>;
+  }) => Promise<User & { emailSent?: boolean; emailError?: string }>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   rewardsLedger: RewardLedgerEntry[];
@@ -233,7 +262,8 @@ interface TeamFlowContextType {
   canUserDeleteMedia: (projectId: string) => boolean;
   mediaDeletionRequests: MediaDeletionRequest[];
   requestMediaDeletion: (params: {
-    taskId: string;
+    taskId?: string;
+    projectId?: string;
     attachmentId: string;
     reason: string;
   }) => Promise<boolean>;
@@ -244,7 +274,34 @@ interface TeamFlowContextType {
   ) => Promise<boolean>;
   sleepNotice: { time: string; duration: string; reason: string } | null;
   dismissSleepNotice: () => void;
+  officeLeaves: OfficeLeave[];
+  createOfficeLeave: (data: { title: string; date: string; endDate?: string }) => Promise<boolean>;
+  deleteOfficeLeave: (id: string) => Promise<boolean>;
+  techStacks: TechStackItem[];
+  createTechStack: (name: string) => Promise<boolean>;
+  updateTechStack: (id: string, name: string) => Promise<boolean>;
+  deleteTechStack: (id: string) => Promise<boolean>;
 }
+
+const DEFAULT_OFFICE_LEAVES: OfficeLeave[] = [
+  { id: "ol-diwali", title: "Diwali", date: "2026-11-07" },
+  { id: "ol-christmas", title: "Christmas Day", date: "2026-12-25" },
+  { id: "ol-newyear", title: "New Year's Day", date: "2027-01-01" }
+];
+
+const DEFAULT_TECH_STACKS: TechStackItem[] = [
+  { id: "ts-nextjs", name: "Next.js" },
+  { id: "ts-react", name: "React" },
+  { id: "ts-typescript", name: "TypeScript" },
+  { id: "ts-tailwind", name: "Tailwind CSS" },
+  { id: "ts-nodejs", name: "Node.js" },
+  { id: "ts-postgresql", name: "PostgreSQL" },
+  { id: "ts-python", name: "Python" },
+  { id: "ts-fastapi", name: "FastAPI" },
+  { id: "ts-docker", name: "Docker" },
+  { id: "ts-aws", name: "AWS" },
+  { id: "ts-figma", name: "Figma" }
+];
 
 const TeamFlowContext = createContext<TeamFlowContextType | undefined>(undefined);
 
@@ -291,6 +348,32 @@ export function sanitizeUserData(u: User): User {
   };
 }
 
+export function ensureProjectTechStack(p: Project): Project {
+  if (Array.isArray(p.techStack) && p.techStack.length > 0) {
+    return p;
+  }
+  const cat = (p.category || "").toLowerCase();
+  let defaultStack = ["React", "TypeScript", "Node.js", "PostgreSQL"];
+  if (cat.includes("web")) defaultStack = ["React", "Next.js", "TypeScript", "Tailwind CSS"];
+  else if (cat.includes("mobile")) defaultStack = ["Flutter", "Node.js", "PostgreSQL", "Docker"];
+  else if (cat.includes("cloud") || cat.includes("data")) defaultStack = ["Python", "AWS", "PostgreSQL", "Docker"];
+  else if (cat.includes("design")) defaultStack = ["Figma", "React", "TypeScript", "Tailwind CSS"];
+  return { ...p, techStack: defaultStack };
+}
+
+export function sanitizeTaskAttachments(t: Task): Task {
+  if (!Array.isArray(t.attachments)) return t;
+  const seenNames = new Set<string>();
+  const deduped = t.attachments.filter((att) => {
+    const key = (att.name || "").trim().toLowerCase();
+    if (!key) return true;
+    if (seenNames.has(key)) return false;
+    seenNames.add(key);
+    return true;
+  });
+  return { ...t, attachments: deduped };
+}
+
 export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>(() => {
     if (typeof window !== "undefined") {
@@ -332,6 +415,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const [rewardsLedger, setRewardsLedger] = useState<RewardLedgerEntry[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [mediaDeletionRequests, setMediaDeletionRequests] = useState<MediaDeletionRequest[]>([]);
+  const [officeLeaves, setOfficeLeaves] = useState<OfficeLeave[]>(DEFAULT_OFFICE_LEAVES);
+  const [techStacks, setTechStacks] = useState<TechStackItem[]>(DEFAULT_TECH_STACKS);
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
@@ -358,14 +443,37 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       if (savedProjects) {
         try {
           const parsed = JSON.parse(savedProjects);
-          if (Array.isArray(parsed)) setProjects(parsed);
+          if (Array.isArray(parsed)) setProjects(parsed.map(ensureProjectTechStack));
         } catch {}
       }
 
       if (savedTasks) {
         try {
           const parsed = JSON.parse(savedTasks);
-          if (Array.isArray(parsed)) setTasks(parsed);
+          if (Array.isArray(parsed)) {
+            const dummyTasks = parsed.filter(
+              (t: Task) => t.title === "Project Assets & Deliverables" || t.title === "Project Deliverables & Assets"
+            );
+            if (dummyTasks.length > 0) {
+              setProjects((prev) =>
+                prev.map((p) => {
+                  const matchingDummy = dummyTasks.find((dt: Task) => dt.projectId === p.id);
+                  if (matchingDummy && Array.isArray(matchingDummy.attachments) && matchingDummy.attachments.length > 0) {
+                    const existingNames = new Set((p.attachments || []).map((a) => a.name.trim().toLowerCase()));
+                    const newAtts = matchingDummy.attachments.filter((a: TaskAttachment) => !existingNames.has(a.name.trim().toLowerCase()));
+                    return { ...p, attachments: [...(p.attachments || []), ...newAtts] };
+                  }
+                  return p;
+                })
+              );
+            }
+            const cleanTasks = parsed
+              .filter(
+                (t: Task) => t.title !== "Project Assets & Deliverables" && t.title !== "Project Deliverables & Assets"
+              )
+              .map(sanitizeTaskAttachments);
+            setTasks(cleanTasks);
+          }
         } catch {}
       }
 
@@ -405,6 +513,30 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
+      const savedLeaveRequests = localStorage.getItem("teamflow_leave_requests");
+      if (savedLeaveRequests) {
+        try {
+          const parsed = JSON.parse(savedLeaveRequests);
+          if (Array.isArray(parsed) && parsed.length > 0) setLeaveRequests(parsed);
+        } catch {}
+      }
+
+      const savedOfficeLeaves = localStorage.getItem("teamflow_office_leaves");
+      if (savedOfficeLeaves) {
+        try {
+          const parsed = JSON.parse(savedOfficeLeaves);
+          if (Array.isArray(parsed) && parsed.length > 0) setOfficeLeaves(parsed);
+        } catch {}
+      }
+
+      const savedTechStacks = localStorage.getItem("teamflow_tech_stacks");
+      if (savedTechStacks) {
+        try {
+          const parsed = JSON.parse(savedTechStacks);
+          if (Array.isArray(parsed) && parsed.length > 0) setTechStacks(parsed);
+        } catch {}
+      }
+
       localStorage.removeItem("teamflow_user_clock_in");
       const hasResetToCheckedOut = localStorage.getItem("teamflow_clock_v3_reset");
       if (!hasResetToCheckedOut) {
@@ -430,7 +562,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
   const refreshFromBackend = useCallback(async () => {
     try {
-      const [usersRes, projectsRes, tasksRes, attendanceRes, clockInRes, deptsRes, rewardsRes, meRes, leavesRes, categoriesRes] = await Promise.all([
+      const [usersRes, projectsRes, tasksRes, attendanceRes, clockInRes, deptsRes, rewardsRes, meRes, leavesRes, categoriesRes, officeLeavesRes, techStacksRes] = await Promise.all([
         fetch("/api/users").catch(() => null),
         fetch("/api/projects").catch(() => null),
         fetch("/api/tasks").catch(() => null),
@@ -441,6 +573,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         fetch("/api/auth/me").catch(() => null),
         fetch("/api/leaves").catch(() => null),
         fetch("/api/categories").catch(() => null),
+        fetch("/api/office-leaves").catch(() => null),
+        fetch("/api/tech-stacks").catch(() => null),
       ]);
 
       if (usersRes && usersRes.ok) {
@@ -457,14 +591,35 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       if (projectsRes && projectsRes.ok) {
         const data = await projectsRes.json();
         if (Array.isArray(data.projects)) {
-          setProjects(data.projects);
+          setProjects(data.projects.map(ensureProjectTechStack));
         }
       }
 
       if (tasksRes && tasksRes.ok) {
         const data = await tasksRes.json();
         if (Array.isArray(data.tasks)) {
-          setTasks(data.tasks);
+          const dummyTasks = data.tasks.filter(
+            (t: Task) => t.title === "Project Assets & Deliverables" || t.title === "Project Deliverables & Assets"
+          );
+          if (dummyTasks.length > 0) {
+            setProjects((prev) =>
+              prev.map((p) => {
+                const matchingDummy = dummyTasks.find((dt: Task) => dt.projectId === p.id);
+                if (matchingDummy && Array.isArray(matchingDummy.attachments) && matchingDummy.attachments.length > 0) {
+                  const existingNames = new Set((p.attachments || []).map((a) => a.name.trim().toLowerCase()));
+                  const newAtts = matchingDummy.attachments.filter((a: TaskAttachment) => !existingNames.has(a.name.trim().toLowerCase()));
+                  return { ...p, attachments: [...(p.attachments || []), ...newAtts] };
+                }
+                return p;
+              })
+            );
+          }
+          const cleanTasks = data.tasks
+            .filter(
+              (t: Task) => t.title !== "Project Assets & Deliverables" && t.title !== "Project Deliverables & Assets"
+            )
+            .map(sanitizeTaskAttachments);
+          setTasks(cleanTasks);
         }
       }
 
@@ -506,8 +661,22 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
       if (categoriesRes && categoriesRes.ok) {
         const data = await categoriesRes.json();
-        if (Array.isArray(data.categories) && data.categories.length > 0) {
+        if (Array.isArray(data.categories)) {
           setCategories(data.categories);
+        }
+      }
+
+      if (officeLeavesRes && officeLeavesRes.ok) {
+        const data = await officeLeavesRes.json();
+        if (Array.isArray(data.officeLeaves)) {
+          setOfficeLeaves(data.officeLeaves);
+        }
+      }
+
+      if (techStacksRes && techStacksRes.ok) {
+        const data = await techStacksRes.json();
+        if (Array.isArray(data.techStacks)) {
+          setTechStacks(data.techStacks);
         }
       }
 
@@ -546,8 +715,11 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("teamflow_user_clock_in_v3", JSON.stringify(userClockInData));
       localStorage.setItem("teamflow_categories", JSON.stringify(categories));
       localStorage.setItem("teamflow_media_deletion_requests_v1", JSON.stringify(mediaDeletionRequests));
+      localStorage.setItem("teamflow_leave_requests", JSON.stringify(leaveRequests));
+      localStorage.setItem("teamflow_office_leaves", JSON.stringify(officeLeaves));
+      localStorage.setItem("teamflow_tech_stacks", JSON.stringify(techStacks));
     } catch {}
-  }, [currentUserId, projects, tasks, attendance, userClockInData, categories, mediaDeletionRequests, hasHydrated]);
+  }, [currentUserId, projects, tasks, attendance, userClockInData, categories, mediaDeletionRequests, leaveRequests, officeLeaves, techStacks, hasHydrated]);
 
   const currentUser: User =
     users.find((u) => u.id === currentUserId) ||
@@ -738,7 +910,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     department?: string;
     jobTitle?: string;
     initialPassword?: string;
-  }): Promise<User> => {
+  }): Promise<User & { emailSent?: boolean; emailError?: string }> => {
     const isPm = memberData.role === "project_manager";
     const timestamp = Date.now();
     const id = isPm ? `u-pm-${timestamp}` : `u-emp-${timestamp}`;
@@ -774,16 +946,29 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       },
     }));
 
-    fetch("/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...newUser,
-        initialPassword: memberData.initialPassword,
-      }),
-    }).catch((err) => console.warn("Failed to persist new team member to database:", err));
+    let emailSent = false;
+    let emailError: string | undefined;
 
-    return newUser;
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...newUser,
+          initialPassword: memberData.initialPassword,
+          sendWelcomeEmail: true,
+        }),
+      });
+      const data = await res.json();
+      if (data) {
+        emailSent = Boolean(data.emailSent);
+        emailError = data.emailError;
+      }
+    } catch (err) {
+      console.warn("Failed to persist new team member to database:", err);
+    }
+
+    return { ...newUser, emailSent, emailError };
   };
 
   const login = async (
@@ -863,7 +1048,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const createProject = (projectData: {
     name: string;
     code?: string;
-    description: string;
+    description?: string;
     projectManagerId: string;
     teamLeadId: string;
     teamMemberIds: string[];
@@ -873,13 +1058,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     category: string;
     budget?: string;
     status?: "Planning" | "In Progress" | "In Review" | "Completed";
+    techStack?: string[];
   }): Project => {
     const fallbackCode = `PRJ-${String(projects.length + 1).padStart(2, "0")}`;
     const newProject: Project = {
       id: `proj-${Date.now()}`,
       name: projectData.name,
       code: (projectData.code || fallbackCode).toUpperCase(),
-      description: projectData.description,
+      description: projectData.description || "",
       projectManagerId: projectData.projectManagerId,
       teamLeadId: projectData.teamLeadId,
       teamMemberIds: Array.from(new Set([...projectData.teamMemberIds, projectData.teamLeadId])),
@@ -888,7 +1074,11 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       startDate: projectData.startDate || new Date().toISOString().split("T")[0],
       deadline: projectData.deadline,
       category: projectData.category || "General",
-      budget: projectData.budget || "$50,000"
+      budget: projectData.budget || "₹50,000",
+      techStack:
+        projectData.techStack && projectData.techStack.length > 0
+          ? projectData.techStack
+          : ensureProjectTechStack({ category: projectData.category || "General" } as Project).techStack || ["React", "TypeScript", "Node.js", "PostgreSQL"],
     };
 
     setProjects((prev) => [newProject, ...prev]);
@@ -1035,8 +1225,28 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       url?: string;
       rawFile?: File | null;
     }
-  ) => {
-    const attachmentId = `att-${Date.now()}`;
+  ): Promise<{ success: boolean; error?: string; isDuplicate?: boolean }> => {
+    const targetTask = tasks.find((t) => t.id === taskId);
+    if (!targetTask) {
+      return { success: false, error: "Task not found." };
+    }
+
+    const targetProject = projects.find((p) => p.id === targetTask.projectId);
+    const projectTasks = tasks.filter((t) => t.projectId === targetTask.projectId);
+    const existingFile = [
+      ...(targetProject?.attachments || []),
+      ...projectTasks.flatMap((t) => t.attachments || [])
+    ].find((att) => att.name.trim().toLowerCase() === file.name.trim().toLowerCase());
+
+    if (existingFile) {
+      return {
+        success: false,
+        isDuplicate: true,
+        error: `A file named "${file.name}" is already uploaded to this project. Duplicate uploads are blocked.`
+      };
+    }
+
+    const attachmentId = `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const initialUrl =
       file.url ||
       (file.type === "image"
@@ -1106,12 +1316,26 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
               })
             );
           }
+          return { success: true };
+        } else {
+          const errData = await uploadRes.json().catch(() => ({}));
+          if (errData?.isDuplicate) {
+            setTasks((prev) =>
+              prev.map((t) =>
+                t.id === taskId
+                  ? { ...t, attachments: t.attachments.filter((a) => a.id !== attachmentId) }
+                  : t
+              )
+            );
+            return { success: false, isDuplicate: true, error: errData.error };
+          }
+          return { success: true };
         }
       } catch (uploadErr) {
-        console.warn("Could not upload to Cloudinary backend:", uploadErr);
+        console.warn("Could not upload to backend:", uploadErr);
+        return { success: true };
       }
     } else {
-      const targetTask = tasks.find((t) => t.id === taskId);
       if (targetTask) {
         fetch(`/api/tasks/${taskId}`, {
           method: "PUT",
@@ -1123,7 +1347,167 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           }),
         }).catch((err) => console.warn("Failed to sync media to backend:", err));
       }
+      return { success: true };
     }
+  };
+
+  const uploadProjectMedia = async (
+    projectId: string,
+    file: {
+      name: string;
+      size: string;
+      type: "image" | "pdf" | "figma" | "zip" | "doc";
+      url?: string;
+      rawFile?: File | null;
+    }
+  ): Promise<{ success: boolean; error?: string; isDuplicate?: boolean }> => {
+    const targetProject = projects.find((p) => p.id === projectId);
+    if (!targetProject) {
+      return { success: false, error: "Project not found." };
+    }
+
+    const projectTasks = tasks.filter((t) => t.projectId === projectId);
+    const existingFileNames = new Set<string>();
+    (targetProject.attachments || []).forEach((a) => existingFileNames.add(a.name.trim().toLowerCase()));
+    projectTasks.forEach((t) => (t.attachments || []).forEach((a) => existingFileNames.add(a.name.trim().toLowerCase())));
+
+    if (existingFileNames.has(file.name.trim().toLowerCase())) {
+      return {
+        success: false,
+        isDuplicate: true,
+        error: `A file named "${file.name}" is already uploaded to this project. Duplicate uploads are blocked.`
+      };
+    }
+
+    const attachmentId = `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const initialUrl =
+      file.url ||
+      (file.type === "image"
+        ? "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80"
+        : "#");
+
+    const newAttachment: TaskAttachment = {
+      id: attachmentId,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      url: initialUrl,
+      uploadedBy: currentUser.id,
+      uploadedByName: currentUser.fullName,
+      uploadedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    };
+
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id === projectId) {
+          const curAtts = p.attachments || [];
+          return {
+            ...p,
+            attachments: [newAttachment, ...curAtts]
+          };
+        }
+        return p;
+      })
+    );
+
+    if (file.rawFile) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file.rawFile);
+        formData.append("projectId", projectId);
+        formData.append("name", file.name);
+        formData.append("uploadedBy", currentUser.id);
+        formData.append("uploadedByName", currentUser.fullName);
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData?.attachment?.url) {
+            const finalUrl = uploadData.attachment.url;
+            setProjects((prev) =>
+              prev.map((p) => {
+                if (p.id === projectId) {
+                  return {
+                    ...p,
+                    attachments: (p.attachments || []).map((att) =>
+                      att.id === attachmentId ? { ...att, url: finalUrl } : att
+                    ),
+                  };
+                }
+                return p;
+              })
+            );
+          }
+          return { success: true };
+        } else {
+          const errData = await uploadRes.json().catch(() => ({}));
+          if (errData?.isDuplicate) {
+            setProjects((prev) =>
+              prev.map((p) =>
+                p.id === projectId
+                  ? { ...p, attachments: (p.attachments || []).filter((a) => a.id !== attachmentId) }
+                  : p
+              )
+            );
+            return { success: false, isDuplicate: true, error: errData.error };
+          }
+          return { success: true };
+        }
+      } catch (uploadErr) {
+        console.warn("Could not upload project media to backend:", uploadErr);
+        return { success: true };
+      }
+    } else {
+      fetch(`/api/projects/${projectId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attachments: [newAttachment, ...(targetProject.attachments || [])]
+        }),
+      }).catch((err) => console.warn("Failed to sync project media to backend:", err));
+      return { success: true };
+    }
+  };
+
+  const deleteProjectMedia = async (projectId: string, attachmentId: string): Promise<boolean> => {
+    const targetProject = projects.find((p) => p.id === projectId);
+    if (!targetProject) return false;
+
+    const updatedAttachments = (targetProject.attachments || []).filter((att) => att.id !== attachmentId);
+
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id === projectId) {
+          return {
+            ...p,
+            attachments: updatedAttachments
+          };
+        }
+        return p;
+      })
+    );
+
+    setMediaDeletionRequests((prev) =>
+      prev.filter((r) => r.attachmentId !== attachmentId)
+    );
+
+    try {
+      await fetch(`/api/projects/${projectId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attachments: updatedAttachments
+        }),
+      });
+    } catch (err) {
+      console.warn("Failed to persist project media deletion:", err);
+    }
+
+    return true;
   };
 
   const checkAndHandleMidnightRollover = useCallback(() => {
@@ -1841,6 +2225,16 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
   const getAllMedia = () => {
     const list: Array<TaskAttachment & { projectTitle: string; taskTitle: string; projectId: string }> = [];
+    projects.forEach((proj) => {
+      (proj.attachments || []).forEach((att) => {
+        list.push({
+          ...att,
+          projectTitle: proj.name,
+          taskTitle: "Project Deliverable",
+          projectId: proj.id,
+        });
+      });
+    });
     tasks.forEach((t) => {
       const proj = projects.find((p) => p.id === t.projectId);
       t.attachments.forEach((att) => {
@@ -1857,6 +2251,15 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
   const getProjectMedia = (projectId: string) => {
     const list: Array<TaskAttachment & { taskTitle: string }> = [];
+    const proj = projects.find((p) => p.id === projectId);
+    if (proj) {
+      (proj.attachments || []).forEach((att) => {
+        list.push({
+          ...att,
+          taskTitle: "Project Deliverable",
+        });
+      });
+    }
     tasks
       .filter((t) => t.projectId === projectId)
       .forEach((t) => {
@@ -1878,7 +2281,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTaskMedia = async (taskId: string, attachmentId: string): Promise<boolean> => {
     const targetTask = tasks.find((t) => t.id === taskId);
-    if (!targetTask) return false;
+    if (!targetTask) {
+      for (const p of projects) {
+        if ((p.attachments || []).some((a) => a.id === attachmentId)) {
+          return deleteProjectMedia(p.id, attachmentId);
+        }
+      }
+      return false;
+    }
 
     const targetAtt = targetTask.attachments.find((att) => att.id === attachmentId);
     const fileName = targetAtt?.name || "Media asset";
@@ -1914,11 +2324,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     );
 
     setMediaDeletionRequests((prev) =>
-      prev.map((r) =>
-        r.attachmentId === attachmentId && r.status === "Pending"
-          ? { ...r, status: "Approved" }
-          : r
-      )
+      prev.filter((r) => r.attachmentId !== attachmentId)
     );
 
     try {
@@ -1940,20 +2346,44 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
   const requestMediaDeletion = async ({
     taskId,
+    projectId,
     attachmentId,
     reason,
   }: {
-    taskId: string;
+    taskId?: string;
+    projectId?: string;
     attachmentId: string;
     reason: string;
   }): Promise<boolean> => {
-    const targetTask = tasks.find((t) => t.id === taskId);
-    if (!targetTask) return false;
+    let targetAtt: TaskAttachment | undefined;
+    let project: Project | undefined;
+    let taskTitle = "Project Deliverable";
 
-    const targetAtt = targetTask.attachments.find((att) => att.id === attachmentId);
-    if (!targetAtt) return false;
+    const targetTask = taskId ? tasks.find((t) => t.id === taskId) : undefined;
+    if (targetTask) {
+      targetAtt = targetTask.attachments.find((att) => att.id === attachmentId);
+      project = projects.find((p) => p.id === targetTask.projectId);
+      taskTitle = targetTask.title;
+    } else {
+      const pId = projectId;
+      if (pId) {
+        project = projects.find((p) => p.id === pId);
+        targetAtt = (project?.attachments || []).find((att) => att.id === attachmentId);
+      }
+      if (!targetAtt) {
+        for (const p of projects) {
+          const found = (p.attachments || []).find((att) => att.id === attachmentId);
+          if (found) {
+            targetAtt = found;
+            project = p;
+            break;
+          }
+        }
+      }
+    }
 
-    const project = projects.find((p) => p.id === targetTask.projectId);
+    if (!targetAtt || !project) return false;
+
     const teamLead = users.find((u) => u.id === project?.teamLeadId);
 
     const newRequest: MediaDeletionRequest = {
@@ -1963,12 +2393,12 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       attachmentUrl: targetAtt.url,
       attachmentType: targetAtt.type,
       attachmentSize: targetAtt.size,
-      taskId: targetTask.id,
-      taskTitle: targetTask.title,
-      projectId: targetTask.projectId,
-      projectName: project?.name || "Project",
-      projectCode: project?.code || "PROJ",
-      teamLeadId: project?.teamLeadId || "",
+      taskId: targetTask?.id || "",
+      taskTitle,
+      projectId: project.id,
+      projectName: project.name,
+      projectCode: project.code,
+      teamLeadId: project.teamLeadId || "",
       teamLeadName: teamLead?.fullName || "Team Lead",
       requestedBy: currentUser.id,
       requestedByName: currentUser.fullName,
@@ -1978,37 +2408,39 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       status: "Pending",
     };
 
-    const newActivityItem = {
-      id: `act-${Date.now()}`,
-      title: `Deletion requested: ${targetAtt.name}`,
-      detail: `Requested by ${currentUser.fullName} to Team Lead ${teamLead?.fullName || "Project Lead"}. Reason: ${newRequest.reason}`,
-      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-    };
-
     setMediaDeletionRequests((prev) => [newRequest, ...prev]);
 
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === taskId) {
-          return {
-            ...t,
-            activity: [newActivityItem, ...t.activity],
-          };
-        }
-        return t;
-      })
-    );
+    if (targetTask) {
+      const newActivityItem = {
+        id: `act-${Date.now()}`,
+        title: `Deletion requested: ${targetAtt.name}`,
+        detail: `Requested by ${currentUser.fullName} to Team Lead ${teamLead?.fullName || "Project Lead"}. Reason: ${newRequest.reason}`,
+        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      };
 
-    try {
-      await fetch(`/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          activity: [newActivityItem, ...targetTask.activity],
-          updatedByName: currentUser.fullName,
-        }),
-      });
-    } catch {}
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.id === targetTask.id) {
+            return {
+              ...t,
+              activity: [newActivityItem, ...t.activity],
+            };
+          }
+          return t;
+        })
+      );
+
+      try {
+        await fetch(`/api/tasks/${targetTask.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            activity: [newActivityItem, ...targetTask.activity],
+            updatedByName: currentUser.fullName,
+          }),
+        });
+      } catch {}
+    }
 
     return true;
   };
@@ -2021,37 +2453,61 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     const req = mediaDeletionRequests.find((r) => r.id === requestId);
     if (!req) return false;
 
-    if (action === "approve") {
-      await deleteTaskMedia(req.taskId, req.attachmentId);
-      setMediaDeletionRequests((prev) =>
-        prev.map((r) => (r.id === requestId ? { ...r, status: "Approved" } : r))
-      );
-    } else {
-      setMediaDeletionRequests((prev) =>
-        prev.map((r) => (r.id === requestId ? { ...r, status: "Rejected" } : r))
-      );
+    const reviewerRole =
+      currentUser.role === "ceo"
+        ? "CEO"
+        : currentUser.role === "project_manager"
+        ? "Project Manager"
+        : "Team Lead";
+    const reviewedAt = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const nextStatus = action === "approve" ? "Approved" : "Rejected";
 
-      const targetTask = tasks.find((t) => t.id === req.taskId);
-      if (targetTask) {
-        const rejectActivity = {
-          id: `act-${Date.now()}`,
-          title: `Deletion request declined: ${req.attachmentName}`,
-          detail: `Declined by ${currentUser.fullName}. Notes: ${notes || "Declined by project authority."}`,
-          date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        };
-        setTasks((prev) =>
-          prev.map((t) => (t.id === req.taskId ? { ...t, activity: [rejectActivity, ...t.activity] } : t))
-        );
-        fetch(`/api/tasks/${req.taskId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            activity: [rejectActivity, ...targetTask.activity],
-            updatedByName: currentUser.fullName,
-          }),
-        }).catch(() => null);
+    if (action === "approve") {
+      if (req.taskId) {
+        await deleteTaskMedia(req.taskId, req.attachmentId);
+      }
+      await deleteProjectMedia(req.projectId, req.attachmentId);
+    } else {
+      if (req.taskId) {
+        const targetTask = tasks.find((t) => t.id === req.taskId);
+        if (targetTask) {
+          const rejectActivity = {
+            id: `act-${Date.now()}`,
+            title: `Deletion request declined: ${req.attachmentName}`,
+            detail: `Declined by ${currentUser.fullName} (${reviewerRole}). Notes: ${notes || "Declined by project authority."}`,
+            date: reviewedAt,
+          };
+          setTasks((prev) =>
+            prev.map((t) => (t.id === req.taskId ? { ...t, activity: [rejectActivity, ...t.activity] } : t))
+          );
+          fetch(`/api/tasks/${req.taskId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              activity: [rejectActivity, ...targetTask.activity],
+              updatedByName: currentUser.fullName,
+            }),
+          }).catch(() => null);
+        }
       }
     }
+
+    setMediaDeletionRequests((prev) =>
+      prev.map((r) =>
+        r.id === requestId
+          ? {
+              ...r,
+              status: nextStatus,
+              reviewedBy: currentUser.id,
+              reviewedByName: currentUser.fullName,
+              reviewedByRole: reviewerRole,
+              reviewedAt,
+              notes: notes || undefined,
+            }
+          : r
+      )
+    );
+
     return true;
   };
 
@@ -2083,6 +2539,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       appliedByName: currentUser.fullName,
       reviewedById: isDirectApproval ? currentUser.id : undefined,
       reviewedByName: isDirectApproval ? currentUser.fullName : undefined,
+      reviewedByRole: isDirectApproval ? currentUser.role : undefined,
     };
 
     try {
@@ -2096,9 +2553,24 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: data.error || "Failed to submit leave application" };
       }
 
-      if (data.leaveRequest) {
-        setLeaveRequests((prev) => [data.leaveRequest, ...prev]);
-      }
+      const newLeaveReq: LeaveRequest = data.leaveRequest || {
+        id: `leave-${Date.now()}`,
+        userId: targetUser.id,
+        userName: targetUser.fullName,
+        userRole: targetUser.role,
+        startDate: params.startDate,
+        endDate: params.endDate || params.startDate,
+        leaveType: params.leaveType,
+        reason: params.reason || "",
+        status: finalStatus,
+        appliedById: currentUser.id,
+        appliedByName: currentUser.fullName,
+        reviewedById: isDirectApproval ? currentUser.id : undefined,
+        reviewedByName: isDirectApproval ? currentUser.fullName : undefined,
+        reviewedByRole: isDirectApproval ? (currentUser.role as "ceo" | "project_manager") : undefined,
+        createdAt: new Date().toISOString(),
+      };
+      setLeaveRequests((prev) => [newLeaveReq, ...prev.filter((r) => r.id !== newLeaveReq.id)]);
 
       if (finalStatus === "Approved") {
         const dates = getDatesInRange(params.startDate, params.endDate || params.startDate);
@@ -2107,6 +2579,15 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         setAttendance((prev) => {
           const updated = [...prev];
           for (const d of dates) {
+            const isSunday = new Date(d + "T00:00:00").getDay() === 0;
+            const isOfficeLeave = officeLeaves.some((ol) => {
+              const olEnd = ol.endDate || ol.date;
+              return d >= ol.date && d <= olEnd;
+            });
+            if (isSunday || isOfficeLeave) {
+              continue;
+            }
+
             const recId = `att-${targetUser.id}-${d}`;
             const existingIdx = updated.findIndex((r) => r.userId === targetUser.id && r.date === d);
             const leaveRec: AttendanceRecord = {
@@ -2165,6 +2646,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           status,
           reviewedById: currentUser.id,
           reviewedByName: currentUser.fullName,
+          reviewedByRole: currentUser.role,
         }),
       });
       if (!res.ok) return false;
@@ -2177,6 +2659,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
                 status,
                 reviewedById: currentUser.id,
                 reviewedByName: currentUser.fullName,
+                reviewedByRole: currentUser.role as "ceo" | "project_manager",
               }
             : r
         )
@@ -2191,6 +2674,15 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           setAttendance((prev) => {
             const updated = [...prev];
             for (const d of dates) {
+              const isSunday = new Date(d + "T00:00:00").getDay() === 0;
+              const isOfficeLeave = officeLeaves.some((ol) => {
+                const olEnd = ol.endDate || ol.date;
+                return d >= ol.date && d <= olEnd;
+              });
+              if (isSunday || isOfficeLeave) {
+                continue;
+              }
+
               const recId = `att-${reqItem.userId}-${d}`;
               const existingIdx = updated.findIndex((r) => r.userId === reqItem.userId && r.date === d);
               const leaveRec: AttendanceRecord = {
@@ -2240,6 +2732,125 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const createOfficeLeave = async (data: { title: string; date: string; endDate?: string }): Promise<boolean> => {
+    const payload = {
+      title: data.title,
+      date: data.date,
+      endDate: data.endDate,
+      declaredById: currentUser.id,
+      declaredByName: currentUser.fullName,
+      declaredByRole: currentUser.role,
+    };
+    try {
+      const res = await fetch("/api/office-leaves", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.officeLeave) {
+          setOfficeLeaves((prev) => [json.officeLeave, ...prev.filter((l) => l.id !== json.officeLeave.id)]);
+          return true;
+        }
+      }
+      const newLeave: OfficeLeave = {
+        id: `ol-${Date.now()}`,
+        title: data.title,
+        date: data.date,
+        endDate: data.endDate || data.date,
+        declaredById: currentUser.id,
+        declaredByName: currentUser.fullName,
+        declaredByRole: currentUser.role,
+        createdAt: new Date().toISOString(),
+      };
+      setOfficeLeaves((prev) => [newLeave, ...prev]);
+      return true;
+    } catch {
+      const newLeave: OfficeLeave = {
+        id: `ol-${Date.now()}`,
+        title: data.title,
+        date: data.date,
+        endDate: data.endDate || data.date,
+        declaredById: currentUser.id,
+        declaredByName: currentUser.fullName,
+        declaredByRole: currentUser.role,
+        createdAt: new Date().toISOString(),
+      };
+      setOfficeLeaves((prev) => [newLeave, ...prev]);
+      return true;
+    }
+  };
+
+  const deleteOfficeLeave = async (id: string): Promise<boolean> => {
+    try {
+      await fetch(`/api/office-leaves?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      setOfficeLeaves((prev) => prev.filter((l) => l.id !== id));
+      return true;
+    } catch {
+      setOfficeLeaves((prev) => prev.filter((l) => l.id !== id));
+      return true;
+    }
+  };
+
+  const createTechStack = async (name: string): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/tech-stacks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.techStack) {
+          setTechStacks((prev) => [...prev, json.techStack]);
+          return true;
+        }
+      }
+      const newItem: TechStackItem = {
+        id: `ts-${Date.now()}`,
+        name: name.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      setTechStacks((prev) => [...prev, newItem]);
+      return true;
+    } catch {
+      const newItem: TechStackItem = {
+        id: `ts-${Date.now()}`,
+        name: name.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      setTechStacks((prev) => [...prev, newItem]);
+      return true;
+    }
+  };
+
+  const updateTechStack = async (id: string, name: string): Promise<boolean> => {
+    try {
+      await fetch("/api/tech-stacks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name }),
+      });
+      setTechStacks((prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)));
+      return true;
+    } catch {
+      setTechStacks((prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)));
+      return true;
+    }
+  };
+
+  const deleteTechStack = async (id: string): Promise<boolean> => {
+    try {
+      await fetch(`/api/tech-stacks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      setTechStacks((prev) => prev.filter((t) => t.id !== id));
+      return true;
+    } catch {
+      setTechStacks((prev) => prev.filter((t) => t.id !== id));
+      return true;
+    }
+  };
+
   return (
     <TeamFlowContext.Provider
       value={{
@@ -2261,6 +2872,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         updateTask,
         deleteTask,
         uploadTaskMedia,
+        uploadProjectMedia,
+        deleteProjectMedia,
         toggleClockInOut,
         toggleUserClockIn,
         isClockedIn,
@@ -2297,7 +2910,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         requestMediaDeletion,
         resolveMediaDeletionRequest,
         sleepNotice,
-        dismissSleepNotice
+        dismissSleepNotice,
+        officeLeaves,
+        createOfficeLeave,
+        deleteOfficeLeave,
+        techStacks,
+        createTechStack,
+        updateTechStack,
+        deleteTechStack
       }}
     >
       {children}

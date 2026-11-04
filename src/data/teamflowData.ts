@@ -49,7 +49,7 @@ export interface Project {
   id: string;
   name: string;
   code: string;
-  description: string;
+  description?: string;
   projectManagerId: string;
   teamLeadId: string;
   teamMemberIds: string[];
@@ -59,6 +59,8 @@ export interface Project {
   deadline: string;
   category: string;
   budget: string;
+  techStack?: string[];
+  attachments?: TaskAttachment[];
 }
 
 export interface PunchSession {
@@ -98,6 +100,7 @@ export interface LeaveRequest {
   appliedByName: string;
   reviewedById?: string;
   reviewedByName?: string;
+  reviewedByRole?: "ceo" | "project_manager";
   createdAt?: string;
 }
 
@@ -121,6 +124,11 @@ export interface MediaDeletionRequest {
   requestedAt: string;
   reason: string;
   status: "Pending" | "Approved" | "Rejected";
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewedByRole?: string;
+  reviewedAt?: string;
+  notes?: string;
 }
 
 export interface ProjectCategory {
@@ -254,7 +262,6 @@ export const INITIAL_PROJECTS: Project[] = [
     id: "proj-1",
     name: "NextGen Web Experience Revamp",
     code: "REVAMP-01",
-    description: "End-to-end overhaul of client customer portal with Next.js 16, enterprise security standards, micro-interactions, and real-time activity stream.",
     projectManagerId: "u-pm-1",
     teamLeadId: "u-emp-1",
     teamMemberIds: ["u-emp-1", "u-emp-2", "u-emp-3", "u-emp-4", "u-emp-5"],
@@ -263,13 +270,13 @@ export const INITIAL_PROJECTS: Project[] = [
     startDate: "2026-09-01",
     deadline: "2026-11-15",
     category: "Web Engineering",
-    budget: "$85,000"
+    budget: "₹85,000",
+    techStack: ["React", "Next.js", "TypeScript", "Tailwind CSS"]
   },
   {
     id: "proj-2",
     name: "Enterprise Mobile Companion App",
     code: "MOBILE-02",
-    description: "Cross-platform mobile client for field team operations featuring offline caching, instant push notifications, and cryptographic telemetry.",
     projectManagerId: "u-pm-1",
     teamLeadId: "u-emp-2",
     teamMemberIds: ["u-emp-1", "u-emp-2", "u-emp-3", "u-emp-4"],
@@ -278,13 +285,13 @@ export const INITIAL_PROJECTS: Project[] = [
     startDate: "2026-08-15",
     deadline: "2026-12-01",
     category: "Mobile Systems",
-    budget: "$120,000"
+    budget: "₹1,20,000",
+    techStack: ["Flutter", "Node.js", "PostgreSQL", "Docker"]
   },
   {
     id: "proj-3",
     name: "Cloud Data Lake & Analytics Core",
     code: "DATA-03",
-    description: "Scalable BigQuery data pipelines, streaming ingestion connectors, automated lineage tracking, and executive BI dashboard connectors.",
     projectManagerId: "u-pm-2",
     teamLeadId: "u-emp-1",
     teamMemberIds: ["u-emp-1", "u-emp-3", "u-emp-4"],
@@ -293,13 +300,13 @@ export const INITIAL_PROJECTS: Project[] = [
     startDate: "2026-09-10",
     deadline: "2026-10-30",
     category: "Cloud Infrastructure",
-    budget: "$95,000"
+    budget: "₹95,000",
+    techStack: ["Python", "AWS", "PostgreSQL", "Docker"]
   },
   {
     id: "proj-4",
     name: "Brand Design System & Token Engine",
     code: "DESIGN-04",
-    description: "Unified design token repository linking Figma variables directly to modern frontend CSS modules and accessible component primitives.",
     projectManagerId: "u-pm-2",
     teamLeadId: "u-emp-2",
     teamMemberIds: ["u-emp-2", "u-emp-3", "u-emp-5"],
@@ -308,7 +315,8 @@ export const INITIAL_PROJECTS: Project[] = [
     startDate: "2026-07-20",
     deadline: "2026-10-25",
     category: "Design System",
-    budget: "$40,000"
+    budget: "₹40,000",
+    techStack: ["Figma", "React", "TypeScript", "Tailwind CSS"]
   }
 ];
 
