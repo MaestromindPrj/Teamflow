@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Eye,
@@ -9,8 +9,7 @@ import {
   Loader2,
   Lock,
   Mail,
-  Network,
-  Sparkles
+  Network
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import ForgotPasswordModal from "@/components/ForgotPasswordModal";
@@ -25,30 +24,6 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
-
-  const [quickUsers, setQuickUsers] = useState<
-    Array<{ name: string; email: string; role: string; roleColor: string }>
-  >([
-    { name: "CEO", email: "ceo@maestrominds.co.in", role: "CEO", roleColor: "bg-purple-500" },
-  ]);
-
-  useEffect(() => {
-    fetch("/api/users")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data.users) && data.users.length > 0) {
-          const ceo = data.users.find((u: { role: string }) => u.role === "ceo");
-          const pm = data.users.find((u: { role: string }) => u.role === "project_manager");
-          const emp = data.users.find((u: { role: string }) => u.role === "employer");
-          const mapped: Array<{ name: string; email: string; role: string; roleColor: string }> = [];
-          if (ceo) mapped.push({ name: ceo.fullName || ceo.name, email: ceo.email, role: "CEO", roleColor: "bg-purple-500" });
-          if (pm) mapped.push({ name: pm.fullName || pm.name, email: pm.email, role: pm.jobTitle || "Project Manager", roleColor: "bg-blue-500" });
-          if (emp) mapped.push({ name: emp.fullName || emp.name, email: emp.email, role: emp.jobTitle || "Employer", roleColor: "bg-emerald-500" });
-          if (mapped.length > 0) setQuickUsers(mapped);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,12 +50,6 @@ export default function LoginPage() {
     } else {
       setErrorMessage(result.error || "Authentication failed. Please verify credentials.");
     }
-  };
-
-  const handleQuickFill = (quickEmail: string, quickPass: string = "Maestro@CEO2026!") => {
-    setEmail(quickEmail);
-    setPassword(quickPass);
-    setErrorMessage("");
   };
 
   return (
@@ -126,11 +95,10 @@ export default function LoginPage() {
                   autoFocus
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. ceo@maestrominds.co.in"
+                  placeholder="name@maestrominds.co.in"
                   className="w-full pl-10 pr-3.5 py-2.5 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900 shadow-2xs font-medium"
                 />
               </div>
-              
             </div>
 
             <div>
@@ -183,32 +151,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="pt-4 border-t border-slate-100 space-y-2.5">
-            <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Quick Role Credentials</span>
-              </span>
-              
-            </div>
-
-            <div className="grid grid-cols-1 gap-1.5 text-[11px]">
-              {quickUsers.map((qu) => (
-                <button
-                  key={qu.email}
-                  type="button"
-                  onClick={() => handleQuickFill(qu.email)}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50 transition-colors flex items-center justify-between cursor-pointer group"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${qu.roleColor} shrink-0`} />
-                    <span className="font-semibold text-slate-800">{qu.name}</span>
-                    <span className="text-slate-400 text-[10px]">{qu.role}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-mono group-hover:text-[#0084d4]">Select &rarr;</span>
-                </button>
-              ))}
-            </div>
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-400 font-medium">
+            <Lock className="w-3.5 h-3.5 text-slate-400" />
+            <span>MaestroMinds Technologies &bull; Enterprise Access Control</span>
           </div>
         </div>
       </div>

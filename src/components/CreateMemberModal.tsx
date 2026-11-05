@@ -310,7 +310,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. John Doe"
+                placeholder="Enter member's full name"
                 className="w-full px-3.5 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900"
               />
             </div>
@@ -327,7 +327,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                   setEmailUsername(e.target.value);
                   if (errorMessage) setErrorMessage("");
                 }}
-                placeholder="e.g. employee@maestrominds.co.in or username"
+                placeholder="name@maestrominds.co.in or username"
                 className={`w-full px-3.5 py-2 text-[13px] bg-white border rounded-lg focus:outline-hidden text-slate-900 shadow-2xs transition-colors ${
                   isEmailTaken
                     ? "border-red-400 focus:border-red-500 ring-1 ring-red-200"

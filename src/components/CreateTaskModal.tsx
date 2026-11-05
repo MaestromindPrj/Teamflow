@@ -38,11 +38,12 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
   const { users, createTask, uploadTaskMedia, currentUser } = useTeamFlow();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const projectMembers = users.filter((u) => project.teamMemberIds.includes(u.id));
+  const projectMembers = users.filter((u) => project.teamMemberIds?.includes(u.id));
+  const assignableUsers = projectMembers.length > 0 ? projectMembers : users;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [assignedTo, setAssignedTo] = useState(projectMembers[0]?.id || "");
+  const [assignedTo, setAssignedTo] = useState(assignableUsers[0]?.id || currentUser.id);
   const [priority, setPriority] = useState<"High" | "Medium" | "Low">("Medium");
   const [deadline, setDeadline] = useState(() => {
     const d = new Date();
@@ -177,7 +178,7 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
               required
               className="w-full px-3 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900"
             >
-              {projectMembers.map((member) => (
+              {assignableUsers.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.jobTitle || "Employer"}) {member.id === project.teamLeadId ? "• [Team Lead]" : ""}
                 </option>

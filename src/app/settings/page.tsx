@@ -372,7 +372,7 @@ export default function SettingsPage() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="e.g. employee@company.com"
+                  placeholder="name@maestrominds.co.in"
                   className="w-full px-3 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
                 />
               </div>

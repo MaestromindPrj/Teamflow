@@ -113,7 +113,9 @@ export default function NewProjectModal({
   const [error, setError] = useState<string | null>(null);
 
   const [selectedPmId, setSelectedPmId] = useState<string>(
-    currentUser.role === "project_manager" ? currentUser.id : projectManagers[0]?.id || ""
+    currentUser.role === "project_manager"
+      ? currentUser.id
+      : projectManagers[0]?.id || currentUser.id
   );
 
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(
@@ -121,7 +123,7 @@ export default function NewProjectModal({
   );
 
   const [selectedLeadId, setSelectedLeadId] = useState<string>(
-    employers[0]?.id || ""
+    employers[0]?.id || currentUser.id
   );
 
   if (!isOpen) return null;
@@ -173,8 +175,8 @@ export default function NewProjectModal({
         return d.toISOString().split("T")[0];
       })(),
       budget: budget || "₹50,000",
-      projectManagerId: selectedPmId,
-      teamLeadId: selectedLeadId,
+      projectManagerId: selectedPmId || currentUser.id,
+      teamLeadId: selectedLeadId || currentUser.id,
       teamMemberIds: selectedMemberIds,
       techStack: selectedTechStack,
     });
@@ -453,11 +455,17 @@ export default function NewProjectModal({
                 onChange={(e) => setSelectedPmId(e.target.value)}
                 className="w-full px-3.5 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
               >
-                {projectManagers.map((pm) => (
-                  <option key={pm.id} value={pm.id}>
-                    {pm.fullName} (Project Manager)
+                {projectManagers.length === 0 ? (
+                  <option value={currentUser.id}>
+                    {currentUser.fullName || "CEO"} (Direct Executive Oversight)
                   </option>
-                ))}
+                ) : (
+                  projectManagers.map((pm) => (
+                    <option key={pm.id} value={pm.id}>
+                      {pm.fullName} (Project Manager)
+                    </option>
+                  ))
+                )}
               </select>
             </div>
           )}
@@ -473,41 +481,47 @@ export default function NewProjectModal({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-1 border border-slate-200 rounded-lg bg-slate-50/50">
-              {employers.map((emp) => {
-                const isSelected = selectedMemberIds.includes(emp.id);
-                return (
-                  <div
-                    key={emp.id}
-                    onClick={() => handleToggleMember(emp.id)}
-                    className={`flex items-center gap-3 p-2 rounded-lg border text-[12px] transition-all cursor-pointer ${
-                      isSelected
-                        ? "bg-white border-[#0084d4] shadow-xs"
-                        : "bg-white/60 border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      readOnly
-                      className="w-4 h-4 accent-[#0084d4] rounded pointer-events-none"
-                    />
-                    <UserAvatar
-                      src={emp.avatar}
-                      name={emp.name}
-                      role={emp.role}
-                      className="w-6 h-6 rounded-full shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-slate-800 truncate leading-tight">
-                        {emp.fullName}
-                      </p>
-                      <p className="text-[10px] text-slate-400 truncate">
-                        {emp.jobTitle || "Employer"}
-                      </p>
+              {employers.length === 0 ? (
+                <div className="col-span-full py-4 text-center text-slate-400 text-[12px]">
+                  No employers onboarded yet. You can add employers in the Team page and assign them later.
+                </div>
+              ) : (
+                employers.map((emp) => {
+                  const isSelected = selectedMemberIds.includes(emp.id);
+                  return (
+                    <div
+                      key={emp.id}
+                      onClick={() => handleToggleMember(emp.id)}
+                      className={`flex items-center gap-3 p-2 rounded-lg border text-[12px] transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-white border-[#0084d4] shadow-xs"
+                          : "bg-white/60 border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        readOnly
+                        className="w-4 h-4 accent-[#0084d4] rounded pointer-events-none"
+                      />
+                      <UserAvatar
+                        src={emp.avatar}
+                        name={emp.name}
+                        role={emp.role}
+                        className="w-6 h-6 rounded-full shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-slate-800 truncate leading-tight">
+                          {emp.fullName}
+                        </p>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          {emp.jobTitle || "Employer"}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -522,17 +536,23 @@ export default function NewProjectModal({
               The designated Team Lead coordinates team tasks, member assignments, and deadlines for this project.
             </p>
 
-            <select
-              value={selectedLeadId}
-              onChange={(e) => setSelectedLeadId(e.target.value)}
-              className="w-full px-3.5 py-2 text-[13px] bg-white border border-[#ffa500]/40 rounded-lg text-slate-900 font-semibold focus:outline-hidden focus:border-[#ffa500] shadow-2xs"
-            >
-              {eligibleLeads.map((lead) => (
-                <option key={lead.id} value={lead.id}>
-                  {lead.id === currentUser.id ? `${lead.fullName} (You)` : lead.fullName} — {lead.jobTitle || "Employer"}
-                </option>
-              ))}
-            </select>
+            {eligibleLeads.length === 0 ? (
+              <p className="text-[12px] text-amber-700 font-medium">
+                No employers added to roster yet. The team lead will default to you or can be appointed after adding team members.
+              </p>
+            ) : (
+              <select
+                value={selectedLeadId}
+                onChange={(e) => setSelectedLeadId(e.target.value)}
+                className="w-full px-3.5 py-2 text-[13px] bg-white border border-[#ffa500]/40 rounded-lg text-slate-900 font-semibold focus:outline-hidden focus:border-[#ffa500] shadow-2xs"
+              >
+                {eligibleLeads.map((lead) => (
+                  <option key={lead.id} value={lead.id}>
+                    {lead.id === currentUser.id ? `${lead.fullName} (You)` : lead.fullName} — {lead.jobTitle || "Employer"}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">

@@ -15,7 +15,8 @@ interface EditTaskModalProps {
 export default function EditTaskModal({ task, project, isOpen, onClose }: EditTaskModalProps) {
   const { users, updateTask, currentUser } = useTeamFlow();
 
-  const projectMembers = users.filter((u) => project.teamMemberIds.includes(u.id));
+  const projectMembers = users.filter((u) => project.teamMemberIds?.includes(u.id));
+  const assignableMembers = projectMembers.length > 0 ? projectMembers : users;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -118,7 +119,7 @@ export default function EditTaskModal({ task, project, isOpen, onClose }: EditTa
               onChange={(e) => setAssignedTo(e.target.value)}
               className="w-full px-3 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900 cursor-pointer"
             >
-              {projectMembers.map((member) => (
+              {assignableMembers.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.jobTitle || "Employer"})
                   {member.id === project.teamLeadId ? " — [Team Lead]" : ""}
