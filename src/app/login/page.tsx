@@ -153,7 +153,7 @@ export default function LoginPage() {
 
           <div className="pt-4 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-400 font-medium">
             <Lock className="w-3.5 h-3.5 text-slate-400" />
-            <span>MaestroMinds Technologies &bull; Enterprise Access Control</span>
+            <span>MaestroMinds &bull; Enterprise Access Control</span>
           </div>
         </div>
       </div>

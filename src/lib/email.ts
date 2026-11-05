@@ -195,7 +195,7 @@ export async function sendNewUserCredentialsEmail(
               </p>
               <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
               <p style="margin: 0; color: #94a3b8; font-size: 11px; line-height: 18px;">
-                MaestroMinds Technologies &bull; TeamFlow Workspace &bull; <a href="https://teamflow-topaz.vercel.app" style="color: #0084d4; text-decoration: none;">teamflow-topaz.vercel.app</a>
+                MaestroMinds &bull; TeamFlow Workspace &bull; <a href="https://teamflow-topaz.vercel.app" style="color: #0084d4; text-decoration: none;">teamflow-topaz.vercel.app</a>
               </p>
             </td>
           </tr>
