@@ -188,30 +188,36 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
 
         {createdCredentials ? (
           <div className="p-6 space-y-5">
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div className="space-y-1 min-w-0 flex-1 text-left">
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2.5">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                 <h3 className="text-[14px] font-bold text-emerald-950 text-left">
                   Team Member Account Created!
                 </h3>
-                {createdCredentials.emailSent ? (
-                  <div className="space-y-1 pt-0.5">
-                    <div className="text-[12px] text-emerald-700 font-medium text-left flex items-start gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span className="text-left flex-1 leading-snug">
-                        Credentials automatically sent to <strong className="font-semibold text-emerald-900">{createdCredentials.email}</strong> via Gmail.
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-emerald-600/90 pl-5 text-left">
+              </div>
+
+              {createdCredentials.emailSent ? (
+                <div className="flex items-start gap-3">
+                  <Mail className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1 min-w-0 flex-1 text-left">
+                    <p className="text-[12px] text-emerald-800 font-medium text-left leading-snug">
+                      Credentials automatically sent to{" "}
+                      <strong className="font-semibold text-emerald-950">{createdCredentials.email}</strong>{" "}
+                      via Gmail.
+                    </p>
+                    <p className="text-[11px] text-emerald-600/90 text-left">
                       (If not visible in Inbox, please check Spam/Junk and select &quot;Report not spam&quot;)
                     </p>
                   </div>
-                ) : (
+                </div>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <div className="w-5 shrink-0" />
                   <p className="text-[12px] text-slate-600 text-left">
                     Account is active and ready. Share or copy credentials below.
                   </p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
