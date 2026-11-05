@@ -63,6 +63,22 @@ export function formatSecondsToDuration(totalSeconds: number): string {
   return `${hours}h ${minutes}m ${seconds}s`;
 }
 
+export function isLateClockIn(timeOrDate?: Date | string | null): boolean {
+  if (!timeOrDate || timeOrDate === "—") return false;
+  if (timeOrDate instanceof Date) {
+    return timeOrDate.getHours() > 9 || (timeOrDate.getHours() === 9 && timeOrDate.getMinutes() > 30);
+  }
+  const str = String(timeOrDate).trim();
+  const match = str.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?/i);
+  if (!match) return false;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const ampm = match[3]?.toUpperCase();
+  if (ampm === "PM" && hours < 12) hours += 12;
+  if (ampm === "AM" && hours === 12) hours = 0;
+  return hours > 9 || (hours === 9 && minutes > 30);
+}
+
 const DEFAULT_CLOCK_IN_DATA: Record<string, UserClockInState> = {
   "u-ceo-1": {
     isClockedIn: false,
@@ -1540,7 +1556,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
                 ...existingYesterday,
                 clockOut: "12:00 AM",
                 duration: day1Duration,
-                status: "Checked Out",
+                status: existingYesterday.status === "Late" || isLateClockIn(existingYesterday.clockIn) ? "Late" : "Checked Out",
               };
               updatedList = updatedList.map((r) => (r.id === existingYesterday.id ? closedYesterday : r));
               fetch("/api/attendance", {
@@ -1681,11 +1697,12 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       setAttendance((prevAtt) => {
         const existing = prevAtt.find((r) => r.userId === userId && r.date === clockInDate);
         if (existing) {
+          const isLate = existing.status === "Late" || isLateClockIn(existing.clockIn);
           const updatedRecord: AttendanceRecord = {
             ...existing,
             clockOut: clockOutTimeStr,
             duration: formattedDuration,
-            status: "Checked Out",
+            status: isLate ? "Late" : "Checked Out",
             sessions: updatedSessions,
           };
           fetch("/api/attendance", {
@@ -1695,16 +1712,18 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           }).catch(() => null);
           return prevAtt.map((r) => (r.id === existing.id ? updatedRecord : r));
         } else {
+          const checkInPunch = userState.clockInTimeString || clockOutTimeStr;
+          const isLate = isLateClockIn(checkInPunch);
           const newRecord: AttendanceRecord = {
             id: `att-${userId}-${clockInDate}`,
             userId: targetUser.id,
             userName: targetUser.fullName,
             userRole: targetUser.role,
             date: clockInDate,
-            clockIn: userState.clockInTimeString || clockOutTimeStr,
+            clockIn: checkInPunch,
             clockOut: clockOutTimeStr,
             duration: formattedDuration,
-            status: "Checked Out",
+            status: isLate ? "Late" : "Checked Out",
             sessions: updatedSessions,
           };
           fetch("/api/attendance", {
@@ -1981,11 +2000,13 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       setAttendance((prev) => {
         const existingToday = prev.find((r) => r.userId === userId && r.date === todayString);
         if (existingToday) {
+          const firstPunch = existingToday.clockIn && existingToday.clockIn !== "—" ? existingToday.clockIn : timeString;
+          const isLate = existingToday.status === "Late" || isLateClockIn(firstPunch);
           const updatedRecord: AttendanceRecord = {
             ...existingToday,
-            clockIn: existingToday.clockIn && existingToday.clockIn !== "—" ? existingToday.clockIn : timeString,
+            clockIn: firstPunch,
             clockOut: "—",
-            status: "Present",
+            status: isLate ? "Late" : "Present",
             sessions: updatedSessions,
           };
           fetch("/api/attendance", {
@@ -1995,6 +2016,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           }).catch(() => null);
           return prev.map((r) => (r.id === existingToday.id ? updatedRecord : r));
         } else {
+          const isLate = isLateClockIn(now);
           const newRecord: AttendanceRecord = {
             id: `att-${userId}-${todayString}`,
             userId: targetUser.id,
@@ -2004,7 +2026,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             clockIn: timeString,
             clockOut: "—",
             duration: "00h 00m 01s",
-            status: "Present",
+            status: isLate ? "Late" : "Present",
             sessions: updatedSessions,
           };
           fetch("/api/attendance", {
@@ -2026,11 +2048,12 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         setAttendance((prev) => {
           const prevRec = prev.find((r) => r.userId === userId && r.date === clockInDate);
           if (prevRec) {
+            const isLate = prevRec.status === "Late" || isLateClockIn(prevRec.clockIn);
             const closedPrev: AttendanceRecord = {
               ...prevRec,
               clockOut: "12:00 AM",
               duration: day1Duration,
-              status: "Checked Out",
+              status: isLate ? "Late" : "Checked Out",
             };
             fetch("/api/attendance", {
               method: "POST",
@@ -2066,16 +2089,17 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
         setAttendance((prev) => {
           const existingToday = prev.find((r) => r.userId === userId && r.date === todayString);
+          const isLate = existingToday?.status === "Late" || isLateClockIn(existingToday?.clockIn);
           const closedToday: AttendanceRecord = {
             id: existingToday ? existingToday.id : `att-rec-${Date.now()}-${userId}`,
             userId: targetUser.id,
             userName: targetUser.fullName,
             userRole: targetUser.role,
             date: todayString,
-            clockIn: "12:00 AM",
+            clockIn: existingToday?.clockIn || "12:00 AM",
             clockOut: timeString,
             duration: todayDuration,
-            status: "Checked Out",
+            status: isLate ? "Late" : "Checked Out",
             sessions: todaySessions,
           };
           fetch("/api/attendance", {
@@ -2127,11 +2151,13 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         setAttendance((prev) => {
           const existingToday = prev.find((r) => r.userId === userId && r.date === todayString);
           if (existingToday) {
+            const firstPunch = existingToday.clockIn && existingToday.clockIn !== "—" ? existingToday.clockIn : (userState.clockInTimeString || timeString);
+            const isLate = existingToday.status === "Late" || isLateClockIn(firstPunch);
             const updatedRecord: AttendanceRecord = {
               ...existingToday,
               clockOut: timeString,
               duration: formattedDuration,
-              status: "Checked Out",
+              status: isLate ? "Late" : "Checked Out",
               sessions: currentSessions,
             };
             fetch("/api/attendance", {
@@ -2141,16 +2167,18 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             }).catch(() => null);
             return prev.map((r) => (r.id === existingToday.id ? updatedRecord : r));
           } else {
+            const firstPunch = userState.clockInTimeString || timeString;
+            const isLate = isLateClockIn(firstPunch);
             const newRecord: AttendanceRecord = {
               id: `att-${userId}-${todayString}`,
               userId: targetUser.id,
               userName: targetUser.fullName,
               userRole: targetUser.role,
               date: todayString,
-              clockIn: userState.clockInTimeString || timeString,
+              clockIn: firstPunch,
               clockOut: timeString,
               duration: formattedDuration,
-              status: "Checked Out",
+              status: isLate ? "Late" : "Checked Out",
               sessions: currentSessions,
             };
             fetch("/api/attendance", {

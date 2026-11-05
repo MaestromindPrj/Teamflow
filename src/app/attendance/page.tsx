@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import { StatusBadge } from "@/components/Badges";
-import { useTeamFlow, getLocalDateString } from "@/context/TeamFlowContext";
+import { useTeamFlow, getLocalDateString, isLateClockIn } from "@/context/TeamFlowContext";
 import AttendanceDetailModal from "@/components/AttendanceDetailModal";
 import ApplyLeaveModal from "@/components/ApplyLeaveModal";
 import LeaveRequestsModal from "@/components/LeaveRequestsModal";
@@ -130,7 +130,36 @@ function AttendanceContent() {
 
   const todayString = getLocalDateString(new Date());
 
-  const lateCount = baseAttendance.filter((r) => r.status === "Late" && r.date === todayString).length;
+  const lateUserIds = new Set<string>();
+
+  baseAttendance.forEach((r) => {
+    if (r.date === todayString && r.userRole !== "ceo" && r.status !== "Leave") {
+      const clockState = userClockInData[r.userId];
+      const firstPunch =
+        clockState?.sessions?.[0]?.clockIn ||
+        clockState?.clockInTimeString ||
+        r.sessions?.[0]?.clockIn ||
+        r.clockIn;
+      if (r.status === "Late" || isLateClockIn(firstPunch)) {
+        lateUserIds.add(r.userId);
+      }
+    }
+  });
+
+  relevantStaff.forEach((u) => {
+    const clockState = userClockInData[u.id];
+    if (clockState && (clockState.isClockedIn || clockState.clockOutTimeString)) {
+      const isToday = !clockState.clockInDate || clockState.clockInDate === todayString;
+      if (isToday) {
+        const firstPunch = clockState.sessions?.[0]?.clockIn || clockState.clockInTimeString;
+        if (isLateClockIn(firstPunch)) {
+          lateUserIds.add(u.id);
+        }
+      }
+    }
+  });
+
+  const lateCount = lateUserIds.size;
   const leaveCount = baseAttendance.filter((r) => r.status === "Leave" && r.date === todayString).length;
   const attendanceRate =
     relevantStaff.length > 0
@@ -402,7 +431,7 @@ function AttendanceContent() {
                 <div className="mt-1 text-[24px] font-bold text-[#0084d4] leading-none">
                   {attendanceRate}%
                 </div>
-                <p className="mt-2 text-[11px] text-slate-400">Active staffing rate</p>
+                <p className="mt-2 text-[11px] text-slate-400">Active working rate</p>
               </div>
             )}
           </div>
@@ -567,13 +596,28 @@ function AttendanceContent() {
                       liveDurationStr = row.duration;
                     }
 
-                    const rowStatus = isToday
-                      ? isWorkingNow
+                    const firstPunch =
+                      (isToday && clockState?.sessions?.[0]?.clockIn) ||
+                      (isToday && clockState?.clockInTimeString) ||
+                      row.sessions?.[0]?.clockIn ||
+                      row.clockIn;
+
+                    const isLate = row.status === "Late" || isLateClockIn(firstPunch);
+
+                    let rowStatus: AttendanceRecord["status"] = row.status;
+                    if (row.status === "Leave") {
+                      rowStatus = "Leave";
+                    } else if (isLate) {
+                      rowStatus = "Late";
+                    } else if (isToday) {
+                      rowStatus = isWorkingNow
                         ? "Present"
                         : clockState?.clockOutTimeString
                         ? "Checked Out"
-                        : row.status
-                      : row.status;
+                        : row.status;
+                    } else {
+                      rowStatus = row.status;
+                    }
 
                     const sessions = (isToday && clockState?.sessions && clockState.sessions.length > 0)
                       ? clockState.sessions

@@ -745,7 +745,7 @@ export const INITIAL_ATTENDANCE_DATA: AttendanceRecord[] = [
     clockIn: "09:42 AM",
     clockOut: "05:00 PM",
     duration: "7h 18m",
-    status: "Checked Out"
+    status: "Late"
   },
   {
     id: "att-rec-7",

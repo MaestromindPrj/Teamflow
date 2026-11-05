@@ -159,7 +159,7 @@ export async function GET() {
               UPDATE attendance
               SET clock_out = ${autoOutTimeStr},
                   duration = ${formattedDuration},
-                  status = 'Checked Out',
+                  status = CASE WHEN status = 'Late' THEN 'Late' ELSE 'Checked Out' END,
                   sessions = ${JSON.stringify(curSessions)}::jsonb
               WHERE user_id = ${r.user_id} AND date = ${targetDate};
             `;

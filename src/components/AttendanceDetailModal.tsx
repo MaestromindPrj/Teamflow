@@ -16,7 +16,7 @@ import {
   Sparkles,
   Coffee
 } from "lucide-react";
-import { useTeamFlow, getLocalDateString, formatSecondsToDuration } from "@/context/TeamFlowContext";
+import { useTeamFlow, getLocalDateString, formatSecondsToDuration, isLateClockIn } from "@/context/TeamFlowContext";
 import { StatusBadge } from "@/components/Badges";
 import { AttendanceRecord, PunchSession } from "@/data/teamflowData";
 import UserAvatar from "@/components/UserAvatar";
@@ -106,13 +106,25 @@ export default function AttendanceDetailModal({
     liveDurationStr = record.duration;
   }
 
-  const modalStatus = isToday
-    ? isWorkingNow
+  const firstPunchIn = recordedSessions[0]?.clockIn || checkInTime || "—";
+  const lastPunchOut = recordedSessions[recordedSessions.length - 1]?.clockOut || checkOutTime || "—";
+
+  const isLate = record.status === "Late" || isLateClockIn(firstPunchIn);
+
+  let modalStatus: AttendanceRecord["status"] = record.status;
+  if (record.status === "Leave") {
+    modalStatus = "Leave";
+  } else if (isLate) {
+    modalStatus = "Late";
+  } else if (isToday) {
+    modalStatus = isWorkingNow
       ? "Present"
       : clockState?.clockOutTimeString
       ? "Checked Out"
-      : record.status
-    : record.status;
+      : record.status;
+  } else {
+    modalStatus = record.status;
+  }
 
   const userProjects = projects.filter(
     (p) =>
@@ -120,9 +132,6 @@ export default function AttendanceDetailModal({
       p.teamLeadId === record.userId ||
       p.projectManagerId === record.userId
   );
-
-  const firstPunchIn = recordedSessions[0]?.clockIn || checkInTime || "—";
-  const lastPunchOut = recordedSessions[recordedSessions.length - 1]?.clockOut || checkOutTime || "—";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">

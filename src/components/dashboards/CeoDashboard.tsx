@@ -21,7 +21,7 @@ import {
   ChevronRight,
   Crown
 } from "lucide-react";
-import { useTeamFlow } from "@/context/TeamFlowContext";
+import { useTeamFlow, isLateClockIn } from "@/context/TeamFlowContext";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import UserAvatar from "@/components/UserAvatar";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
@@ -527,7 +527,8 @@ export default function CeoDashboard() {
                 const clockOutTime = isUserIn ? "—" : (clockState?.clockOutTimeString || "—");
                 const elapsed = clockState?.elapsedSeconds || 0;
                 const durationStr = isUserIn || elapsed > 0 ? `${Math.floor(elapsed / 3600)}h ${Math.floor((elapsed % 3600) / 60)}m` : "0h 00m";
-                const status = isUserIn ? "Present" : clockState?.clockOutTimeString ? "Checked Out" : "Checked Out";
+                const isLate = clockInTime !== "—" && isLateClockIn(clockInTime);
+                const status = isLate ? "Late" : isUserIn ? "Present" : clockState?.clockOutTimeString ? "Checked Out" : "Not Clocked In";
 
                 return (
                   <tr key={staff.id} className="hover:bg-slate-50/60 transition-colors">
