@@ -146,6 +146,8 @@ export async function DELETE(req: NextRequest) {
     await initDatabase();
     const sql = getDb();
     await sql`DELETE FROM users WHERE id = ${userId};`;
+    await sql`DELETE FROM clock_in_status WHERE user_id = ${userId};`;
+    await sql`DELETE FROM password_reset_codes WHERE user_id = ${userId};`;
 
     return NextResponse.json({ success: true, message: "User deleted successfully." });
   } catch (error: unknown) {
