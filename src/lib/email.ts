@@ -209,9 +209,7 @@ export async function sendNewUserCredentialsEmail(
 
   try {
     const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
+      service: "gmail",
       auth: {
         user,
         pass,
@@ -222,11 +220,7 @@ export async function sendNewUserCredentialsEmail(
       from: `"${senderName}" <${senderEmail}>`,
       replyTo: senderEmail,
       to: params.toEmail,
-      subject: `Welcome to MaestroMinds TeamFlow, ${params.recipientName}`,
-      headers: {
-        "X-Entity-Ref-ID": `teamflow-onboard-${Date.now()}`,
-        "X-Auto-Response-Suppress": "OOF, AutoReply",
-      },
+      subject: `Welcome to MaestroMinds TeamFlow - Getting Started`,
       html: htmlContent,
       text: `Hello ${params.recipientName},\n\nWelcome to MaestroMinds TeamFlow! Your workspace account has been created.\n\nWorkspace Portal: ${loginUrl}\nAccount Email: ${params.toEmail}\nRole: ${params.role} (${params.jobTitle})\nTemporary Access Key: ${params.initialPassword}\n\nYou can customize your password at any time from Profile Settings.\n\nBest regards,\nMaestroMinds Technologies\nhttps://teamflow-topaz.vercel.app`,
     });

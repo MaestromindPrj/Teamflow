@@ -178,11 +178,16 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                   Team Member Account Created!
                 </h3>
                 {createdCredentials.emailSent ? (
-                  <div className="text-[12px] text-emerald-700 font-medium text-left flex items-start gap-1.5 pt-0.5">
-                    <Mail className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                    <span className="text-left flex-1 leading-snug">
-                      Credentials automatically sent to <strong className="font-semibold text-emerald-900">{createdCredentials.email}</strong> via Gmail.
-                    </span>
+                  <div className="space-y-1 pt-0.5">
+                    <div className="text-[12px] text-emerald-700 font-medium text-left flex items-start gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span className="text-left flex-1 leading-snug">
+                        Credentials automatically sent to <strong className="font-semibold text-emerald-900">{createdCredentials.email}</strong> via Gmail.
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-600/90 pl-5 text-left">
+                      (If not visible in Inbox, please check Spam/Junk and select &quot;Report not spam&quot;)
+                    </p>
                   </div>
                 ) : (
                   <p className="text-[12px] text-slate-600 text-left">
