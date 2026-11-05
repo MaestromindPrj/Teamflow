@@ -206,7 +206,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                       via Gmail.
                     </p>
                     <p className="text-[11px] text-emerald-600/90 text-left">
-                      (If not visible in Inbox, please check Spam/Junk and select &quot;Report not spam&quot;)
+                      (If not visible in Inbox, please check Spam/Junk folder)
                     </p>
                   </div>
                 </div>
