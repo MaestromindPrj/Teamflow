@@ -55,7 +55,23 @@ export async function POST(req: NextRequest) {
     const initialPassword = body.password || body.initialPassword || generateInitialPassword();
     const passwordHash = hashPassword(initialPassword);
 
+    const normalizedEmail = email.trim().toLowerCase();
     const sql = getDb();
+
+    const existingUsers = await sql`
+      SELECT id FROM users
+      WHERE LOWER(email) = LOWER(${normalizedEmail})
+        AND id != ${id}
+      LIMIT 1;
+    `;
+
+    if (existingUsers.length > 0) {
+      return NextResponse.json(
+        { error: "User already exists with this email address." },
+        { status: 409 }
+      );
+    }
+
     await sql`
       INSERT INTO users (id, name, full_name, email, role, job_title, avatar, phone, employee_id, bio, password_hash, initial_password)
       VALUES (${id}, ${name || fullName.split(" ")[0]}, ${fullName}, ${email}, ${role || "employer"}, ${jobTitle || ""}, ${avatar || ""}, ${phone || ""}, ${employeeId || ""}, ${bio || null}, ${passwordHash}, ${initialPassword})

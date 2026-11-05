@@ -927,6 +927,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     jobTitle?: string;
     initialPassword?: string;
   }): Promise<User & { emailSent?: boolean; emailError?: string }> => {
+    const normalizedEmail = memberData.email.trim().toLowerCase();
+    const existingInState = users.find(
+      (u) => u.email.trim().toLowerCase() === normalizedEmail
+    );
+    if (existingInState) {
+      throw new Error("User already exists with this email address.");
+    }
+
     const isPm = memberData.role === "project_manager";
     const timestamp = Date.now();
     const id = isPm ? `u-pm-${timestamp}` : `u-emp-${timestamp}`;
@@ -949,7 +957,37 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       bio: "",
     };
 
-    setUsers((prev) => [...prev, newUser]);
+    let emailSent = false;
+    let emailError: string | undefined;
+
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...newUser,
+        initialPassword: memberData.initialPassword,
+        sendWelcomeEmail: true,
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw new Error(data?.error || "Failed to add team member.");
+    }
+
+    if (data) {
+      emailSent = Boolean(data.emailSent);
+      emailError = data.emailError;
+    }
+
+    setUsers((prev) => {
+      const nextUsers = [...prev, newUser];
+      try {
+        localStorage.setItem("teamflow_users", JSON.stringify(nextUsers));
+      } catch {}
+      return nextUsers;
+    });
 
     setUserClockInData((prev) => ({
       ...prev,
@@ -961,28 +999,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         elapsedSeconds: 0,
       },
     }));
-
-    let emailSent = false;
-    let emailError: string | undefined;
-
-    try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...newUser,
-          initialPassword: memberData.initialPassword,
-          sendWelcomeEmail: true,
-        }),
-      });
-      const data = await res.json();
-      if (data) {
-        emailSent = Boolean(data.emailSent);
-        emailError = data.emailError;
-      }
-    } catch (err) {
-      console.warn("Failed to persist new team member to database:", err);
-    }
 
     return { ...newUser, emailSent, emailError };
   };

@@ -33,7 +33,7 @@ function generateInitialPassword(): string {
 }
 
 export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModalProps) {
-  const { jobRoles, departments, addTeamMember } = useTeamFlow();
+  const { users, jobRoles, departments, addTeamMember } = useTeamFlow();
   const availableRoles = jobRoles && jobRoles.length > 0 ? jobRoles : departments;
 
   const [fullName, setFullName] = useState("");
@@ -45,6 +45,17 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
+
+  const normalizedInputEmail = emailUsername.trim().toLowerCase();
+  const computedEmail = normalizedInputEmail.includes("@")
+    ? normalizedInputEmail
+    : `${normalizedInputEmail}@maestrominds.co.in`;
+
+  const isEmailTaken = Boolean(
+    normalizedInputEmail &&
+    normalizedInputEmail !== "@maestrominds.co.in" &&
+    users.some((u) => u.email.trim().toLowerCase() === computedEmail)
+  );
 
   const [createdCredentials, setCreatedCredentials] = useState<{
     name: string;
@@ -114,6 +125,12 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
     const companyEmail = rawEmailInput.includes("@")
       ? rawEmailInput
       : `${rawEmailInput}@maestrominds.co.in`;
+
+    if (isEmailTaken || users.some((u) => u.email.trim().toLowerCase() === companyEmail)) {
+      setErrorMessage("User already exists with this email address.");
+      return;
+    }
+
     const passwordToUse = generateInitialPassword();
     const finalJobTitle = role === "employer" ? (selectedJobRole || "Software Developer") : "Project Manager";
 
@@ -306,25 +323,34 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                 type="text"
                 required
                 value={emailUsername}
-                onChange={(e) => setEmailUsername(e.target.value)}
-                placeholder="e.g. employee@gmail.com or username"
-                className="w-full px-3.5 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900 shadow-2xs"
+                onChange={(e) => {
+                  setEmailUsername(e.target.value);
+                  if (errorMessage) setErrorMessage("");
+                }}
+                placeholder="e.g. employee@maestrominds.co.in or username"
+                className={`w-full px-3.5 py-2 text-[13px] bg-white border rounded-lg focus:outline-hidden text-slate-900 shadow-2xs transition-colors ${
+                  isEmailTaken
+                    ? "border-red-400 focus:border-red-500 ring-1 ring-red-200"
+                    : "border-slate-200 focus:border-[#0084d4]"
+                }`}
               />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Assigned login email:{" "}
-                <span className="font-mono text-slate-600 font-semibold">
-                  {emailUsername.trim()
-                    ? emailUsername.trim().toLowerCase().includes("@")
-                      ? emailUsername.trim().toLowerCase()
-                      : `${emailUsername.trim().toLowerCase()}@maestrominds.co.in`
-                    : "username@maestrominds.co.in"}
-                </span>
-                {!emailUsername.includes("@") && emailUsername.trim() && (
-                  <span className="text-slate-400 ml-1">
-
+              {isEmailTaken ? (
+                <p className="text-[11px] text-red-600 font-semibold mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                  <span>User already exists with this email address.</span>
+                </p>
+              ) : (
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Assigned login email:{" "}
+                  <span className="font-mono text-slate-600 font-semibold">
+                    {emailUsername.trim()
+                      ? emailUsername.trim().toLowerCase().includes("@")
+                        ? emailUsername.trim().toLowerCase()
+                        : `${emailUsername.trim().toLowerCase()}@maestrominds.co.in`
+                      : "username@maestrominds.co.in"}
                   </span>
-                )}
-              </p>
+                </p>
+              )}
             </div>
 
             {role === "employer" ? (
@@ -364,8 +390,8 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                disabled={isSubmitting || isEmailTaken}
+                className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>{isSubmitting ? "Onboarding..." : "Add Team Member"}</span>
