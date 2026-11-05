@@ -191,7 +191,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
 
         let declarantTitle = "Leadership";
         if (isDeclarantCeo) {
-          declarantTitle = `CEO ${ol.declaredByName || "Marcus Sterling"}`;
+          declarantTitle = `CEO ${ol.declaredByName || "Executive"}`;
         } else if (isDeclarantPm) {
           declarantTitle = `PM ${ol.declaredByName || "Project Manager"}`;
         }

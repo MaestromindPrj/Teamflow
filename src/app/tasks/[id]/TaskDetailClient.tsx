@@ -312,7 +312,7 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400 font-normal text-[12px]">Assigned By</span>
                   <span className="font-semibold text-slate-800 text-[13px]">
-                    {task.assignedBy || "Sarah Williams"}
+                    {task.assignedBy || "Project Manager"}
                   </span>
                 </div>
 

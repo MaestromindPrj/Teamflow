@@ -88,7 +88,9 @@ export async function POST(req: NextRequest) {
         : namePart[0] + "***" + namePart[namePart.length - 1];
     const maskedEmail = `${maskedName}@${domainPart}`;
 
-    console.log(`[Password Reset OTP] Generated code for ${userEmail}: ${otpCode}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[Password Reset OTP] Generated code for ${userEmail}: ${otpCode}`);
+    }
 
     return NextResponse.json({
       success: true,

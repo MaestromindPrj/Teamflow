@@ -471,9 +471,6 @@ export default function SettingsPage() {
               <Lock className="w-4 h-4 text-[#0084d4]" />
               <span>Security &amp; Password Management</span>
             </div>
-            <span className="text-[11px] font-medium text-slate-400">
-              Scrypt Encrypted Storage
-            </span>
           </div>
 
           {passwordError && (

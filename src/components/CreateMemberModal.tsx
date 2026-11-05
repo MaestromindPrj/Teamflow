@@ -310,7 +310,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Ajay"
+                placeholder="e.g. John Doe"
                 className="w-full px-3.5 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900"
               />
             </div>

@@ -236,28 +236,6 @@ export async function initDatabase() {
       await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS discussion JSONB DEFAULT '[]'::jsonb;`;
       await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS tech_stack JSONB DEFAULT '[]'::jsonb;`;
 
-      // Ensure every existing project in the database has a designated tech stack
-      await sql`
-        UPDATE projects 
-        SET tech_stack = '["React", "Next.js", "TypeScript", "Tailwind CSS"]'::jsonb 
-        WHERE id = 'proj-1' AND (tech_stack IS NULL OR tech_stack = '[]'::jsonb OR tech_stack = 'null'::jsonb);
-      `;
-      await sql`
-        UPDATE projects 
-        SET tech_stack = '["Flutter", "Node.js", "PostgreSQL", "Docker"]'::jsonb 
-        WHERE id = 'proj-2' AND (tech_stack IS NULL OR tech_stack = '[]'::jsonb OR tech_stack = 'null'::jsonb);
-      `;
-      await sql`
-        UPDATE projects 
-        SET tech_stack = '["Python", "AWS", "PostgreSQL", "Docker"]'::jsonb 
-        WHERE id = 'proj-3' AND (tech_stack IS NULL OR tech_stack = '[]'::jsonb OR tech_stack = 'null'::jsonb);
-      `;
-      await sql`
-        UPDATE projects 
-        SET tech_stack = '["Figma", "React", "TypeScript", "Tailwind CSS"]'::jsonb 
-        WHERE id = 'proj-4' AND (tech_stack IS NULL OR tech_stack = '[]'::jsonb OR tech_stack = 'null'::jsonb);
-      `;
-
       await sql`
         UPDATE projects
         SET tech_stack = CASE
@@ -306,7 +284,7 @@ export async function initDatabase() {
         console.warn("Cleanup warning:", cleanupErr);
       }
 
-      const defaultPassword = "Maestro@2026!";
+      const defaultPassword = "Maestro@CEO2026!";
       const defaultHash = hashPassword(defaultPassword);
       await sql`
         UPDATE users 
