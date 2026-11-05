@@ -222,7 +222,7 @@ export async function sendNewUserCredentialsEmail(
       to: params.toEmail,
       subject: `Welcome to MaestroMinds TeamFlow - Getting Started`,
       html: htmlContent,
-      text: `Hello ${params.recipientName},\n\nWelcome to MaestroMinds TeamFlow! Your workspace account has been created.\n\nWorkspace Portal: ${loginUrl}\nAccount Email: ${params.toEmail}\nRole: ${params.role} (${params.jobTitle})\nTemporary Access Key: ${params.initialPassword}\n\nYou can customize your password at any time from Profile Settings.\n\nBest regards,\nMaestroMinds Technologies\nhttps://teamflow-topaz.vercel.app`,
+      text: `Hello ${params.recipientName},\n\nWelcome to MaestroMinds TeamFlow! Your workspace account has been created.\n\nWorkspace Portal: ${loginUrl}\nAccount Email: ${params.toEmail}\nRole: ${params.role} (${params.jobTitle})\nAccess Key: ${params.initialPassword}\n\nYou can customize your password at any time from Profile Settings.\n\nBest regards,\nMaestroMinds\nhttps://teamflow-topaz.vercel.app`,
     });
 
     return {
