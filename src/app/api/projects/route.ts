@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       deadline: deadline || "",
       category: category || "General",
       budget: budget || "₹50,000",
-      techStack: Array.isArray(techStack) ? techStack : [],
+      techStack: finalTechStack,
     };
 
     return NextResponse.json({ success: true, project: newProject }, { status: 201 });

@@ -44,7 +44,7 @@ function FigmaIcon({ className }: { className?: string }) {
 }
 
 export default function TaskDetailClient({ task }: { task: TaskItem }) {
-  const { currentUser, projects, tasks, canUserDeleteMedia, deleteTaskMedia, mediaDeletionRequests } = useTeamFlow();
+  const { currentUser, projects, tasks, updateTask, canUserDeleteMedia, deleteTaskMedia, mediaDeletionRequests } = useTeamFlow();
   const [taskStatus, setTaskStatus] = useState<TaskItem["status"]>(task.status);
   const [comments, setComments] = useState(task.discussion || []);
   const [replyText, setReplyText] = useState("");
@@ -87,8 +87,12 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
       message: replyText.trim(),
     };
 
-    setComments([...comments, newComment]);
+    const nextComments = [...comments, newComment];
+    setComments(nextComments);
     setReplyText("");
+    if (task?.id) {
+      updateTask(task.id, { discussion: nextComments });
+    }
   };
 
   const handleSubmitForReview = () => {
@@ -99,7 +103,11 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
       detail: `${currentUser.fullName} submitted task for approval`,
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
     };
-    setActivities([newActivity, ...activities]);
+    const nextActivities = [newActivity, ...activities];
+    setActivities(nextActivities);
+    if (task?.id) {
+      updateTask(task.id, { status: "Review", activity: nextActivities, progress: 90 });
+    }
   };
 
   return (

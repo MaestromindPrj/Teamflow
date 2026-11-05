@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { isDbConfigured, getDb } from "@/lib/db";
 import { isCloudinaryConfigured } from "@/lib/cloudinary";
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
+  const _checkParam = req.nextUrl.searchParams.get("check");
   const dbConfigured = isDbConfigured();
   const cloudinaryConfigured = isCloudinaryConfigured();
 
