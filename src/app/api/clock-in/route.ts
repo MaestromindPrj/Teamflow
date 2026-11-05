@@ -24,55 +24,6 @@ const DEFAULT_CLOCK_IN_DATA: Record<string, UserClockInState> = {
     clockOutTimeString: null,
     elapsedSeconds: 0,
   },
-  "u-pm-1": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-  },
-  "u-pm-2": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-  },
-  "u-emp-1": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-  },
-  "u-emp-2": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-  },
-  "u-emp-3": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-  },
-  "u-emp-4": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-  },
-  "u-emp-5": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-  },
 };
 
 export async function GET() {

@@ -22,7 +22,8 @@ import {
   AlertTriangle,
   ChevronDown,
   Send,
-  Cpu
+  Cpu,
+  Sparkles
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
@@ -248,6 +249,16 @@ export default function ProjectDetailModal({
                 <StatusBadge status={project.status} />
               )}
               <PriorityBadge priority={project.priority} />
+              {project.status === "Planning" && Boolean(project.startDate && new Date(project.startDate).getTime() <= new Date().setHours(0, 0, 0, 0)) && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1" title={`Scheduled start date reached: ${project.startDate}`}>
+                  <Calendar className="w-3 h-3 text-amber-500" />
+                  <span>Scheduled to start</span>
+                </span>
+              )}
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-sky-50/70 text-[#0084d4] border border-sky-100 inline-flex items-center gap-1" title="Project status automatically updates based on task completion. Manual override is also supported.">
+                <Sparkles className="w-2.5 h-2.5 text-[#0084d4]" />
+                <span>Auto Workflow</span>
+              </span>
               <span className="text-[12px] text-slate-400 font-medium">
                 {project.category}
               </span>
@@ -539,7 +550,7 @@ export default function ProjectDetailModal({
                             <span className="text-[11px] text-slate-400">Progress:</span>
                             <div className="w-20 bg-slate-100 h-1.5 rounded-full overflow-hidden">
                               <div
-                                className="bg-[#0084d4] h-full rounded-full"
+                                className="bg-[#0084d4] h-full rounded-full transition-all duration-300 ease-out"
                                 style={{ width: `${task.progress}%` }}
                               />
                             </div>

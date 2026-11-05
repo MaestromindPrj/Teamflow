@@ -80,7 +80,14 @@ export async function PUT(
     const deadline = updates.deadline !== undefined ? updates.deadline : current.deadline;
 
     let progress = updates.progress !== undefined ? updates.progress : current.progress;
-    if (updates.status === "Completed") progress = 100;
+    if (updates.status !== undefined && updates.progress === undefined) {
+      if (updates.status === "To Do") progress = 0;
+      else if (updates.status === "In Progress" && (current.status === "Review" || current.status === "Completed" || current.status === "To Do" || current.progress >= 90 || current.progress === 0 || !current.progress)) progress = 50;
+      else if (updates.status === "Review") progress = 90;
+      else if (updates.status === "Completed") progress = 100;
+    } else if (updates.status === "Completed") {
+      progress = 100;
+    }
 
     const attachments = updates.attachments !== undefined ? updates.attachments : current.attachments;
     let activity = updates.activity !== undefined ? updates.activity : current.activity;

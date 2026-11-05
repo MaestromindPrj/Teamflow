@@ -149,9 +149,14 @@ export default function EditTaskModal({ task, project, isOpen, onClose }: EditTa
               </label>
               <select
                 value={status}
-                onChange={(e) =>
-                  setStatus(e.target.value as "To Do" | "In Progress" | "Review" | "Completed")
-                }
+                onChange={(e) => {
+                  const nextStatus = e.target.value as "To Do" | "In Progress" | "Review" | "Completed";
+                  setStatus(nextStatus);
+                  if (nextStatus === "To Do") setProgress(0);
+                  else if (nextStatus === "In Progress" && (status === "Review" || status === "Completed" || status === "To Do" || progress >= 90 || progress === 0)) setProgress(50);
+                  else if (nextStatus === "Review") setProgress(90);
+                  else if (nextStatus === "Completed") setProgress(100);
+                }}
                 className="w-full px-3 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900 cursor-pointer"
               >
                 <option value="To Do">To Do</option>
@@ -186,7 +191,14 @@ export default function EditTaskModal({ task, project, isOpen, onClose }: EditTa
                 max="100"
                 step="5"
                 value={progress}
-                onChange={(e) => setProgress(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setProgress(val);
+                  if (val === 100) setStatus("Completed");
+                  else if (val === 0 && status === "Completed") setStatus("To Do");
+                  else if (val > 0 && val < 90 && (status === "To Do" || status === "Completed")) setStatus("In Progress");
+                  else if (val >= 90 && val < 100 && status === "Completed") setStatus("Review");
+                }}
                 className="w-full mt-2 cursor-pointer accent-[#0084d4]"
               />
             </div>

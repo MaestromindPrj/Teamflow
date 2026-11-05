@@ -6,6 +6,7 @@ import {
   Project,
   Task,
   TaskAttachment,
+  TaskActivityItem,
   AttendanceRecord,
   PunchSession,
   LeaveRequest,
@@ -81,62 +82,6 @@ export function isLateClockIn(timeOrDate?: Date | string | null): boolean {
 
 const DEFAULT_CLOCK_IN_DATA: Record<string, UserClockInState> = {
   "u-ceo-1": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-    clockInDate: undefined
-  },
-  "u-pm-1": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-    clockInDate: undefined
-  },
-  "u-pm-2": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-    clockInDate: undefined
-  },
-  "u-emp-1": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-    clockInDate: undefined
-  },
-  "u-emp-2": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-    clockInDate: undefined
-  },
-  "u-emp-3": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-    clockInDate: undefined
-  },
-  "u-emp-4": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-    clockInDate: undefined
-  },
-  "u-emp-5": {
     isClockedIn: false,
     clockInTimestamp: null,
     clockInTimeString: null,
@@ -388,6 +333,47 @@ export function sanitizeTaskAttachments(t: Task): Task {
     return true;
   });
   return { ...t, attachments: deduped };
+}
+
+export function computeAutoProjectStatus(
+  projectTasks: Task[],
+  currentStatus: Project["status"]
+): Project["status"] {
+  const activeTasks = projectTasks.filter(
+    (t) =>
+      t.title !== "Project Assets & Deliverables" &&
+      t.title !== "Project Deliverables & Assets"
+  );
+
+  if (activeTasks.length === 0) {
+    return currentStatus || "Planning";
+  }
+
+  const total = activeTasks.length;
+  const completed = activeTasks.filter((t) => t.status === "Completed").length;
+  const review = activeTasks.filter((t) => t.status === "Review").length;
+  const inProgress = activeTasks.filter(
+    (t) => t.status === "In Progress" || (t.progress > 0 && t.status !== "Completed")
+  ).length;
+  const toDo = activeTasks.filter((t) => t.status === "To Do" && (t.progress === 0 || !t.progress)).length;
+
+  if (completed === total) {
+    return "Completed";
+  }
+
+  if (completed + review === total && review > 0) {
+    return "In Review";
+  }
+
+  if (inProgress > 0 || completed > 0 || review > 0) {
+    return "In Progress";
+  }
+
+  if (toDo === total) {
+    return "Planning";
+  }
+
+  return currentStatus || "Planning";
 }
 
 export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
@@ -1182,7 +1168,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       priority: taskData.priority,
       status: taskData.status || "To Do",
       deadline: taskData.deadline,
-      progress: taskData.status === "Completed" ? 100 : taskData.status === "Review" ? 90 : 15,
+      progress:
+        taskData.status === "Completed"
+          ? 100
+          : taskData.status === "Review"
+          ? 90
+          : taskData.status === "In Progress"
+          ? 50
+          : 0,
       attachments: [],
       activity: [
         {
@@ -1194,7 +1187,30 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       ]
     };
 
-    setTasks((prev) => [newTask, ...prev]);
+    const nextTasks = [newTask, ...tasks];
+    setTasks(nextTasks);
+
+    const targetProject = projects.find((p) => p.id === taskData.projectId);
+    if (targetProject) {
+      const projectTasks = nextTasks.filter((t) => t.projectId === targetProject.id);
+      const computedStatus = computeAutoProjectStatus(projectTasks, targetProject.status);
+      if (computedStatus !== targetProject.status) {
+        newTask.activity.unshift({
+          id: `act-${Date.now()}-proj`,
+          title: `Project status automatically changed to ${computedStatus}`,
+          detail: `Triggered by new task "${taskData.title}".`,
+          date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+        });
+        setProjects((prev) =>
+          prev.map((p) => (p.id === targetProject.id ? { ...p, status: computedStatus } : p))
+        );
+        fetch(`/api/projects/${targetProject.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: computedStatus }),
+        }).catch((err) => console.warn("Failed to auto-update project status on backend:", err));
+      }
+    }
 
     fetch("/api/tasks", {
       method: "POST",
@@ -1206,13 +1222,42 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks((prev) =>
-      prev.map((t) => {
+    let targetProjectId: string | undefined;
+    let autoProjectStatusUpdate: Project["status"] | undefined;
+    let autoActivityItem: TaskActivityItem | undefined;
+    let computedProgress: number | undefined;
+
+    setTasks((prev) => {
+      const nextTasks = prev.map((t) => {
         if (t.id === id) {
+          targetProjectId = t.projectId;
           const updated = { ...t, ...updates };
-          if (updates.status === "Completed") {
-            updated.progress = 100;
+
+          if (updates.status !== undefined) {
+            if (updates.progress !== undefined) {
+              updated.progress = updates.progress;
+            } else if (updates.status === "To Do") {
+              updated.progress = 0;
+            } else if (updates.status === "In Progress") {
+              if (t.status === "Review" || t.status === "Completed" || t.status === "To Do" || t.progress >= 90 || t.progress === 0 || !t.progress) {
+                updated.progress = 50;
+              }
+            } else if (updates.status === "Review") {
+              updated.progress = 90;
+            } else if (updates.status === "Completed") {
+              updated.progress = 100;
+            }
+          } else if (updates.progress !== undefined) {
+            updated.progress = updates.progress;
+            if (updates.progress === 100) {
+              updated.status = "Completed";
+            } else if (updates.progress === 0 && t.status === "Completed") {
+              updated.status = "To Do";
+            }
           }
+
+          computedProgress = updated.progress;
+
           if (updates.status && updates.status !== t.status) {
             updated.activity = [
               {
@@ -1227,21 +1272,77 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           return updated;
         }
         return t;
-      })
-    );
+      });
+
+      if (targetProjectId) {
+        const targetProj = projects.find((p) => p.id === targetProjectId);
+        if (targetProj) {
+          const projectTasks = nextTasks.filter((t) => t.projectId === targetProjectId);
+          const computedStatus = computeAutoProjectStatus(projectTasks, targetProj.status);
+          if (computedStatus !== targetProj.status) {
+            autoProjectStatusUpdate = computedStatus;
+            autoActivityItem = {
+              id: `act-${Date.now()}-proj`,
+              title: `Project status automatically changed to ${computedStatus}`,
+              detail: `Triggered by task status change to ${updates.status || 'updated state'}.`,
+              date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+            };
+            return nextTasks.map((t) =>
+              t.id === id ? { ...t, activity: [autoActivityItem!, ...t.activity] } : t
+            );
+          }
+        }
+      }
+
+      return nextTasks;
+    });
+
+    if (targetProjectId && autoProjectStatusUpdate) {
+      setProjects((prev) =>
+        prev.map((p) => (p.id === targetProjectId ? { ...p, status: autoProjectStatusUpdate! } : p))
+      );
+      fetch(`/api/projects/${targetProjectId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: autoProjectStatusUpdate }),
+      }).catch((err) => console.warn("Failed to auto-update project status on backend:", err));
+    }
 
     fetch(`/api/tasks/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...updates,
+        ...(computedProgress !== undefined ? { progress: computedProgress } : {}),
         updatedByName: currentUser.fullName,
       }),
     }).catch((err) => console.warn("Failed to update task on backend:", err));
   };
 
   const deleteTask = (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    const targetTask = tasks.find((t) => t.id === id);
+    const targetProjectId = targetTask?.projectId;
+
+    const remainingTasks = tasks.filter((t) => t.id !== id);
+    setTasks(remainingTasks);
+
+    if (targetProjectId) {
+      const targetProj = projects.find((p) => p.id === targetProjectId);
+      if (targetProj) {
+        const projectTasks = remainingTasks.filter((t) => t.projectId === targetProjectId);
+        const computedStatus = computeAutoProjectStatus(projectTasks, targetProj.status);
+        if (computedStatus !== targetProj.status) {
+          setProjects((prev) =>
+            prev.map((p) => (p.id === targetProjectId ? { ...p, status: computedStatus } : p))
+          );
+          fetch(`/api/projects/${targetProjectId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: computedStatus }),
+          }).catch((err) => console.warn("Failed to auto-update project status on backend:", err));
+        }
+      }
+    }
 
     fetch(`/api/tasks/${id}`, {
       method: "DELETE",

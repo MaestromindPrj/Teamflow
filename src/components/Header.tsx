@@ -133,7 +133,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
       // Identify reviewer role
       const reviewer = users.find((u) => u.id === r.reviewedById);
       const reviewerRole = r.reviewedByRole || reviewer?.role;
-      const isReviewerCeo = reviewerRole === "ceo" || r.reviewedByName?.toLowerCase().includes("ceo") || r.reviewedByName?.toLowerCase().includes("marcus") || r.reviewedById === "u-ceo-1";
+      const isReviewerCeo = reviewerRole === "ceo" || r.reviewedByName?.toLowerCase().includes("ceo") || r.reviewedById === "u-ceo-1";
       const isReviewerPm = reviewerRole === "project_manager" || reviewer?.role === "project_manager" || (!isReviewerCeo && r.reviewedById && r.reviewedById !== "u-ceo-1");
 
       // 2B. If reviewed by CEO -> Notify the PM
@@ -141,7 +141,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
         list.push({
           id: `notif-leave-ceo-decision-${r.id}-${r.status}`,
           title: `Leave ${statusTitle} by CEO`,
-          detail: `CEO ${r.reviewedByName || "Marcus Sterling"} ${statusTitle.toLowerCase()} ${r.userName}'s ${r.leaveType} leave (${dateRangeStr}).`,
+          detail: `CEO ${r.reviewedByName || "CEO"} ${statusTitle.toLowerCase()} ${r.userName}'s ${r.leaveType} leave (${dateRangeStr}).`,
           time: `CEO ${statusTitle}`,
           link: `/attendance?view=requests&leaveId=${r.id}`,
           category: "leave",

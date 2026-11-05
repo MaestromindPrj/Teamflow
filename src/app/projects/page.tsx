@@ -239,7 +239,7 @@ function ProjectsContent() {
                             title={
                               hasCompletedTasks
                                 ? "The Status is locked because tasks are being completed"
-                                : "Click to change project status"
+                                : "Project status transitions automatically. Select to manually override."
                             }
                           >
                             <option
@@ -257,6 +257,12 @@ function ProjectsContent() {
                         </div>
                       ) : (
                         <StatusBadge status={project.status} />
+                      )}
+                      {project.status === "Planning" && Boolean(project.startDate && new Date(project.startDate).getTime() <= new Date().setHours(0, 0, 0, 0)) && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1" title={`Scheduled start date reached: ${project.startDate}`}>
+                          <Calendar className="w-3 h-3 text-amber-500" />
+                          <span>Scheduled to start</span>
+                        </span>
                       )}
                       <PriorityBadge priority={project.priority} />
                       <span className="text-[11px] text-slate-400 font-medium">

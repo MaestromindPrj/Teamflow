@@ -29,9 +29,7 @@ export default function LoginPage() {
   const [quickUsers, setQuickUsers] = useState<
     Array<{ name: string; email: string; role: string; roleColor: string }>
   >([
-    { name: "Elena Rostova", email: "elena.rostova@maestrominds.co.in", role: "CEO", roleColor: "bg-purple-500" },
-    { name: "Marcus Vance", email: "marcus.vance@maestrominds.co.in", role: "Project Manager", roleColor: "bg-blue-500" },
-    { name: "Ajay Shanmugam", email: "ajay@maestrominds.co.in", role: "UI/UX Designer", roleColor: "bg-emerald-500" },
+    { name: "CEO", email: "ceo@maestrominds.co.in", role: "CEO", roleColor: "bg-purple-500" },
   ]);
 
   useEffect(() => {
@@ -79,7 +77,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickFill = (quickEmail: string, quickPass: string = "Maestro@2026!") => {
+  const handleQuickFill = (quickEmail: string, quickPass: string = "Maestro@CEO2026!") => {
     setEmail(quickEmail);
     setPassword(quickPass);
     setErrorMessage("");
