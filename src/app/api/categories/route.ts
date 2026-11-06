@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDbConfigured, initDatabase, getDb } from "@/lib/db";
-import { DEFAULT_PROJECT_CATEGORIES, ProjectCategory } from "@/data/teamflowData";
+import { ProjectCategory } from "@/data/teamflowData";
 
 export async function GET() {
   if (!isDbConfigured()) {
-    return NextResponse.json({ categories: DEFAULT_PROJECT_CATEGORIES, source: "mock" });
+    return NextResponse.json({ categories: [], source: "mock" });
   }
 
   try {
@@ -34,7 +34,7 @@ export async function GET() {
     return NextResponse.json({ categories, source: "database" });
   } catch (error) {
     console.error("GET /api/categories error:", error);
-    return NextResponse.json({ categories: DEFAULT_PROJECT_CATEGORIES, source: "fallback_error" });
+    return NextResponse.json({ error: "Failed to fetch categories", categories: [], source: "error" }, { status: 500 });
   }
 }
 

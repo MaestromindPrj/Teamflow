@@ -31,6 +31,7 @@ import ProjectDetailModal from "@/components/ProjectDetailModal";
 import CreateMemberModal from "@/components/CreateMemberModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
 import UserAvatar from "@/components/UserAvatar";
+import { TeamDirectorySkeleton } from "@/components/Skeletons";
 
 function TeamDirectoryContent() {
   const searchParams = useSearchParams();
@@ -76,14 +77,7 @@ function TeamDirectoryContent() {
   }, [tabParam, isPm]);
 
   if (!mounted || !hasHydrated) {
-    return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Team Directory" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
-    );
+    return <TeamDirectorySkeleton />;
   }
 
   if (effectiveUser.role === "employer") {

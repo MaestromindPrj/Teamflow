@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import { CardGridSkeleton } from "@/components/Skeletons";
 
 export default function TechStacksPage() {
   const {
@@ -113,12 +114,12 @@ export default function TechStacksPage() {
 
   if (!mounted || !hasHydrated) {
     return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Tech Stack" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
+      <CardGridSkeleton
+        title="Tech Stack"
+        subtitle="Loading engineering technologies..."
+        cardCount={8}
+        columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+      />
     );
   }
 

@@ -40,8 +40,14 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
   const [emailUsername, setEmailUsername] = useState("");
   const [role, setRole] = useState<"employer" | "project_manager">("employer");
   const [selectedJobRole, setSelectedJobRole] = useState<string>(
-    availableRoles[0]?.name || "Software Developer"
+    availableRoles[0]?.name || ""
   );
+
+  useEffect(() => {
+    if (availableRoles.length > 0 && !selectedJobRole) {
+      setSelectedJobRole(availableRoles[0].name);
+    }
+  }, [availableRoles, selectedJobRole]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);

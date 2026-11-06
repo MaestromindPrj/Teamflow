@@ -141,7 +141,7 @@ export async function GET() {
     return NextResponse.json({ clockInData, source: "database" });
   } catch (error) {
     console.error("GET /api/clock-in error:", error);
-    return NextResponse.json({ clockInData: DEFAULT_CLOCK_IN_DATA, source: "fallback_error" });
+    return NextResponse.json({ error: "Failed to fetch clock-in status", clockInData: {}, source: "error" }, { status: 500 });
   }
 }
 

@@ -7,25 +7,9 @@ export interface TechStackItem {
   projectCount?: number;
 }
 
-const DEFAULT_TECH_STACKS: TechStackItem[] = [
-  { id: "tech-react", name: "React" },
-  { id: "tech-next-js", name: "Next.js" },
-  { id: "tech-typescript", name: "TypeScript" },
-  { id: "tech-node-js", name: "Node.js" },
-  { id: "tech-python", name: "Python" },
-  { id: "tech-postgresql", name: "PostgreSQL" },
-  { id: "tech-tailwind-css", name: "Tailwind CSS" },
-  { id: "tech-flutter", name: "Flutter" },
-  { id: "tech-docker", name: "Docker" },
-  { id: "tech-aws", name: "AWS" },
-  { id: "tech-figma", name: "Figma" },
-  { id: "tech-graphql", name: "GraphQL" },
-  { id: "tech-mongodb", name: "MongoDB" },
-];
-
 export async function GET() {
   if (!isDbConfigured()) {
-    return NextResponse.json({ techStacks: DEFAULT_TECH_STACKS, source: "mock" });
+    return NextResponse.json({ techStacks: [], source: "mock" });
   }
 
   try {
@@ -46,7 +30,7 @@ export async function GET() {
     return NextResponse.json({ techStacks, source: "database" });
   } catch (error) {
     console.error("GET /api/tech-stacks error:", error);
-    return NextResponse.json({ techStacks: DEFAULT_TECH_STACKS, source: "fallback_error" });
+    return NextResponse.json({ error: "Failed to fetch tech stacks", techStacks: [], source: "error" }, { status: 500 });
   }
 }
 

@@ -23,6 +23,7 @@ import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
 import UserAvatar from "@/components/UserAvatar";
+import { TeamDirectorySkeleton } from "@/components/Skeletons";
 
 function ProjectManagerDetailContent() {
   const params = useParams();
@@ -40,14 +41,7 @@ function ProjectManagerDetailContent() {
     users.find((u) => u.role === "project_manager");
 
   if (!mounted || !hasHydrated) {
-    return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Project Manager Details" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
-    );
+    return <TeamDirectorySkeleton />;
   }
 
   if (!pm) {

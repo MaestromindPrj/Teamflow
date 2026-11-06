@@ -138,33 +138,7 @@ export interface ProjectCategory {
   projectCount?: number;
 }
 
-export const DEFAULT_PROJECT_CATEGORIES: ProjectCategory[] = [
-  {
-    id: "cat-web-engineering",
-    name: "Web Engineering",
-    description: "Frontend, backend, web applications, and API systems",
-  },
-  {
-    id: "cat-mobile-systems",
-    name: "Mobile Systems",
-    description: "iOS, Android, cross-platform apps, and mobile SDKs",
-  },
-  {
-    id: "cat-cloud-infrastructure",
-    name: "Cloud Infrastructure",
-    description: "DevOps, CI/CD pipelines, Kubernetes, and serverless architecture",
-  },
-  {
-    id: "cat-design-system",
-    name: "Design System",
-    description: "UI component libraries, design tokens, and user experience frameworks",
-  },
-  {
-    id: "cat-security-compliance",
-    name: "Security & Compliance",
-    description: "Data privacy, penetration testing, compliance, and cybersecurity",
-  },
-];
+export const DEFAULT_PROJECT_CATEGORIES: ProjectCategory[] = [];
 
 export const INITIAL_USERS: User[] = [
   {

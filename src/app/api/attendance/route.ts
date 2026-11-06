@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ attendance, source: "database" });
   } catch (error) {
     console.error("GET /api/attendance error:", error);
-    return NextResponse.json({ attendance: INITIAL_ATTENDANCE_DATA, source: "fallback_error" });
+    return NextResponse.json({ error: "Failed to fetch attendance", attendance: [], source: "error" }, { status: 500 });
   }
 }
 

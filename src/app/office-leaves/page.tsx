@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import { useTeamFlow, getLocalDateString, OfficeLeave } from "@/context/TeamFlowContext";
+import { CardGridSkeleton } from "@/components/Skeletons";
 
 export default function OfficeLeavesPage() {
   const { currentUser, users, officeLeaves, createOfficeLeave, deleteOfficeLeave, hasHydrated } = useTeamFlow();
@@ -76,12 +77,11 @@ export default function OfficeLeavesPage() {
 
   if (!mounted || !hasHydrated) {
     return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Company Holidays" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
+      <CardGridSkeleton
+        title="Company Holidays"
+        subtitle="Loading official workspace leaves..."
+        cardCount={4}
+      />
     );
   }
 

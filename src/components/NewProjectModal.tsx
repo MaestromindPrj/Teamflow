@@ -95,7 +95,7 @@ export default function NewProjectModal({
   useEffect(() => {
     setCode(generateProjectCode(name, projects));
   }, [name, projects]);
-  const [category, setCategory] = useState(() => categories[0]?.name || "Web Engineering");
+  const [category, setCategory] = useState(() => categories[0]?.name || "");
 
   useEffect(() => {
     if (categories.length > 0 && !categories.some((c) => c.name === category)) {

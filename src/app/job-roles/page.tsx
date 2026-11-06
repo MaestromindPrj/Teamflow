@@ -18,6 +18,7 @@ import Header from "@/components/Header";
 import CreateJobRoleModal from "@/components/CreateJobRoleModal";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import UserAvatar from "@/components/UserAvatar";
+import { CardGridSkeleton } from "@/components/Skeletons";
 
 export default function JobRolesPage() {
   const { currentUser, users, jobRoles, updateJobRole, deleteJobRole, hasHydrated } = useTeamFlow();
@@ -74,12 +75,11 @@ export default function JobRolesPage() {
 
   if (!mounted || !hasHydrated || !currentUser.id) {
     return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Job Roles" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
+      <CardGridSkeleton
+        title="Job Roles"
+        subtitle="Loading organizational roles..."
+        cardCount={6}
+      />
     );
   }
 

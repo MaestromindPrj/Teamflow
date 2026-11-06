@@ -6,17 +6,9 @@ export interface JobRoleItem {
   name: string;
 }
 
-const DEFAULT_JOB_ROLES: JobRoleItem[] = [
-  { id: "role-ui-ux-designer", name: "UI/UX Designer" },
-  { id: "role-software-developer", name: "Software Developer" },
-  { id: "role-junior-software-developer", name: "Junior Software Developer" },
-  { id: "role-ai-engineer", name: "AI Engineer" },
-  { id: "role-project-manager", name: "Project Manager" },
-];
-
 export async function GET() {
   if (!isDbConfigured()) {
-    return NextResponse.json({ jobRoles: DEFAULT_JOB_ROLES, source: "mock" });
+    return NextResponse.json({ jobRoles: [], departments: [], source: "mock" });
   }
 
   try {
@@ -36,7 +28,7 @@ export async function GET() {
     return NextResponse.json({ jobRoles, departments: jobRoles, source: "database" });
   } catch (error) {
     console.error("GET /api/job-roles error:", error);
-    return NextResponse.json({ jobRoles: DEFAULT_JOB_ROLES, departments: DEFAULT_JOB_ROLES, source: "fallback_error" });
+    return NextResponse.json({ error: "Failed to fetch job roles", jobRoles: [], departments: [], source: "error" }, { status: 500 });
   }
 }
 

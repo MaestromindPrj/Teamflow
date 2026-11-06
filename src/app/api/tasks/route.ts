@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ tasks, source: "database" });
   } catch (error) {
     console.error("GET /api/tasks error:", error);
-    return NextResponse.json({ tasks: INITIAL_TASKS_DATA, source: "fallback_error" });
+    return NextResponse.json({ error: "Failed to fetch tasks", tasks: [], source: "error" }, { status: 500 });
   }
 }
 

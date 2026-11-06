@@ -24,6 +24,7 @@ import { computeUserRewards, computeLeaderboard, DynamicRewardProfile } from "@/
 import InPageSubTabs from "@/components/InPageSubTabs";
 import AwardPointsModal from "@/components/AwardPointsModal";
 import UserAvatar from "@/components/UserAvatar";
+import { RewardsSkeleton } from "@/components/Skeletons";
 
 export default function RewardsPage() {
   const router = useRouter();
@@ -106,14 +107,7 @@ export default function RewardsPage() {
   };
 
   if (!mounted || !hasHydrated || !currentUser.id) {
-    return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Rewards & Recognition" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
-    );
+    return <RewardsSkeleton />;
   }
 
   return (

@@ -18,6 +18,7 @@ import {
 import Header from "@/components/Header";
 import CreateCategoryModal from "@/components/CreateCategoryModal";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import { CardGridSkeleton } from "@/components/Skeletons";
 
 export default function CategoriesPage() {
   const { currentUser, users, projects, categories, updateCategory, deleteCategory, hasHydrated } = useTeamFlow();
@@ -74,12 +75,11 @@ export default function CategoriesPage() {
 
   if (!mounted || !hasHydrated) {
     return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Project Categories" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
+      <CardGridSkeleton
+        title="Project Categories"
+        subtitle="Loading organizational categories..."
+        cardCount={6}
+      />
     );
   }
 

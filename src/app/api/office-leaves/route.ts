@@ -12,30 +12,9 @@ export interface OfficeLeave {
   createdAt?: string;
 }
 
-const DEFAULT_OFFICE_LEAVES: OfficeLeave[] = [
-  {
-    id: "off-leave-diwali-2026",
-    title: "Diwali Festival",
-    date: "2026-11-07",
-    endDate: "2026-11-08",
-  },
-  {
-    id: "off-leave-christmas-2026",
-    title: "Christmas Day",
-    date: "2026-12-25",
-    endDate: "2026-12-25",
-  },
-  {
-    id: "off-leave-newyear-2027",
-    title: "New Year's Day",
-    date: "2027-01-01",
-    endDate: "2027-01-01",
-  },
-];
-
 export async function GET() {
   if (!isDbConfigured()) {
-    return NextResponse.json({ officeLeaves: DEFAULT_OFFICE_LEAVES, source: "mock" });
+    return NextResponse.json({ officeLeaves: [], source: "mock" });
   }
 
   try {
@@ -61,7 +40,7 @@ export async function GET() {
     return NextResponse.json({ officeLeaves, source: "database" });
   } catch (error) {
     console.error("GET /api/office-leaves error:", error);
-    return NextResponse.json({ officeLeaves: DEFAULT_OFFICE_LEAVES, source: "fallback_error" });
+    return NextResponse.json({ error: "Failed to fetch office leaves", officeLeaves: [], source: "error" }, { status: 500 });
   }
 }
 

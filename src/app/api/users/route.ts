@@ -34,7 +34,7 @@ export async function GET() {
     return NextResponse.json({ users, source: "database" });
   } catch (error) {
     console.error("GET /api/users error:", error);
-    return NextResponse.json({ users: INITIAL_USERS, source: "fallback_error" });
+    return NextResponse.json({ error: "Failed to fetch users", users: [], source: "error" }, { status: 500 });
   }
 }
 

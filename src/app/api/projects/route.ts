@@ -48,7 +48,7 @@ export async function GET() {
     return NextResponse.json({ projects, source: "database" });
   } catch (error) {
     console.error("GET /api/projects error:", error);
-    return NextResponse.json({ projects: INITIAL_PROJECTS, source: "fallback_error" });
+    return NextResponse.json({ error: "Failed to fetch projects", projects: [], source: "error" }, { status: 500 });
   }
 }
 

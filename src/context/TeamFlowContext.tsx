@@ -244,35 +244,11 @@ interface TeamFlowContextType {
   deleteTechStack: (id: string) => Promise<boolean>;
 }
 
-const DEFAULT_OFFICE_LEAVES: OfficeLeave[] = [
-  { id: "ol-diwali", title: "Diwali", date: "2026-11-07" },
-  { id: "ol-christmas", title: "Christmas Day", date: "2026-12-25" },
-  { id: "ol-newyear", title: "New Year's Day", date: "2027-01-01" }
-];
-
-const DEFAULT_TECH_STACKS: TechStackItem[] = [
-  { id: "ts-nextjs", name: "Next.js" },
-  { id: "ts-react", name: "React" },
-  { id: "ts-typescript", name: "TypeScript" },
-  { id: "ts-tailwind", name: "Tailwind CSS" },
-  { id: "ts-nodejs", name: "Node.js" },
-  { id: "ts-postgresql", name: "PostgreSQL" },
-  { id: "ts-python", name: "Python" },
-  { id: "ts-fastapi", name: "FastAPI" },
-  { id: "ts-docker", name: "Docker" },
-  { id: "ts-aws", name: "AWS" },
-  { id: "ts-figma", name: "Figma" }
-];
+const DEFAULT_OFFICE_LEAVES: OfficeLeave[] = [];
+const DEFAULT_TECH_STACKS: TechStackItem[] = [];
+const DEFAULT_JOB_ROLES: { id: string; name: string }[] = [];
 
 const TeamFlowContext = createContext<TeamFlowContextType | undefined>(undefined);
-
-const DEFAULT_JOB_ROLES: { id: string; name: string }[] = [
-  { id: "role-ui-ux-designer", name: "UI/UX Designer" },
-  { id: "role-software-developer", name: "Software Developer" },
-  { id: "role-junior-software-developer", name: "Junior Software Developer" },
-  { id: "role-ai-engineer", name: "AI Engineer" },
-  { id: "role-project-manager", name: "Project Manager" },
-];
 
 const EMPTY_FALLBACK_USER: User = {
   id: "",
@@ -410,15 +386,15 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   userClockInDataRef.current = userClockInData;
   const currentUserIdRef = useRef(currentUserId);
   currentUserIdRef.current = currentUserId;
-  const [jobRoles, setJobRoles] = useState<{ id: string; name: string }[]>(DEFAULT_JOB_ROLES);
+  const [jobRoles, setJobRoles] = useState<{ id: string; name: string }[]>([]);
   const departments = jobRoles;
   const setDepartments = setJobRoles;
-  const [categories, setCategories] = useState<ProjectCategory[]>(DEFAULT_PROJECT_CATEGORIES);
+  const [categories, setCategories] = useState<ProjectCategory[]>([]);
   const [rewardsLedger, setRewardsLedger] = useState<RewardLedgerEntry[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [mediaDeletionRequests, setMediaDeletionRequests] = useState<MediaDeletionRequest[]>([]);
-  const [officeLeaves, setOfficeLeaves] = useState<OfficeLeave[]>(DEFAULT_OFFICE_LEAVES);
-  const [techStacks, setTechStacks] = useState<TechStackItem[]>(DEFAULT_TECH_STACKS);
+  const [officeLeaves, setOfficeLeaves] = useState<OfficeLeave[]>([]);
+  const [techStacks, setTechStacks] = useState<TechStackItem[]>([]);
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
@@ -539,6 +515,22 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
+      const savedJobRoles = localStorage.getItem("teamflow_job_roles");
+      if (savedJobRoles) {
+        try {
+          const parsed = JSON.parse(savedJobRoles);
+          if (Array.isArray(parsed) && parsed.length > 0) setJobRoles(parsed);
+        } catch {}
+      }
+
+      const savedRewardsLedger = localStorage.getItem("teamflow_rewards_ledger");
+      if (savedRewardsLedger) {
+        try {
+          const parsed = JSON.parse(savedRewardsLedger);
+          if (Array.isArray(parsed)) setRewardsLedger(parsed);
+        } catch {}
+      }
+
       localStorage.removeItem("teamflow_user_clock_in");
       const hasResetToCheckedOut = localStorage.getItem("teamflow_clock_v3_reset");
       if (!hasResetToCheckedOut) {
@@ -581,7 +573,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
       if (usersRes && usersRes.ok) {
         const data = await usersRes.json();
-        if (Array.isArray(data.users)) {
+        if (Array.isArray(data.users) && data.source !== "error" && data.source !== "fallback_error") {
           const sanitized = data.users.map(sanitizeUserData);
           setUsers(sanitized);
           try {
@@ -592,14 +584,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
       if (projectsRes && projectsRes.ok) {
         const data = await projectsRes.json();
-        if (Array.isArray(data.projects)) {
+        if (Array.isArray(data.projects) && data.source !== "error" && data.source !== "fallback_error") {
           setProjects(data.projects.map(ensureProjectTechStack));
         }
       }
 
       if (tasksRes && tasksRes.ok) {
         const data = await tasksRes.json();
-        if (Array.isArray(data.tasks)) {
+        if (Array.isArray(data.tasks) && data.source !== "error" && data.source !== "fallback_error") {
           const dummyTasks = data.tasks.filter(
             (t: Task) => t.title === "Project Assets & Deliverables" || t.title === "Project Deliverables & Assets"
           );
@@ -627,14 +619,14 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
       if (attendanceRes && attendanceRes.ok) {
         const data = await attendanceRes.json();
-        if (Array.isArray(data.attendance)) {
+        if (Array.isArray(data.attendance) && data.source !== "error" && data.source !== "fallback_error") {
           setAttendance(data.attendance);
         }
       }
 
       if (clockInRes && clockInRes.ok) {
         const data = await clockInRes.json();
-        if (data.clockInData) {
+        if (data.clockInData && data.source !== "error" && data.source !== "fallback_error") {
           setUserClockInData(data.clockInData);
         }
       }
@@ -642,42 +634,48 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       if (deptsRes && deptsRes.ok) {
         const data = await deptsRes.json();
         const list = data.jobRoles || data.departments;
-        if (Array.isArray(list) && list.length > 0) {
+        if (Array.isArray(list) && list.length > 0 && data.source !== "error" && data.source !== "fallback_error") {
           setJobRoles(list);
+          try {
+            localStorage.setItem("teamflow_job_roles", JSON.stringify(list));
+          } catch {}
         }
       }
 
       if (rewardsRes && rewardsRes.ok) {
         const data = await rewardsRes.json();
-        if (Array.isArray(data.ledger)) {
+        if (Array.isArray(data.ledger) && data.source !== "error" && data.source !== "fallback_error") {
           setRewardsLedger(data.ledger);
+          try {
+            localStorage.setItem("teamflow_rewards_ledger", JSON.stringify(data.ledger));
+          } catch {}
         }
       }
 
       if (leavesRes && leavesRes.ok) {
         const data = await leavesRes.json();
-        if (Array.isArray(data.leaveRequests)) {
+        if (Array.isArray(data.leaveRequests) && data.source !== "error" && data.source !== "fallback_error") {
           setLeaveRequests(data.leaveRequests);
         }
       }
 
       if (categoriesRes && categoriesRes.ok) {
         const data = await categoriesRes.json();
-        if (Array.isArray(data.categories)) {
+        if (Array.isArray(data.categories) && data.source !== "error" && data.source !== "fallback_error") {
           setCategories(data.categories);
         }
       }
 
       if (officeLeavesRes && officeLeavesRes.ok) {
         const data = await officeLeavesRes.json();
-        if (Array.isArray(data.officeLeaves)) {
+        if (Array.isArray(data.officeLeaves) && data.source !== "error" && data.source !== "fallback_error") {
           setOfficeLeaves(data.officeLeaves);
         }
       }
 
       if (techStacksRes && techStacksRes.ok) {
         const data = await techStacksRes.json();
-        if (Array.isArray(data.techStacks)) {
+        if (Array.isArray(data.techStacks) && data.source !== "error" && data.source !== "fallback_error") {
           setTechStacks(data.techStacks);
         }
       }
@@ -720,8 +718,10 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("teamflow_leave_requests", JSON.stringify(leaveRequests));
       localStorage.setItem("teamflow_office_leaves", JSON.stringify(officeLeaves));
       localStorage.setItem("teamflow_tech_stacks", JSON.stringify(techStacks));
+      localStorage.setItem("teamflow_job_roles", JSON.stringify(jobRoles));
+      localStorage.setItem("teamflow_rewards_ledger", JSON.stringify(rewardsLedger));
     } catch {}
-  }, [currentUserId, projects, tasks, attendance, userClockInData, categories, mediaDeletionRequests, leaveRequests, officeLeaves, techStacks, hasHydrated]);
+  }, [currentUserId, projects, tasks, attendance, userClockInData, categories, mediaDeletionRequests, leaveRequests, officeLeaves, techStacks, jobRoles, rewardsLedger, hasHydrated]);
 
   const currentUser: User =
     users.find((u) => u.id === currentUserId) ||
@@ -828,11 +828,15 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     setCategories((prev) => [...prev, newCat]);
 
     try {
-      await fetch("/api/categories", {
+      const res = await fetch("/api/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newCat),
       });
+      if (!res.ok) {
+        console.warn("POST /api/categories failed:", res.status);
+        return false;
+      }
       return true;
     } catch (err) {
       console.warn("Failed to create category on backend:", err);
@@ -855,11 +859,15 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      await fetch("/api/categories", {
+      const res = await fetch("/api/categories", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, name: trimmed, oldName, description }),
       });
+      if (!res.ok) {
+        console.warn("PUT /api/categories failed:", res.status);
+        return false;
+      }
       return true;
     } catch (err) {
       console.warn("Failed to update category on backend:", err);
@@ -870,9 +878,13 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const deleteCategory = async (id: string): Promise<boolean> => {
     setCategories((prev) => prev.filter((c) => c.id !== id));
     try {
-      await fetch(`/api/categories?id=${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/categories?id=${encodeURIComponent(id)}`, {
         method: "DELETE",
       });
+      if (!res.ok) {
+        console.warn("DELETE /api/categories failed:", res.status);
+        return false;
+      }
       return true;
     } catch (err) {
       console.warn("Failed to delete category on backend:", err);

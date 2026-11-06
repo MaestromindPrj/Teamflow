@@ -26,6 +26,7 @@ import LeaveRequestsModal from "@/components/LeaveRequestsModal";
 import { AttendanceRecord } from "@/data/teamflowData";
 import InPageSubTabs, { SubTabItem } from "@/components/InPageSubTabs";
 import UserAvatar from "@/components/UserAvatar";
+import { AttendanceSkeleton } from "@/components/Skeletons";
 
 function AttendanceContent() {
   const searchParams = useSearchParams();
@@ -211,14 +212,7 @@ function AttendanceContent() {
   const myOnTimeRate = myDaysPresent > 0 ? Math.round((myOnTimeCount / myDaysPresent) * 100) : 100;
 
   if (!mounted || !hasHydrated || !currentUser.id) {
-    return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Attendance & Workday Logs" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
-    );
+    return <AttendanceSkeleton />;
   }
 
   return (

@@ -27,6 +27,7 @@ import UploadAssetModal from "@/components/UploadAssetModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
 import DeleteMediaConfirmModal from "@/components/DeleteMediaConfirmModal";
 import RequestMediaDeletionModal from "@/components/RequestMediaDeletionModal";
+import { MediaVaultSkeleton } from "@/components/Skeletons";
 
 function MediaHubContent() {
   const searchParams = useSearchParams();
@@ -187,14 +188,7 @@ function MediaHubContent() {
   };
 
   if (!mounted || !hasHydrated || !currentUser.id) {
-    return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Deliverables &amp; Asset Vault" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
-    );
+    return <MediaVaultSkeleton />;
   }
 
   return (

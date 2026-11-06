@@ -23,6 +23,7 @@ import ProjectDetailModal from "@/components/ProjectDetailModal";
 import NewProjectModal from "@/components/NewProjectModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
 import UserAvatar from "@/components/UserAvatar";
+import { ProjectsSkeleton } from "@/components/Skeletons";
 
 function ProjectsContent() {
   const searchParams = useSearchParams();
@@ -80,14 +81,7 @@ function ProjectsContent() {
   });
 
   if (!mounted || !hasHydrated || !currentUser.id) {
-    return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Projects" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
-    );
+    return <ProjectsSkeleton />;
   }
 
   return (

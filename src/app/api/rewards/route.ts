@@ -58,9 +58,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ledger, source: "database" });
   } catch (error) {
     console.error("GET /api/rewards error:", error);
-    let fallback = DEFAULT_MOCK_LEDGER;
-    if (userId) fallback = fallback.filter((r) => r.userId === userId);
-    return NextResponse.json({ ledger: fallback, source: "fallback_error" });
+    return NextResponse.json({ error: "Failed to fetch rewards", ledger: [], source: "error" }, { status: 500 });
   }
 }
 

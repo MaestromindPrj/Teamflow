@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import UserAvatar from "@/components/UserAvatar";
+import { SettingsSkeleton } from "@/components/Skeletons";
 import {
   Bell,
   Mail,
@@ -199,14 +200,7 @@ export default function SettingsPage() {
       : currentUser.jobTitle || "Employer";
 
   if (!mounted || !hasHydrated || !currentUser.id) {
-    return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Settings &amp; Profile" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
-    );
+    return <SettingsSkeleton />;
   }
 
   return (

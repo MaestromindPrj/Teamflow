@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -22,6 +22,7 @@ import { useTeamFlow } from "@/context/TeamFlowContext";
 import UserAvatar from "@/components/UserAvatar";
 import DeleteMediaConfirmModal from "@/components/DeleteMediaConfirmModal";
 import RequestMediaDeletionModal from "@/components/RequestMediaDeletionModal";
+import { TaskDetailSkeleton } from "@/components/Skeletons";
 
 function FigmaIcon({ className }: { className?: string }) {
   return (
@@ -44,7 +45,9 @@ function FigmaIcon({ className }: { className?: string }) {
 }
 
 export default function TaskDetailClient({ task }: { task: TaskItem }) {
-  const { currentUser, projects, tasks, updateTask, canUserDeleteMedia, deleteTaskMedia, mediaDeletionRequests } = useTeamFlow();
+  const { currentUser, projects, tasks, updateTask, canUserDeleteMedia, deleteTaskMedia, mediaDeletionRequests, hasHydrated } = useTeamFlow();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [taskStatus, setTaskStatus] = useState<TaskItem["status"]>(task.status);
   const [comments, setComments] = useState(task.discussion || []);
   const [replyText, setReplyText] = useState("");
@@ -74,6 +77,10 @@ export default function TaskDetailClient({ task }: { task: TaskItem }) {
     projectName: string;
     projectCode: string;
   } | null>(null);
+
+  if (!mounted || !hasHydrated) {
+    return <TaskDetailSkeleton />;
+  }
 
   const handleSendComment = (e: React.FormEvent) => {
     e.preventDefault();

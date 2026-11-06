@@ -24,6 +24,7 @@ import { useTeamFlow } from "@/context/TeamFlowContext";
 import { computeUserRewards } from "@/lib/rewards";
 import AwardPointsModal from "@/components/AwardPointsModal";
 import UserAvatar from "@/components/UserAvatar";
+import { RewardsSkeleton } from "@/components/Skeletons";
 
 function StaffRewardDetailContent() {
   const params = useParams();
@@ -73,14 +74,7 @@ function StaffRewardDetailContent() {
   };
 
   if (!mounted || !hasHydrated || !currentUser.id) {
-    return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Staff Reward Details" subtitle="Loading..." />
-        <div className="px-7 py-6">
-          <div className="h-64 bg-slate-100 rounded-lg animate-pulse" />
-        </div>
-      </div>
-    );
+    return <RewardsSkeleton />;
   }
 
   if (!targetUser) {

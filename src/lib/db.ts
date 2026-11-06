@@ -258,6 +258,7 @@ export async function initDatabase() {
       await sql`ALTER TABLE office_leaves ADD COLUMN IF NOT EXISTS declared_by_name VARCHAR(255);`;
       await sql`ALTER TABLE office_leaves ADD COLUMN IF NOT EXISTS declared_by_role VARCHAR(50);`;
       await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb;`;
+      await sql`ALTER TABLE project_categories ADD COLUMN IF NOT EXISTS description TEXT;`;
 
       try {
         await sql`
