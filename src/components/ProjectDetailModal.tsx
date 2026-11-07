@@ -634,15 +634,24 @@ export default function ProjectDetailModal({
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <a
-                                      href={file.url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-slate-400 hover:text-slate-800 p-1"
-                                      title="View / Download"
-                                    >
-                                      <ExternalLink className="w-3.5 h-3.5" />
-                                    </a>
+                                    {file.url && !file.url.startsWith("blob:") && file.url !== "#" ? (
+                                      <a
+                                        href={file.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-slate-400 hover:text-slate-800 p-1"
+                                        title="View / Download"
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                      </a>
+                                    ) : (
+                                      <span
+                                        className="text-slate-300 p-1 cursor-not-allowed"
+                                        title="Deliverable link is unavailable"
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                      </span>
+                                    )}
                                     {canUserDeleteMedia(project.id) ? (
                                       <button
                                         onClick={() =>
@@ -756,15 +765,25 @@ export default function ProjectDetailModal({
                       )}
 
                       <div className="flex items-center gap-2">
-                        <a
-                          href={file.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex-1 h-8 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold text-center border border-slate-200 transition-colors inline-flex items-center justify-center gap-1.5"
-                        >
-                          <Download className="w-3 h-3" />
-                          <span>Access</span>
-                        </a>
+                        {file.url && !file.url.startsWith("blob:") && file.url !== "#" ? (
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 h-8 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold text-center border border-slate-200 transition-colors inline-flex items-center justify-center gap-1.5"
+                          >
+                            <Download className="w-3 h-3" />
+                            <span>Access</span>
+                          </a>
+                        ) : (
+                          <span
+                            className="flex-1 h-8 px-3 bg-slate-50 text-slate-400 rounded-lg text-[11px] font-semibold text-center border border-slate-200 inline-flex items-center justify-center gap-1.5 cursor-not-allowed"
+                            title="Deliverable link is unavailable"
+                          >
+                            <Download className="w-3 h-3" />
+                            <span>Unavailable</span>
+                          </span>
+                        )}
 
                         {canUserDeleteMedia(project.id) ? (
                           <button

@@ -186,7 +186,19 @@ export async function POST(req: NextRequest) {
         const existing = await sql`SELECT attachments FROM projects WHERE id = ${projectId} LIMIT 1;`;
         if (existing.length > 0) {
           const currentAttachments = (existing[0].attachments as TaskAttachment[]) || [];
-          const updatedAttachments = [attachment, ...currentAttachments];
+          const existingIdx = currentAttachments.findIndex(
+            (a) => a.name.trim().toLowerCase() === fileName.trim().toLowerCase()
+          );
+
+          let updatedAttachments: TaskAttachment[];
+          if (existingIdx >= 0) {
+            updatedAttachments = currentAttachments.map((a, idx) =>
+              idx === existingIdx ? { ...a, url: secureUrl, size: sizeStr } : a
+            );
+          } else {
+            updatedAttachments = [attachment, ...currentAttachments];
+          }
+
           await sql`
             UPDATE projects SET
               attachments = ${JSON.stringify(updatedAttachments)}::jsonb
@@ -202,6 +214,7 @@ export async function POST(req: NextRequest) {
       success: true,
       storage: storageProvider,
       attachment,
+      url: secureUrl,
       publicId,
     });
   } catch (error: unknown) {

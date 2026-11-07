@@ -111,7 +111,6 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
             name: selectedFile.name,
             size: calculatedSize || formatFileSize(selectedFile.size),
             type: mediaType,
-            url: URL.createObjectURL(selectedFile),
             rawFile: selectedFile,
           }
         : undefined

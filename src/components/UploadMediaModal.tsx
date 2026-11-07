@@ -201,7 +201,6 @@ export default function UploadMediaModal({ taskId, taskTitle, isOpen, onClose }:
           name: item.name,
           size: item.size,
           type: item.type,
-          url: URL.createObjectURL(item.file),
           rawFile: item.file
         });
 

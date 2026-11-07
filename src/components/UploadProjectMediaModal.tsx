@@ -224,7 +224,6 @@ export default function UploadProjectMediaModal({ project, isOpen, onClose }: Up
           name: item.name.trim(),
           size: item.size,
           type: item.type,
-          url: URL.createObjectURL(item.file),
           rawFile: item.file,
         });
 

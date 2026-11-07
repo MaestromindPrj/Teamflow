@@ -457,15 +457,24 @@ function MediaHubContent() {
                           </div>
 
                           <div className="flex items-center gap-1 shrink-0">
-                            <a
-                              href={file.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors"
-                              title="Open or download asset"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
+                            {file.url && !file.url.startsWith("blob:") && file.url !== "#" ? (
+                              <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors"
+                                title="Open or download asset"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            ) : (
+                              <span
+                                className="p-1.5 text-slate-300 cursor-not-allowed rounded-lg"
+                                title="Asset link is unavailable"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </span>
+                            )}
 
                             {canDelete && (
                               <button

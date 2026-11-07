@@ -369,6 +369,7 @@ export function sanitizeTaskAttachments(t: Task): Task {
   if (!Array.isArray(t.attachments)) return t;
   const seenNames = new Set<string>();
   const deduped = t.attachments.filter((att) => {
+    if (!att || !att.url || att.url.startsWith("blob:")) return false;
     const key = (att.name || "").trim().toLowerCase();
     if (!key) return true;
     if (seenNames.has(key)) return false;
@@ -376,6 +377,20 @@ export function sanitizeTaskAttachments(t: Task): Task {
     return true;
   });
   return { ...t, attachments: deduped };
+}
+
+export function sanitizeProjectAttachments(p: Project): Project {
+  if (!Array.isArray(p.attachments)) return p;
+  const seenNames = new Set<string>();
+  const deduped = p.attachments.filter((att) => {
+    if (!att || !att.url || att.url.startsWith("blob:")) return false;
+    const key = (att.name || "").trim().toLowerCase();
+    if (!key) return true;
+    if (seenNames.has(key)) return false;
+    seenNames.add(key);
+    return true;
+  });
+  return { ...p, attachments: deduped };
 }
 
 export function computeAutoProjectStatus(
@@ -558,7 +573,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
               if (p.code === "GRE-01") return { ...p, code: "MOB-01" };
               return p;
             });
-            setProjects(migrated.map(ensureProjectTechStack));
+            setProjects(migrated.map(ensureProjectTechStack).map(sanitizeProjectAttachments));
           }
         } catch {}
       }
@@ -723,7 +738,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       if (projectsRes && projectsRes.ok) {
         const data = await projectsRes.json();
         if (Array.isArray(data.projects) && data.source !== "error" && data.source !== "fallback_error") {
-          setProjects(data.projects.map(ensureProjectTechStack));
+          setProjects(data.projects.map(ensureProjectTechStack).map(sanitizeProjectAttachments));
         }
       }
 
@@ -871,6 +886,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
   const setCurrentUserId = (id: string) => {
     setCurrentUserIdState(id);
+    refreshFromBackend();
   };
 
   const updateUserProfile = (updates: Partial<User>) => {
@@ -1395,10 +1411,11 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   ): Task => {
     const attachmentId = `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const initialUrl =
-      initialFile?.url ||
-      (initialFile?.type === "image"
+      initialFile?.url && !initialFile.url.startsWith("blob:")
+        ? initialFile.url
+        : (initialFile?.type === "image"
         ? "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80"
-        : "#");
+        : "");
 
     const initialAttachments: TaskAttachment[] = initialFile
       ? [
@@ -1503,20 +1520,26 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       })
         .then((res) => res.json())
         .then((data) => {
-          if (data.url) {
-            setTasks((prev) =>
-              prev.map((t) => {
+          const finalUrl = data?.attachment?.url || data?.url;
+          if (finalUrl && !finalUrl.startsWith("blob:")) {
+            setTasks((prev) => {
+              const updated = prev.map((t) => {
                 if (t.id === newTask.id) {
                   return {
                     ...t,
                     attachments: t.attachments.map((att) =>
-                      att.id === attachmentId ? { ...att, url: data.url } : att
+                      att.id === attachmentId ? { ...att, url: finalUrl } : att
                     ),
                   };
                 }
                 return t;
-              })
-            );
+              });
+              tasksRef.current = updated;
+              try {
+                localStorage.setItem("teamflow_tasks", JSON.stringify(updated));
+              } catch {}
+              return updated;
+            });
           }
         })
         .catch((err) => console.warn("Failed to upload initial task deliverable:", err));
@@ -1683,44 +1706,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    const attachmentId = `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    const initialUrl =
-      file.url ||
-      (file.type === "image"
-        ? "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80"
-        : "#");
-
-    const newAttachment: TaskAttachment = {
-      id: attachmentId,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      url: initialUrl,
-      uploadedBy: currentUser.id,
-      uploadedByName: currentUser.fullName,
-      uploadedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    };
-
-    const newActivityItem = {
-      id: `act-${Date.now()}`,
-      title: `Deliverable uploaded: ${file.name}`,
-      detail: `Uploaded by ${currentUser.fullName}`,
-      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    };
-
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === taskId) {
-          return {
-            ...t,
-            attachments: [newAttachment, ...t.attachments],
-            activity: [newActivityItem, ...t.activity]
-          };
-        }
-        return t;
-      })
-    );
-
     if (file.rawFile) {
       try {
         const formData = new FormData();
@@ -1735,44 +1720,115 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           body: formData,
         });
 
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          if (uploadData?.attachment?.url) {
-            const finalUrl = uploadData.attachment.url;
-            setTasks((prev) =>
-              prev.map((t) => {
-                if (t.id === taskId) {
-                  return {
-                    ...t,
-                    attachments: t.attachments.map((att) =>
-                      att.id === attachmentId ? { ...att, url: finalUrl } : att
-                    ),
-                  };
-                }
-                return t;
-              })
-            );
-          }
-          return { success: true };
-        } else {
+        if (!uploadRes.ok) {
           const errData = await uploadRes.json().catch(() => ({}));
-          if (errData?.isDuplicate) {
-            setTasks((prev) =>
-              prev.map((t) =>
-                t.id === taskId
-                  ? { ...t, attachments: t.attachments.filter((a) => a.id !== attachmentId) }
-                  : t
-              )
-            );
-            return { success: false, isDuplicate: true, error: errData.error };
-          }
-          return { success: true };
+          return {
+            success: false,
+            isDuplicate: Boolean(errData?.isDuplicate),
+            error: errData?.error || "Failed to upload file to cloud storage.",
+          };
         }
-      } catch (uploadErr) {
-        console.warn("Could not upload to backend:", uploadErr);
+
+        const uploadData = await uploadRes.json();
+        const finalUrl = uploadData?.attachment?.url || uploadData?.url;
+        if (!finalUrl || finalUrl.startsWith("blob:")) {
+          return {
+            success: false,
+            error: "Uploaded file URL is invalid. Please try again.",
+          };
+        }
+
+        const attachmentId = uploadData?.attachment?.id || `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        const finalAttachment: TaskAttachment = {
+          id: attachmentId,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: finalUrl,
+          uploadedBy: currentUser.id,
+          uploadedByName: currentUser.fullName,
+          uploadedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        };
+
+        const newActivityItem = {
+          id: `act-${Date.now()}`,
+          title: `Deliverable uploaded: ${file.name}`,
+          detail: `Uploaded by ${currentUser.fullName}`,
+          date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        };
+
+        setTasks((prev) => {
+          const updated = prev.map((t) => {
+            if (t.id === taskId) {
+              const currentAtts = (t.attachments || []).filter(
+                (a) => a.name.trim().toLowerCase() !== file.name.trim().toLowerCase()
+              );
+              return {
+                ...t,
+                attachments: [finalAttachment, ...currentAtts],
+                activity: [newActivityItem, ...(t.activity || [])],
+              };
+            }
+            return t;
+          });
+          tasksRef.current = updated;
+          try {
+            localStorage.setItem("teamflow_tasks", JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
+
         return { success: true };
+      } catch (uploadErr: unknown) {
+        const msg = uploadErr instanceof Error ? uploadErr.message : "Upload network failure";
+        console.error("Could not upload to backend:", uploadErr);
+        return { success: false, error: msg };
       }
     } else {
+      if (!file.url || file.url.startsWith("blob:")) {
+        return { success: false, error: "Please provide a valid file or external URL." };
+      }
+
+      const attachmentId = `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const newAttachment: TaskAttachment = {
+        id: attachmentId,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: file.url,
+        uploadedBy: currentUser.id,
+        uploadedByName: currentUser.fullName,
+        uploadedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      };
+
+      const newActivityItem = {
+        id: `act-${Date.now()}`,
+        title: `Deliverable uploaded: ${file.name}`,
+        detail: `Uploaded by ${currentUser.fullName}`,
+        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      };
+
+      setTasks((prev) => {
+        const updated = prev.map((t) => {
+          if (t.id === taskId) {
+            const currentAtts = (t.attachments || []).filter(
+              (a) => a.name.trim().toLowerCase() !== file.name.trim().toLowerCase()
+            );
+            return {
+              ...t,
+              attachments: [newAttachment, ...currentAtts],
+              activity: [newActivityItem, ...(t.activity || [])],
+            };
+          }
+          return t;
+        });
+        tasksRef.current = updated;
+        try {
+          localStorage.setItem("teamflow_tasks", JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
       if (targetTask) {
         fetch(`/api/tasks/${taskId}`, {
           method: "PUT",
@@ -1803,7 +1859,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: "Project not found." };
     }
 
-    const projectTasks = tasks.filter((t) => t.projectId === projectId);
+    const projectTasks = (tasksRef.current.length > 0 ? tasksRef.current : tasks).filter((t) => t.projectId === projectId);
     const existingFileNames = new Set<string>();
     (targetProject.attachments || []).forEach((a) => existingFileNames.add(a.name.trim().toLowerCase()));
     projectTasks.forEach((t) => (t.attachments || []).forEach((a) => existingFileNames.add(a.name.trim().toLowerCase())));
@@ -1815,37 +1871,6 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         error: `A file named "${file.name}" is already uploaded to this project. Duplicate uploads are blocked.`
       };
     }
-
-    const attachmentId = `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    const initialUrl =
-      file.url ||
-      (file.type === "image"
-        ? "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80"
-        : "#");
-
-    const newAttachment: TaskAttachment = {
-      id: attachmentId,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      url: initialUrl,
-      uploadedBy: currentUser.id,
-      uploadedByName: currentUser.fullName,
-      uploadedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    };
-
-    setProjects((prev) =>
-      prev.map((p) => {
-        if (p.id === projectId) {
-          const curAtts = p.attachments || [];
-          return {
-            ...p,
-            attachments: [newAttachment, ...curAtts]
-          };
-        }
-        return p;
-      })
-    );
 
     if (file.rawFile) {
       try {
@@ -1861,44 +1886,97 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           body: formData,
         });
 
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          if (uploadData?.attachment?.url) {
-            const finalUrl = uploadData.attachment.url;
-            setProjects((prev) =>
-              prev.map((p) => {
-                if (p.id === projectId) {
-                  return {
-                    ...p,
-                    attachments: (p.attachments || []).map((att) =>
-                      att.id === attachmentId ? { ...att, url: finalUrl } : att
-                    ),
-                  };
-                }
-                return p;
-              })
-            );
-          }
-          return { success: true };
-        } else {
+        if (!uploadRes.ok) {
           const errData = await uploadRes.json().catch(() => ({}));
-          if (errData?.isDuplicate) {
-            setProjects((prev) =>
-              prev.map((p) =>
-                p.id === projectId
-                  ? { ...p, attachments: (p.attachments || []).filter((a) => a.id !== attachmentId) }
-                  : p
-              )
-            );
-            return { success: false, isDuplicate: true, error: errData.error };
-          }
-          return { success: true };
+          return {
+            success: false,
+            isDuplicate: Boolean(errData?.isDuplicate),
+            error: errData?.error || "Failed to upload project media to cloud storage.",
+          };
         }
-      } catch (uploadErr) {
-        console.warn("Could not upload project media to backend:", uploadErr);
+
+        const uploadData = await uploadRes.json();
+        const finalUrl = uploadData?.attachment?.url || uploadData?.url;
+        if (!finalUrl || finalUrl.startsWith("blob:")) {
+          return {
+            success: false,
+            error: "Uploaded file URL is invalid. Please try again.",
+          };
+        }
+
+        const attachmentId = uploadData?.attachment?.id || `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        const finalAttachment: TaskAttachment = {
+          id: attachmentId,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: finalUrl,
+          uploadedBy: currentUser.id,
+          uploadedByName: currentUser.fullName,
+          uploadedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        };
+
+        setProjects((prev) => {
+          const updated = prev.map((p) => {
+            if (p.id === projectId) {
+              const curAtts = (p.attachments || []).filter(
+                (a) => a.name.trim().toLowerCase() !== file.name.trim().toLowerCase()
+              );
+              return {
+                ...p,
+                attachments: [finalAttachment, ...curAtts],
+              };
+            }
+            return p;
+          });
+          try {
+            localStorage.setItem("teamflow_projects", JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
+
         return { success: true };
+      } catch (uploadErr: unknown) {
+        const msg = uploadErr instanceof Error ? uploadErr.message : "Upload network failure";
+        console.error("Could not upload project media to backend:", uploadErr);
+        return { success: false, error: msg };
       }
     } else {
+      if (!file.url || file.url.startsWith("blob:")) {
+        return { success: false, error: "Please provide a valid file or external URL." };
+      }
+
+      const attachmentId = `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const newAttachment: TaskAttachment = {
+        id: attachmentId,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: file.url,
+        uploadedBy: currentUser.id,
+        uploadedByName: currentUser.fullName,
+        uploadedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      };
+
+      setProjects((prev) => {
+        const updated = prev.map((p) => {
+          if (p.id === projectId) {
+            const curAtts = (p.attachments || []).filter(
+              (a) => a.name.trim().toLowerCase() !== file.name.trim().toLowerCase()
+            );
+            return {
+              ...p,
+              attachments: [newAttachment, ...curAtts],
+            };
+          }
+          return p;
+        });
+        try {
+          localStorage.setItem("teamflow_projects", JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
       fetch(`/api/projects/${projectId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -1906,6 +1984,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           attachments: [newAttachment, ...(targetProject.attachments || [])]
         }),
       }).catch((err) => console.warn("Failed to sync project media to backend:", err));
+
       return { success: true };
     }
   };

@@ -243,14 +243,12 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
               name: item.name,
               size: item.size,
               type: item.type,
-              url: URL.createObjectURL(item.file),
               rawFile: item.file
             })
           : await uploadProjectMedia(selectedProjectId, {
               name: item.name,
               size: item.size,
               type: item.type,
-              url: URL.createObjectURL(item.file),
               rawFile: item.file
             });
 
