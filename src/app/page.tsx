@@ -19,7 +19,7 @@ export default function DashboardPage() {
     return (
       <div className="flex-1 flex flex-col pb-12" suppressHydrationWarning>
         <Header
-          title="TeamFlow Enterprise"
+          title="Maestrominds Enterprise"
           subtitle="Loading workspace..."
         />
         <main className="flex-1 px-7 py-6">

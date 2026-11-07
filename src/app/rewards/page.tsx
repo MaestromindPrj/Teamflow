@@ -69,13 +69,7 @@ export default function RewardsPage() {
 
   const allLeaderboard = computeLeaderboard(users, tasks, projects, rewardsLedger);
 
-  const visibleMonthlyLeaderboard = allLeaderboard.filter((item) => {
-    if (isCeo || (!isPm && currentUser.role === "employer")) return true;
-    if (isPm) {
-      return item.id === currentUser.id || myEmployerIds.has(item.id);
-    }
-    return true;
-  });
+  const visibleMonthlyLeaderboard = allLeaderboard;
 
   const filteredStaffUsers = staffUsers.filter((u) => {
     if (selectedStaffRole !== "All" && u.role !== selectedStaffRole) return false;
@@ -114,17 +108,13 @@ export default function RewardsPage() {
     <div className="flex-1 flex flex-col pb-12">
       <Header
         title={
-          isCeo
+          isCeo || isPm
             ? "Executive Rewards & Recognition Oversight"
-            : isPm
-            ? "Rewards & Performance Oversight"
             : "Rewards & Recognition"
         }
         subtitle={
-          isCeo
+          isCeo || isPm
             ? "Inspect performance milestones, point ledgers, and merit awards across Project Managers and Employers"
-            : isPm
-            ? "Track your personal milestones and oversee reward standings for employers under your management"
             : `Milestones, gamified badges, and quarterly accolades for ${currentUser.fullName}`
         }
       />
@@ -144,7 +134,7 @@ export default function RewardsPage() {
             </button>
           </div>
         )}
-        {isCeo ? (
+        {(isCeo || isPm) ? (
           <>
             <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
               <div>
@@ -257,13 +247,13 @@ export default function RewardsPage() {
                 </p>
 
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search name, role, job title..."
-                    className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-64"
+                    className="h-9 pl-8 pr-3 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-64 shadow-2xs"
                   />
                 </div>
               </div>
@@ -477,13 +467,13 @@ export default function RewardsPage() {
                     </div>
 
                     <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search employers under you..."
-                        className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60"
+                        className="h-9 pl-8 pr-3 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60 shadow-2xs"
                       />
                     </div>
                   </div>
@@ -607,7 +597,7 @@ export default function RewardsPage() {
 
               <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-2xs">
                 <h2 className="text-[14px] font-bold text-slate-900 tracking-tight mb-4">
-                  {isPm ? "Team Leaderboard (My Portfolio Standings)" : "Monthly Leaderboard"}
+                  Monthly Leaderboard
                 </h2>
 
                 <div className="space-y-1.5">
@@ -615,7 +605,7 @@ export default function RewardsPage() {
                     const isCurrent = user.id === currentUser.id;
                     const isClickable =
                       isCeo ||
-                      (isPm && (user.id === currentUser.id || myEmployerIds.has(user.id))) ||
+                      isPm ||
                       (!isPm && user.id === currentUser.id);
 
                     return (

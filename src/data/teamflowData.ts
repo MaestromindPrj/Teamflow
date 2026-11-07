@@ -134,9 +134,22 @@ export interface MediaDeletionRequest {
 export interface ProjectCategory {
   id: string;
   name: string;
-  description?: string;
   projectCount?: number;
 }
+
+export interface NotificationPreferences {
+  taskAlerts: boolean;
+  projectAlerts: boolean;
+  leaveAlerts: boolean;
+  holidayAlerts: boolean;
+}
+
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  taskAlerts: true,
+  projectAlerts: true,
+  leaveAlerts: true,
+  holidayAlerts: true,
+};
 
 export const DEFAULT_PROJECT_CATEGORIES: ProjectCategory[] = [];
 
@@ -159,3 +172,12 @@ export const INITIAL_PROJECTS: Project[] = [];
 export const INITIAL_TASKS_DATA: Task[] = [];
 
 export const INITIAL_ATTENDANCE_DATA: AttendanceRecord[] = [];
+
+export const DEFAULT_JOB_ROLES: { id: string; name: string }[] = [
+  { id: "role-software-developer", name: "Software Developer" },
+  { id: "role-ui-ux-designer", name: "UI/UX Designer" },
+  { id: "role-ai-engineer", name: "AI Engineer" },
+  { id: "role-technical-manager", name: "Technical Manager" },
+  { id: "role-backend-developer", name: "Backend Developer" },
+  { id: "role-junior-software-developer", name: "Junior Developer" },
+];

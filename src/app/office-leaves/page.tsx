@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   CalendarRange,
@@ -11,7 +11,9 @@ import {
   Shield,
   CheckCircle2,
   AlertCircle,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import Header from "@/components/Header";
 import { useTeamFlow, getLocalDateString, OfficeLeave } from "@/context/TeamFlowContext";
@@ -30,6 +32,134 @@ export default function OfficeLeavesPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [calYear, setCalYear] = useState(() => new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const handlePrevMonth = () => {
+    if (calMonth === 0) {
+      setCalMonth(11);
+      setCalYear((y) => y - 1);
+    } else {
+      setCalMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (calMonth === 11) {
+      setCalMonth(0);
+      setCalYear((y) => y + 1);
+    } else {
+      setCalMonth((m) => m + 1);
+    }
+  };
+
+  const handleResetToday = () => {
+    const now = new Date();
+    setCalYear(now.getFullYear());
+    setCalMonth(now.getMonth());
+  };
+
+  const calendarDays = useMemo(() => {
+    const firstDayOfMonth = new Date(calYear, calMonth, 1);
+    const lastDayOfMonth = new Date(calYear, calMonth + 1, 0);
+
+    const startingDayOfWeek = firstDayOfMonth.getDay();
+    const totalDaysInMonth = lastDayOfMonth.getDate();
+
+    const prevMonthLastDay = new Date(calYear, calMonth, 0).getDate();
+    const prevDays: { dateStr: string; dayNum: number; isCurrentMonth: boolean; isSunday: boolean }[] = [];
+    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+      const d = prevMonthLastDay - i;
+      const dObj = new Date(calYear, calMonth - 1, d);
+      prevDays.push({
+        dateStr: getLocalDateString(dObj),
+        dayNum: d,
+        isCurrentMonth: false,
+        isSunday: dObj.getDay() === 0,
+      });
+    }
+
+    const currentDays: { dateStr: string; dayNum: number; isCurrentMonth: boolean; isSunday: boolean }[] = [];
+    for (let d = 1; d <= totalDaysInMonth; d++) {
+      const dObj = new Date(calYear, calMonth, d);
+      currentDays.push({
+        dateStr: getLocalDateString(dObj),
+        dayNum: d,
+        isCurrentMonth: true,
+        isSunday: dObj.getDay() === 0,
+      });
+    }
+
+    const totalCells = (prevDays.length + currentDays.length) > 35 ? 42 : 35;
+    const remaining = totalCells - (prevDays.length + currentDays.length);
+    const nextDays: { dateStr: string; dayNum: number; isCurrentMonth: boolean; isSunday: boolean }[] = [];
+    for (let d = 1; d <= remaining; d++) {
+      const dObj = new Date(calYear, calMonth + 1, d);
+      nextDays.push({
+        dateStr: getLocalDateString(dObj),
+        dayNum: d,
+        isCurrentMonth: false,
+        isSunday: dObj.getDay() === 0,
+      });
+    }
+
+    return [...prevDays, ...currentDays, ...nextDays];
+  }, [calYear, calMonth]);
+
+  const handleDateClick = (clickedDate: string, isSunday?: boolean) => {
+    if (isSunday || new Date(clickedDate + "T00:00:00").getDay() === 0) {
+      return;
+    }
+
+    const [y, m] = clickedDate.split("-").map(Number);
+    if (y !== calYear || m - 1 !== calMonth) {
+      setCalYear(y);
+      setCalMonth(m - 1);
+    }
+
+    if (!date) {
+      setDate(clickedDate);
+      setEndDate("");
+    } else if (!endDate || endDate === date) {
+      if (clickedDate > date) {
+        setEndDate(clickedDate);
+      } else if (clickedDate === date) {
+        setEndDate(clickedDate);
+      } else {
+        setDate(clickedDate);
+        setEndDate("");
+      }
+    } else {
+      setDate(clickedDate);
+      setEndDate("");
+    }
+  };
+
+  const calculateDays = (startStr: string, endStr: string): number => {
+    if (!startStr) return 0;
+    if (!endStr || endStr === startStr) return 1;
+    const s = new Date(startStr + "T00:00:00").getTime();
+    const e = new Date(endStr + "T00:00:00").getTime();
+    const diffTime = Math.abs(e - s);
+    return Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const formatDisplayDate = (dateStr: string): string => {
+    if (!dateStr) return "";
+    try {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      return dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    } catch {
+      return dateStr;
+    }
+  };
+
   const effectiveUser = currentUser.id ? currentUser : (users[0] || currentUser);
   const isCeo = effectiveUser.role === "ceo";
   const isPm = effectiveUser.role === "project_manager";
@@ -40,7 +170,13 @@ export default function OfficeLeavesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !date) {
-      setErrorMessage("Please provide both Title and Date.");
+      setErrorMessage("Please provide a holiday title and select date(s) on the calendar.");
+      setTimeout(() => setErrorMessage(""), 3000);
+      return;
+    }
+
+    if (new Date(date + "T00:00:00").getDay() === 0) {
+      setErrorMessage("Sunday is already a regular company off and cannot be selected as a holiday.");
       setTimeout(() => setErrorMessage(""), 3000);
       return;
     }
@@ -177,7 +313,14 @@ export default function OfficeLeavesPage() {
             </div>
             <button
               type="button"
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setTitle("");
+                setDate("");
+                setEndDate("");
+                setCalYear(new Date().getFullYear());
+                setCalMonth(new Date().getMonth());
+                setIsModalOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
@@ -239,7 +382,7 @@ export default function OfficeLeavesPage() {
       {/* Add Company Holiday Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-200/90 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200/90 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0084d4] flex items-center justify-center">
@@ -251,8 +394,9 @@ export default function OfficeLeavesPage() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -269,54 +413,187 @@ export default function OfficeLeavesPage() {
                   placeholder="e.g. Diwali Festival, Christmas, New Year's Day"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0084d4]"
+                  className="w-full h-9 px-3 text-[13px] border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4]"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[12px] font-semibold text-slate-700 mb-1">
-                    Start Date <span className="text-rose-500">*</span>
+              {/* Interactive Calendar Date Picker */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[12px] font-semibold text-slate-700">
+                    Holiday Date(s) <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="date"
-                    required
-                    value={date}
-                    onChange={(e) => {
-                      setDate(e.target.value);
-                      if (!endDate || endDate < e.target.value) {
-                        setEndDate(e.target.value);
-                      }
-                    }}
-                    className="w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0084d4]"
-                  />
+                  <span className="text-[11px] text-slate-400">
+                    {!date
+                      ? "Click a date to select"
+                      : !endDate || endDate === date
+                      ? "Click another date to create a range"
+                      : `${calculateDays(date, endDate)} days selected`}
+                  </span>
                 </div>
 
-                <div>
-                  <label className="block text-[12px] font-semibold text-slate-700 mb-1">
-                    End Date (Optional)
-                  </label>
-                  <input
-                    type="date"
-                    min={date}
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0084d4]"
-                  />
+                <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/40">
+                  {/* Calendar Navigation */}
+                  <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-200/70">
+                    <span className="text-[13px] font-bold text-slate-900">
+                      {monthNames[calMonth]} {calYear}
+                    </span>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={handleResetToday}
+                        className="px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:text-[#0084d4] bg-white hover:bg-sky-50 border border-slate-200 rounded-md transition-colors cursor-pointer shadow-2xs mr-0.5"
+                      >
+                        Today
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handlePrevMonth}
+                        className="p-1 text-slate-400 hover:text-slate-800 hover:bg-white rounded-md border border-transparent hover:border-slate-200 transition-colors cursor-pointer"
+                        title="Previous Month"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleNextMonth}
+                        className="p-1 text-slate-400 hover:text-slate-800 hover:bg-white rounded-md border border-transparent hover:border-slate-200 transition-colors cursor-pointer"
+                        title="Next Month"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Day Names Header */}
+                  <div className="grid grid-cols-7 gap-1 text-center mb-1">
+                    {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day, idx) => (
+                      <div
+                        key={day}
+                        className={`text-[10px] font-bold py-1 uppercase tracking-wider ${
+                          idx === 0 ? "text-slate-400" : "text-slate-500"
+                        }`}
+                      >
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Days Matrix */}
+                  <div className="grid grid-cols-7 gap-1 text-center">
+                    {calendarDays.map((cell) => {
+                      const isToday = cell.dateStr === todayStr;
+                      const isStart = cell.dateStr === date;
+                      const isEnd = cell.dateStr === endDate;
+                      const hasRange = Boolean(date && endDate && endDate > date);
+                      const isSingle = isStart && (!endDate || endDate === date);
+                      const isInRange = Boolean(hasRange && cell.dateStr > date && cell.dateStr < endDate);
+                      const existingHoliday = officeLeaves.find(
+                        (l: OfficeLeave) => cell.dateStr >= l.date && cell.dateStr <= (l.endDate || l.date)
+                      );
+
+                      let cellClasses =
+                        "relative h-8 flex flex-col items-center justify-center text-[12px] transition-all ";
+
+                      if (cell.isSunday) {
+                        cellClasses += isInRange
+                          ? "bg-sky-50 text-slate-400 cursor-not-allowed "
+                          : "bg-slate-100/70 text-slate-400 cursor-not-allowed rounded-lg ";
+                      } else {
+                        cellClasses += "cursor-pointer ";
+                        if (isSingle) {
+                          cellClasses += "bg-[#0084d4] text-white font-bold rounded-lg shadow-xs";
+                        } else if (isStart && hasRange) {
+                          cellClasses += "bg-[#0084d4] text-white font-bold rounded-l-lg shadow-xs";
+                        } else if (isEnd && hasRange) {
+                          cellClasses += "bg-[#0084d4] text-white font-bold rounded-r-lg shadow-xs";
+                        } else if (isInRange) {
+                          cellClasses += "bg-sky-100 text-[#0084d4] font-semibold";
+                        } else {
+                          if (cell.isCurrentMonth) {
+                            cellClasses += "hover:bg-slate-200/70 text-slate-700 font-medium rounded-lg ";
+                            if (isToday) {
+                              cellClasses += "ring-1 ring-[#0084d4] text-[#0084d4] font-bold ";
+                            }
+                          } else {
+                            cellClasses += "text-slate-300 font-normal hover:bg-slate-100 rounded-lg ";
+                          }
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={cell.dateStr}
+                          type="button"
+                          disabled={cell.isSunday}
+                          onClick={() => handleDateClick(cell.dateStr, cell.isSunday)}
+                          className={cellClasses}
+                          title={
+                            cell.isSunday
+                              ? `${cell.dateStr}: Sunday (Weekly Off - Already a holiday)`
+                              : existingHoliday
+                              ? `${cell.dateStr}: Company Holiday (${existingHoliday.title})`
+                              : cell.dateStr
+                          }
+                        >
+                          <span>{cell.dayNum}</span>
+                          {existingHoliday && !cell.isSunday && !isStart && !isEnd && !isInRange && (
+                            <span className="w-1 h-1 rounded-full bg-blue-400 absolute bottom-0.5" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Selected Date Summary Pill */}
+                {date ? (
+                  <div className="flex items-center justify-between p-2.5 px-3 bg-sky-50 border border-sky-100 rounded-lg text-[12px] text-sky-900 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-[#0084d4] shrink-0" />
+                      <span>
+                        Selected: <strong className="font-semibold text-slate-900">{formatDisplayDate(date)}</strong>
+                        {endDate && endDate !== date ? (
+                          <>
+                            {" "}to{" "}
+                            <strong className="font-semibold text-slate-900">{formatDisplayDate(endDate)}</strong>{" "}
+                            <span className="text-[#0084d4] font-semibold">({calculateDays(date, endDate)} days)</span>
+                          </>
+                        ) : (
+                          <span className="text-slate-500 ml-1">(1 day)</span>
+                        )}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDate("");
+                        setEndDate("");
+                      }}
+                      className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 hover:underline cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 italic">
+                    Click a start date on the calendar, then optionally click an end date for multi-day holidays.
+                  </p>
+                )}
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-[12px] font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !title.trim() || !date}
                   className="px-4 py-1.5 text-[12px] font-semibold bg-[#0084d4] hover:bg-[#0277bd] text-white rounded-lg transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? "Adding..." : "Add Company Holiday"}

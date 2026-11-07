@@ -16,15 +16,7 @@ function getLocalDateString(d: Date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
-const DEFAULT_CLOCK_IN_DATA: Record<string, UserClockInState> = {
-  "u-ceo-1": {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0,
-  },
-};
+const DEFAULT_CLOCK_IN_DATA: Record<string, UserClockInState> = {};
 
 export async function GET() {
   if (!isDbConfigured()) {
@@ -41,7 +33,9 @@ export async function GET() {
 
     const clockInData: Record<string, UserClockInState> = { ...DEFAULT_CLOCK_IN_DATA };
     const now = Date.now();
-    const STALE_HEARTBEAT_THRESHOLD_MS = 120_000; // 2 minutes without heartbeat
+    // 12 hours fallback reaper for truly abandoned sessions (e.g. power cutoff).
+    // Inactive browser tabs are normal multitasking and must never be auto-clocked out.
+    const STALE_HEARTBEAT_THRESHOLD_MS = 12 * 60 * 60 * 1000;
 
     for (const r of rows) {
       let isClockedIn = Boolean(r.is_clocked_in);
@@ -110,7 +104,7 @@ export async function GET() {
               UPDATE attendance
               SET clock_out = ${autoOutTimeStr},
                   duration = ${formattedDuration},
-                  status = CASE WHEN status = 'Late' THEN 'Late' ELSE 'Checked Out' END,
+                  status = 'Checked Out',
                   sessions = ${JSON.stringify(curSessions)}::jsonb
               WHERE user_id = ${r.user_id} AND date = ${targetDate};
             `;

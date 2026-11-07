@@ -10,13 +10,17 @@ import {
   Trash2,
   Shield,
   ArrowRight,
+  ExternalLink,
   CheckCircle2,
   AlertCircle,
   Layers,
-  FolderKanban
+  FolderKanban,
+  Search
 } from "lucide-react";
 import Header from "@/components/Header";
 import CreateCategoryModal from "@/components/CreateCategoryModal";
+import ProjectDetailModal from "@/components/ProjectDetailModal";
+import { StatusBadge } from "@/components/Badges";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { CardGridSkeleton } from "@/components/Skeletons";
 
@@ -26,9 +30,11 @@ export default function CategoriesPage() {
   useEffect(() => setMounted(true), []);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [viewingAllCat, setViewingAllCat] = useState<{ id: string; name: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingCatName, setEditingCatName] = useState("");
-  const [editingCatDesc, setEditingCatDesc] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -37,10 +43,14 @@ export default function CategoriesPage() {
   const isPm = effectiveUser.role === "project_manager";
   const isAuthorized = isCeo || isPm;
 
-  const handleStartEdit = (id: string, name: string, description: string = "") => {
+  const filteredCategories = categories.filter((c) => {
+    if (!searchQuery.trim()) return true;
+    return c.name.toLowerCase().includes(searchQuery.trim().toLowerCase());
+  });
+
+  const handleStartEdit = (id: string, name: string) => {
     setEditingCatId(id);
     setEditingCatName(name);
-    setEditingCatDesc(description);
   };
 
   const handleSaveEdit = async (id: string, oldName: string) => {
@@ -53,7 +63,7 @@ export default function CategoriesPage() {
       return;
     }
 
-    const success = await updateCategory(id, trimmedName, oldName, editingCatDesc.trim());
+    const success = await updateCategory(id, trimmedName, oldName);
     if (success) {
       setEditingCatId(null);
       setSuccessMessage(`Category updated to "${trimmedName}".`);
@@ -135,23 +145,44 @@ export default function CategoriesPage() {
         )}
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h3 className="text-[14px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
               <Layers className="w-4 h-4 text-slate-500" />
-              <span>Active Project Categories ({categories.length})</span>
+              <span>Active Project Categories ({filteredCategories.length})</span>
             </h3>
-            <button
-              type="button"
-              onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-1.5 h-8.5 px-3 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Category</span>
-            </button>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search categories..."
+                  className="h-9 pl-8 pr-3 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60 shadow-2xs"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(true)}
+                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Category</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {categories.map((cat) => {
+            {filteredCategories.length === 0 ? (
+              <div className="py-12 text-center bg-white rounded-lg border border-slate-200/90 p-8 shadow-2xs col-span-full">
+                <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-[14px] font-semibold text-slate-700">No Categories Found</p>
+                <p className="text-[12px] text-slate-400 mt-1">
+                  {searchQuery ? `No categories match "${searchQuery}".` : "No project categories created yet."}
+                </p>
+              </div>
+            ) : (
+              filteredCategories.map((cat) => {
               const assignedProjects = projects.filter(
                 (p) => (p.category || "").toLowerCase() === cat.name.toLowerCase()
               );
@@ -209,7 +240,7 @@ export default function CategoriesPage() {
                         <div className="flex items-center gap-1 shrink-0">
                           <button
                             type="button"
-                            onClick={() => handleStartEdit(cat.id, cat.name, cat.description)}
+                            onClick={() => handleStartEdit(cat.id, cat.name)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-[#0084d4] hover:bg-sky-50 transition-colors cursor-pointer"
                             title={`Edit ${cat.name}`}
                           >
@@ -237,20 +268,27 @@ export default function CategoriesPage() {
                     </div>
 
                     {assignedProjects.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {assignedProjects.slice(0, 3).map((p) => (
-                          <span
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        {assignedProjects.slice(0, 4).map((p) => (
+                          <button
                             key={p.id}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200"
-                            title={p.name}
+                            type="button"
+                            onClick={() => setSelectedProjectId(p.id)}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 hover:bg-[#0084d4] text-slate-700 hover:text-white border border-slate-200 hover:border-[#0084d4] transition-all cursor-pointer shadow-2xs"
+                            title={`Click to view project details for ${p.name} (${p.code})`}
                           >
                             {p.code}
-                          </span>
+                          </button>
                         ))}
-                        {assignedProjects.length > 3 && (
-                          <span className="text-[10px] text-slate-400 font-medium self-center">
-                            +{assignedProjects.length - 3} more
-                          </span>
+                        {assignedProjects.length > 4 && (
+                          <button
+                            type="button"
+                            onClick={() => setViewingAllCat(cat)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0084d4] hover:text-[#0070b8] hover:underline self-center transition-colors ml-1 cursor-pointer"
+                            title={`View all ${assignedProjects.length} projects in ${cat.name}`}
+                          >
+                            <span>View All ({assignedProjects.length})</span>
+                          </button>
                         )}
                       </div>
                     ) : (
@@ -261,7 +299,7 @@ export default function CategoriesPage() {
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
       </div>
@@ -274,6 +312,74 @@ export default function CategoriesPage() {
           setTimeout(() => setSuccessMessage(""), 3000);
         }}
       />
+
+      {viewingAllCat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]">
+            <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-[16px] font-bold text-slate-900 tracking-tight">
+                    Projects in {viewingAllCat.name}
+                  </h2>
+                  <p className="text-[12px] text-slate-400">
+                    Click any project below to inspect its deliverables, milestones, and task board
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingAllCat(null)}
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-2.5 divide-y divide-slate-100">
+              {projects
+                .filter((p) => (p.category || "").toLowerCase() === viewingAllCat.name.toLowerCase())
+                .map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => {
+                      setSelectedProjectId(p.id);
+                    }}
+                    className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group border border-transparent hover:border-slate-200"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200/60 uppercase shrink-0">
+                        {p.code}
+                      </span>
+                      <div className="min-w-0">
+                        <h4 className="text-[13px] font-bold text-slate-900 group-hover:text-[#0084d4] transition-colors truncate">
+                          {p.name}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 truncate">
+                          {p.category} &bull; Deadline: {p.deadline || "TBD"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusBadge status={p.status} />
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#0084d4] group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedProjectId && (
+        <ProjectDetailModal
+          projectId={selectedProjectId}
+          onClose={() => setSelectedProjectId(null)}
+        />
+      )}
     </div>
   );
 }

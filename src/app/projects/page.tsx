@@ -30,6 +30,7 @@ function ProjectsContent() {
   const paramProjectId = searchParams.get("projectId") || searchParams.get("id");
   const paramTaskId = searchParams.get("taskId");
   const paramTab = searchParams.get("tab") as "tasks" | "media" | "team" | null;
+  const paramCategory = searchParams.get("category");
 
   const { users, projects, tasks, updateProject, currentUser, hasHydrated } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
@@ -37,6 +38,7 @@ function ProjectsContent() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(paramProjectId || null);
   const [initialTaskId, setInitialTaskId] = useState<string | null>(paramTaskId || null);
   const [initialTab, setInitialTab] = useState<"tasks" | "media" | "team" | undefined>(paramTab || undefined);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(paramCategory || null);
 
   useEffect(() => {
     if (paramProjectId) {
@@ -48,7 +50,10 @@ function ProjectsContent() {
     if (paramTab) {
       setInitialTab(paramTab);
     }
-  }, [paramProjectId, paramTaskId, paramTab]);
+    if (paramCategory) {
+      setCategoryFilter(paramCategory);
+    }
+  }, [paramProjectId, paramTaskId, paramTab, paramCategory]);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [projectSearch, setProjectSearch] = useState("");
   const [projectStatusFilter, setProjectStatusFilter] = useState<string>("All");
@@ -59,11 +64,10 @@ function ProjectsContent() {
 
   const baseProjects = isEmployer
     ? projects.filter((p) => p.teamMemberIds.includes(currentUser.id) || p.teamLeadId === currentUser.id)
-    : isPm
-    ? projects.filter((p) => p.projectManagerId === currentUser.id)
     : projects;
 
   const filteredProjects = baseProjects.filter((p) => {
+    if (categoryFilter && (p.category || "").toLowerCase() !== categoryFilter.toLowerCase()) return false;
     if (projectStatusFilter !== "All" && p.status !== projectStatusFilter) return false;
     if (projectSearch.trim()) {
       const q = projectSearch.toLowerCase();
@@ -90,15 +94,11 @@ function ProjectsContent() {
         title={
           isEmployer
             ? "My Assigned Projects"
-            : isPm
-            ? "Projects Under My Management"
             : "Company Projects"
         }
         subtitle={
           isEmployer
             ? "View initiatives assigned to you, appointed team leads, milestones, and deliverables"
-            : isPm
-            ? "Manage and track initiatives under your management, appointed team leads, and execution milestones"
             : "Manage and track company projects, appointed leads, execution teams, and delivery milestones"
         }
       />
@@ -112,8 +112,6 @@ function ProjectsContent() {
                 <span>
                   {isEmployer
                     ? "My Assigned Projects"
-                    : isPm
-                    ? "Managed Projects Portfolio"
                     : "Company Projects Portfolio"}{" "}
                   ({baseProjects.length})
                 </span>
@@ -121,21 +119,19 @@ function ProjectsContent() {
               <p className="text-[12px] text-slate-500">
                 {isEmployer
                   ? "Initiatives where you are allocated as a team member or team lead."
-                  : isPm
-                  ? "Initiatives under your direct management, designated leads, and execution teams."
                   : "Detailed portfolio of all company projects, assigned project managers, designated team leads, and workforce allocations."}
               </p>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   value={projectSearch}
                   onChange={(e) => setProjectSearch(e.target.value)}
                   placeholder="Search projects, PMs, leads..."
-                  className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60"
+                  className="h-9 pl-8 pr-3 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60 shadow-2xs"
                 />
               </div>
 
@@ -151,6 +147,22 @@ function ProjectsContent() {
             </div>
           </div>
         </div>
+
+        {categoryFilter && (
+          <div className="flex items-center gap-2 p-2.5 px-3.5 bg-sky-50 border border-sky-100 rounded-lg text-[12px] text-sky-800 shadow-2xs">
+            <span className="font-medium">Filtered by category:</span>
+            <span className="font-bold px-2 py-0.5 rounded bg-white text-[#0084d4] border border-sky-200">
+              {categoryFilter}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCategoryFilter(null)}
+              className="ml-auto text-[11px] font-semibold text-sky-600 hover:text-sky-900 hover:underline cursor-pointer"
+            >
+              Clear Category Filter
+            </button>
+          </div>
+        )}
 
         <InPageSubTabs
           activeTab={projectStatusFilter}
@@ -198,7 +210,7 @@ function ProjectsContent() {
             const doneTasks = projectTasks.filter((t) => t.status === "Completed").length;
             const hasCompletedTasks = doneTasks > 0;
             const percent = projectTasks.length > 0 ? Math.round((doneTasks / projectTasks.length) * 100) : 0;
-            const canManageThisProject = currentUser.role === "ceo" || (currentUser.role === "project_manager" && project.projectManagerId === currentUser.id);
+            const canManageThisProject = currentUser.role === "ceo" || currentUser.role === "project_manager";
 
             return (
               <div

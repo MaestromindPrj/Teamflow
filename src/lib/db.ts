@@ -6,6 +6,7 @@ import {
   INITIAL_TASKS_DATA,
   INITIAL_ATTENDANCE_DATA,
   DEFAULT_PROJECT_CATEGORIES,
+  DEFAULT_JOB_ROLES,
   User,
   Project,
   Task,
@@ -167,7 +168,6 @@ export async function initDatabase() {
       CREATE TABLE IF NOT EXISTS project_categories (
         id VARCHAR(100) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        description TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
@@ -193,12 +193,15 @@ export async function initDatabase() {
       );
     `;
 
-    // Drop description column from office_leaves & projects if they still exist (migration)
+    // Drop description column from office_leaves, projects & project_categories if they still exist (migration)
     await sql`
       ALTER TABLE office_leaves DROP COLUMN IF EXISTS description;
     `;
     await sql`
       ALTER TABLE projects DROP COLUMN IF EXISTS description;
+    `;
+    await sql`
+      ALTER TABLE project_categories DROP COLUMN IF EXISTS description;
     `;
 
     await sql`
@@ -258,7 +261,14 @@ export async function initDatabase() {
       await sql`ALTER TABLE office_leaves ADD COLUMN IF NOT EXISTS declared_by_name VARCHAR(255);`;
       await sql`ALTER TABLE office_leaves ADD COLUMN IF NOT EXISTS declared_by_role VARCHAR(50);`;
       await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb;`;
-      await sql`ALTER TABLE project_categories ADD COLUMN IF NOT EXISTS description TEXT;`;
+      await sql`ALTER TABLE project_categories DROP COLUMN IF EXISTS description;`;
+
+      // Migrate project codes to be based on categories
+      await sql`
+        UPDATE projects
+        SET code = 'MOB-01'
+        WHERE code = 'GRE-01' OR (id = 'proj-1793958191493' AND code != 'MOB-01');
+      `;
 
       try {
         await sql`
@@ -419,114 +429,13 @@ export async function initDatabase() {
       }
     }
 
-    const deptCountResult = await sql`SELECT COUNT(*)::int AS count FROM departments;`;
-    const deptCount = Number(deptCountResult[0]?.count || 0);
-
-    if (deptCount === 0) {
-      const defaultDepts = [
-        "UI/UX Designer",
-        "Software Developer",
-        "Junior Software Developer",
-        "AI Engineer",
-        "Project Manager"
-      ];
-
-      for (const d of defaultDepts) {
-        const dId = `dept-${d.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+    const jobRoleCountResult = await sql`SELECT COUNT(*)::int AS count FROM job_roles;`;
+    const jobRoleCount = Number(jobRoleCountResult[0]?.count || 0);
+    if (jobRoleCount === 0) {
+      for (const r of DEFAULT_JOB_ROLES) {
         await sql`
-          INSERT INTO departments (id, name)
-          VALUES (${dId}, ${d})
-          ON CONFLICT (id) DO NOTHING;
-        `;
-      }
-    }
-
-    const rewardCountResult = await sql`SELECT COUNT(*)::int AS count FROM rewards_ledger;`;
-    const rewardCount = Number(rewardCountResult[0]?.count || 0);
-
-    if (rewardCount === 0) {
-      const defaultLedger: Array<{
-        id: string;
-        userId: string;
-        points: number;
-        action: string;
-        reason: string;
-        awardedById: string;
-        awardedByName: string;
-        date: string;
-      }> = [];
-
-      for (const rw of defaultLedger) {
-        await sql`
-          INSERT INTO rewards_ledger (id, user_id, points, action, reason, awarded_by_id, awarded_by_name, date)
-          VALUES (${rw.id}, ${rw.userId}, ${rw.points}, ${rw.action}, ${rw.reason}, ${rw.awardedById}, ${rw.awardedByName}, ${rw.date})
-          ON CONFLICT (id) DO NOTHING;
-        `;
-      }
-    }
-
-    const catCountResult = await sql`SELECT COUNT(*)::int AS count FROM project_categories;`;
-    const catCount = Number(catCountResult[0]?.count || 0);
-
-    if (catCount === 0) {
-      for (const cat of DEFAULT_PROJECT_CATEGORIES) {
-        await sql`
-          INSERT INTO project_categories (id, name, description)
-          VALUES (${cat.id}, ${cat.name}, ${cat.description || ""})
-          ON CONFLICT (id) DO NOTHING;
-        `;
-      }
-    }
-
-    const techStackCountResult = await sql`SELECT COUNT(*)::int AS count FROM tech_stacks;`;
-    const techStackCount = Number(techStackCountResult[0]?.count || 0);
-
-    if (techStackCount === 0) {
-      const defaultTechStacks = [
-        "React", "Next.js", "TypeScript", "Node.js", "Python",
-        "PostgreSQL", "Tailwind CSS", "Flutter", "Docker", "AWS",
-        "Figma", "GraphQL", "MongoDB"
-      ];
-
-      for (const t of defaultTechStacks) {
-        const tId = `tech-${t.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-        await sql`
-          INSERT INTO tech_stacks (id, name)
-          VALUES (${tId}, ${t})
-          ON CONFLICT (id) DO NOTHING;
-        `;
-      }
-    }
-
-    const leaveCountResult = await sql`SELECT COUNT(*)::int AS count FROM office_leaves;`;
-    const leaveCount = Number(leaveCountResult[0]?.count || 0);
-
-    if (leaveCount === 0) {
-      const defaultOfficeLeaves = [
-        {
-          id: "off-leave-diwali-2026",
-          title: "Diwali Festival",
-          date: "2026-11-07",
-          endDate: "2026-11-08"
-        },
-        {
-          id: "off-leave-christmas-2026",
-          title: "Christmas Day",
-          date: "2026-12-25",
-          endDate: "2026-12-25"
-        },
-        {
-          id: "off-leave-newyear-2027",
-          title: "New Year's Day",
-          date: "2027-01-01",
-          endDate: "2027-01-01"
-        }
-      ];
-
-      for (const l of defaultOfficeLeaves) {
-        await sql`
-          INSERT INTO office_leaves (id, title, date, end_date)
-          VALUES (${l.id}, ${l.title}, ${l.date}, ${l.endDate})
+          INSERT INTO job_roles (id, name)
+          VALUES (${r.id}, ${r.name})
           ON CONFLICT (id) DO NOTHING;
         `;
       }

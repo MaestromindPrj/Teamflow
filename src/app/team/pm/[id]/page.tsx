@@ -70,38 +70,6 @@ function ProjectManagerDetailContent() {
     );
   }
 
-  if (currentUser.role === "project_manager" && pm.id !== currentUser.id) {
-    return (
-      <div className="flex-1 flex flex-col pb-12">
-        <Header title="Project Manager Oversight" subtitle="Executive portfolio and team roster" />
-        <div className="px-7 py-6 space-y-4">
-          <Link
-            href="/team"
-            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 text-[13px] font-medium"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Team Directory</span>
-          </Link>
-          <div className="bg-white rounded-lg border border-slate-200/90 p-8 text-center max-w-md mx-auto shadow-2xs space-y-3">
-            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
-              <Shield className="w-5 h-5 text-indigo-600" />
-            </div>
-            <h3 className="text-slate-800 font-bold text-[15px]">Access Restricted</h3>
-            <p className="text-slate-500 text-[12px]">
-              As a Project Manager, you can only view initiatives and teams under your own management. You cannot inspect other Project Managers&apos; portfolios.
-            </p>
-            <Link
-              href={`/team/pm/${currentUser.id}`}
-              className="mt-2 inline-block px-4 py-2 bg-[#0084d4] hover:bg-[#0277bd] text-white rounded-lg text-[12px] font-semibold transition-colors shadow-xs"
-            >
-              View My Managed Portfolio
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (currentUser.role === "employer") {
     return (
       <div className="flex-1 flex flex-col pb-12">

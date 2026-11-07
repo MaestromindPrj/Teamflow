@@ -49,14 +49,7 @@ function StaffRewardDetailContent() {
   const canAward =
     targetUser &&
     targetUser.id !== currentUser.id &&
-    (isCurrentCeo ||
-      (isCurrentPm &&
-        targetUser.role === "employer" &&
-        projects.some(
-          (p) =>
-            p.projectManagerId === currentUser.id &&
-            (p.teamMemberIds.includes(targetUser.id) || p.teamLeadId === targetUser.id)
-        )));
+    (isCurrentCeo || isCurrentPm);
 
   const renderBadgeIcon = (type: "check" | "zap" | "smile" | "award") => {
     switch (type) {
@@ -133,48 +126,6 @@ function StaffRewardDetailContent() {
         </div>
       </div>
     );
-  }
-
-  if (currentUser.role === "project_manager" && targetUser.id !== currentUser.id) {
-    const isEmployerUnderPm =
-      targetUser.role === "employer" &&
-      projects.some(
-        (p) =>
-          p.projectManagerId === currentUser.id &&
-          (p.teamMemberIds.includes(targetUser.id) || p.teamLeadId === targetUser.id)
-      );
-
-    if (!isEmployerUnderPm) {
-      return (
-        <div className="flex-1 flex flex-col pb-12">
-          <Header title="Project Manager Rewards Oversight" subtitle="Performance record and point ledger" />
-          <div className="px-7 py-6 space-y-4">
-            <Link
-              href="/rewards"
-              className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 text-[13px] font-medium"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to Rewards</span>
-            </Link>
-            <div className="bg-white rounded-lg border border-slate-200/90 p-8 text-center max-w-md mx-auto shadow-2xs space-y-3">
-              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
-                <Shield className="w-5 h-5 text-indigo-600" />
-              </div>
-              <h3 className="text-slate-800 font-bold text-[15px]">Access Restricted</h3>
-              <p className="text-slate-500 text-[12px]">
-                As a Project Manager, you can only inspect your own reward ledger and the rewards of employers assigned to initiatives under your management. Other project managers&apos; reward point history is not accessible.
-              </p>
-              <Link
-                href="/rewards"
-                className="mt-2 inline-block px-4 py-2 bg-[#0084d4] hover:bg-[#0277bd] text-white rounded-lg text-[12px] font-semibold transition-colors shadow-xs"
-              >
-                Return to Rewards Dashboard
-              </Link>
-            </div>
-          </div>
-        </div>
-      );
-    }
   }
 
   const isPm = targetUser.role === "project_manager";
@@ -331,13 +282,13 @@ function StaffRewardDetailContent() {
             </div>
 
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={ledgerSearch}
                 onChange={(e) => setLedgerSearch(e.target.value)}
                 placeholder="Search ledger entries..."
-                className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60"
+                className="h-9 pl-8 pr-3 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60 shadow-2xs"
               />
             </div>
           </div>

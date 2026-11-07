@@ -71,8 +71,8 @@ export function StatusBadge({
       );
     case "Late":
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-semibold bg-[#ffa500]/15 text-[#ffa500] border border-[#ffa500]/30">
-          Late
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-semibold bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30">
+          Present
         </span>
       );
     case "Leave":

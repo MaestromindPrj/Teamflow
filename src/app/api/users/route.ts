@@ -56,6 +56,20 @@ export async function POST(req: NextRequest) {
     const passwordHash = hashPassword(initialPassword);
 
     const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.endsWith("@maestrominds.co.in")) {
+      return NextResponse.json(
+        { error: "Only @maestrominds.co.in email addresses are accepted." },
+        { status: 400 }
+      );
+    }
+
+    const effectiveRole = role === "project_manager" ? "project_manager" : role === "ceo" ? "ceo" : "employer";
+    const effectiveJobTitle = effectiveRole === "project_manager"
+      ? "Project Manager"
+      : effectiveRole === "ceo"
+      ? "Chief Executive Officer"
+      : (jobTitle?.trim() || "Software Developer");
+
     const sql = getDb();
 
     const existingUsers = await sql`
@@ -74,7 +88,7 @@ export async function POST(req: NextRequest) {
 
     await sql`
       INSERT INTO users (id, name, full_name, email, role, job_title, avatar, phone, employee_id, bio, password_hash, initial_password)
-      VALUES (${id}, ${name || fullName.split(" ")[0]}, ${fullName}, ${email}, ${role || "employer"}, ${jobTitle || ""}, ${avatar || ""}, ${phone || ""}, ${employeeId || ""}, ${bio || null}, ${passwordHash}, ${initialPassword})
+      VALUES (${id}, ${name || fullName.split(" ")[0]}, ${fullName}, ${normalizedEmail}, ${effectiveRole}, ${effectiveJobTitle}, ${avatar || ""}, ${phone || ""}, ${employeeId || ""}, ${bio || null}, ${passwordHash}, ${initialPassword})
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         full_name = EXCLUDED.full_name,
@@ -126,6 +140,132 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PUT(req: NextRequest) {
+  if (!isDbConfigured()) {
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
+  }
+
+  try {
+    await initDatabase();
+    const body = await req.json();
+    const { id, fullName, email, role, jobTitle, phone, bio, password } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+    }
+
+    const sql = getDb();
+    const existing = await sql`SELECT id, role, password_hash, initial_password FROM users WHERE id = ${id} LIMIT 1;`;
+    if (existing.length === 0) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const normalizedEmail = (email || "").trim().toLowerCase();
+    if (normalizedEmail) {
+      if (!normalizedEmail.endsWith("@maestrominds.co.in")) {
+        return NextResponse.json(
+          { error: "Only @maestrominds.co.in email addresses are accepted." },
+          { status: 400 }
+        );
+      }
+
+      const emailConflict = await sql`
+        SELECT id FROM users
+        WHERE LOWER(email) = LOWER(${normalizedEmail})
+          AND id != ${id}
+        LIMIT 1;
+      `;
+      if (emailConflict.length > 0) {
+        return NextResponse.json({ error: "Another user already exists with this email address." }, { status: 409 });
+      }
+    }
+
+    const effectiveRole = role || existing[0].role;
+    const finalJobTitle =
+      effectiveRole === "project_manager"
+        ? "Project Manager"
+        : effectiveRole === "ceo"
+        ? "Chief Executive Officer"
+        : (jobTitle !== undefined ? jobTitle.trim() : null);
+
+    const firstName = fullName ? fullName.trim().split(" ")[0] : undefined;
+
+    let newPasswordHash: string | null = null;
+    let initialPasswordPlain: string | null = null;
+    if (password && typeof password === "string" && password.trim()) {
+      newPasswordHash = hashPassword(password.trim());
+      initialPasswordPlain = password.trim();
+    }
+
+    if (newPasswordHash) {
+      await sql`
+        UPDATE users
+        SET
+          full_name = COALESCE(${fullName?.trim() || null}, full_name),
+          name = COALESCE(${firstName || null}, name),
+          email = COALESCE(${normalizedEmail || null}, email),
+          role = COALESCE(${role || null}, role),
+          job_title = COALESCE(${finalJobTitle}, job_title),
+          phone = COALESCE(${phone?.trim() || null}, phone),
+          bio = COALESCE(${bio?.trim() || null}, bio),
+          password_hash = ${newPasswordHash},
+          initial_password = ${initialPasswordPlain}
+        WHERE id = ${id};
+      `;
+    } else {
+      await sql`
+        UPDATE users
+        SET
+          full_name = COALESCE(${fullName?.trim() || null}, full_name),
+          name = COALESCE(${firstName || null}, name),
+          email = COALESCE(${normalizedEmail || null}, email),
+          role = COALESCE(${role || null}, role),
+          job_title = COALESCE(${finalJobTitle}, job_title),
+          phone = COALESCE(${phone?.trim() || null}, phone),
+          bio = COALESCE(${bio?.trim() || null}, bio)
+        WHERE id = ${id};
+      `;
+    }
+
+    // Keep attendance logs in sync if name or role changed
+    if (fullName || role) {
+      if (fullName && role) {
+        await sql`UPDATE attendance SET user_name = ${fullName.trim()}, user_role = ${role} WHERE user_id = ${id};`;
+      } else if (fullName) {
+        await sql`UPDATE attendance SET user_name = ${fullName.trim()} WHERE user_id = ${id};`;
+      } else if (role) {
+        await sql`UPDATE attendance SET user_role = ${role} WHERE user_id = ${id};`;
+      }
+    }
+
+    const updatedRows = await sql`
+      SELECT id, name, full_name, email, role, job_title, avatar, phone, employee_id, bio
+      FROM users
+      WHERE id = ${id}
+      LIMIT 1;
+    `;
+
+    const u = updatedRows[0];
+    const updatedUser: User = {
+      id: u.id as string,
+      name: u.name as string,
+      fullName: u.full_name as string,
+      email: u.email as string,
+      role: u.role as "ceo" | "project_manager" | "employer",
+      jobTitle: (u.job_title as string) || "",
+      avatar: (u.avatar as string) || "",
+      phone: (u.phone as string) || "",
+      employeeId: (u.employee_id as string) || "",
+      bio: (u.bio as string) || undefined,
+    };
+
+    return NextResponse.json({ success: true, user: updatedUser });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to update user";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   if (!isDbConfigured()) {
     return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
@@ -148,6 +288,8 @@ export async function DELETE(req: NextRequest) {
     await sql`DELETE FROM users WHERE id = ${userId};`;
     await sql`DELETE FROM clock_in_status WHERE user_id = ${userId};`;
     await sql`DELETE FROM password_reset_codes WHERE user_id = ${userId};`;
+    await sql`DELETE FROM attendance WHERE user_id = ${userId};`;
+    await sql`DELETE FROM leave_requests WHERE user_id = ${userId};`;
 
     return NextResponse.json({ success: true, message: "User deleted successfully." });
   } catch (error: unknown) {

@@ -21,7 +21,8 @@ import {
   Layers,
   Sparkles,
   UserPlus,
-  Trash2
+  Trash2,
+  Pencil
 } from "lucide-react";
 import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
@@ -29,6 +30,7 @@ import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import { User } from "@/data/teamflowData";
 import ProjectDetailModal from "@/components/ProjectDetailModal";
 import CreateMemberModal from "@/components/CreateMemberModal";
+import EditMemberModal from "@/components/EditMemberModal";
 import InPageSubTabs from "@/components/InPageSubTabs";
 import UserAvatar from "@/components/UserAvatar";
 import { TeamDirectorySkeleton } from "@/components/Skeletons";
@@ -42,6 +44,7 @@ function TeamDirectoryContent() {
   useEffect(() => setMounted(true), []);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"project_managers" | "employers">("project_managers");
@@ -64,17 +67,13 @@ function TeamDirectoryContent() {
   );
 
   const projectManagers = users.filter((u) => u.role === "project_manager");
-  const employers = isPm
-    ? users.filter((u) => u.role === "employer" && myEmployerIds.has(u.id))
-    : users.filter((u) => u.role === "employer");
+  const employers = users.filter((u) => u.role === "employer");
 
   useEffect(() => {
-    if (isPm) {
-      setActiveTab("employers");
-    } else if (tabParam === "employers" || tabParam === "project_managers") {
+    if (tabParam === "employers" || tabParam === "project_managers") {
       setActiveTab(tabParam);
     }
-  }, [tabParam, isPm]);
+  }, [tabParam]);
 
   if (!mounted || !hasHydrated) {
     return <TeamDirectorySkeleton />;
@@ -151,16 +150,12 @@ function TeamDirectoryContent() {
   return (
     <div className="flex-1 flex flex-col pb-12">
       <Header
-        title={isPm ? "Team Directory • Employers Under My Management" : "Organizational Directory & Portfolios"}
-        subtitle={
-          isPm
-            ? "Inspect employers assigned to your initiatives, appointed team leads, and their current assigned tasks"
-            : "Manage project managers, designated project leads, and employers"
-        }
+        title="Organizational Directory & Portfolios"
+        subtitle="Manage project managers, designated project leads, and employers"
       />
 
       <div className="px-7 py-6 space-y-6">
-        {isCeo && (
+        {(isCeo || isPm) && (
           <InPageSubTabs<"project_managers" | "employers">
             activeTab={activeTab}
             onChange={(tab) => handleTabChange(tab)}
@@ -181,28 +176,7 @@ function TeamDirectoryContent() {
           />
         )}
 
-        {isPm && (
-          <InPageSubTabs<"all" | "leads">
-            activeTab={pmEmployerFilter}
-            onChange={(filter) => setPmEmployerFilter(filter)}
-            tabs={[
-              {
-                id: "all",
-                label: "All Employers Under Me",
-                icon: <Users className="w-4 h-4" />,
-                count: employers.length,
-              },
-              {
-                id: "leads",
-                label: "Appointed Team Leads",
-                icon: <Crown className="w-4 h-4" />,
-                count: leadsUnderPmCount,
-              },
-            ]}
-          />
-        )}
-
-        {isCeo && activeTab === "project_managers" && (
+        {(isCeo || isPm) && activeTab === "project_managers" && (
           <div className="space-y-6">
             <div className="bg-white rounded-lg border border-slate-200/90 p-5 shadow-2xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -218,17 +192,17 @@ function TeamDirectoryContent() {
 
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="text"
                       value={pmSearch}
                       onChange={(e) => setPmSearch(e.target.value)}
                       placeholder="Search project managers..."
-                      className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60"
+                      className="h-9 pl-8 pr-3 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60 shadow-2xs"
                     />
                   </div>
 
-                  {isCeo && (
+                  {(isCeo || isPm) && (
                     <button
                       onClick={() => setIsAddMemberOpen(true)}
                       className="h-9 px-4 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs inline-flex items-center gap-1.5 cursor-pointer shrink-0"
@@ -248,13 +222,12 @@ function TeamDirectoryContent() {
                   ).length;
 
                   return (
-                    <Link
+                    <div
                       key={pm.id}
-                      href={`/team/pm/${pm.id}`}
-                      className="p-4 rounded-lg border border-slate-200/90 hover:border-[#0084d4] bg-white hover:bg-slate-50/50 shadow-2xs transition-all cursor-pointer flex flex-col justify-between space-y-3.5 group"
+                      className="p-4 rounded-lg border border-slate-200/90 hover:border-[#0084d4] bg-white hover:bg-slate-50/50 shadow-2xs transition-all flex flex-col justify-between space-y-3.5 group"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
+                        <Link href={`/team/pm/${pm.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                           <UserAvatar
                             src={pm.avatar}
                             name={pm.fullName}
@@ -262,23 +235,27 @@ function TeamDirectoryContent() {
                             className="w-12 h-12 rounded-full border-2 border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
                             textClassName="text-[14px]"
                           />
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-[15px] font-bold text-slate-900 leading-tight group-hover:text-[#0084d4] transition-colors">
+                              <h3 className="text-[15px] font-bold text-slate-900 leading-tight group-hover:text-[#0084d4] transition-colors truncate">
                                 {pm.fullName}
                               </h3>
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800 border border-purple-200">
                                 Project Manager
                               </span>
                             </div>
+                            <p className="text-[11px] text-slate-400 mt-0.5 truncate">{pm.email}</p>
                           </div>
-                        </div>
+                        </Link>
 
                         <div className="text-right shrink-0">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold bg-slate-100 group-hover:bg-[#0084d4] text-slate-700 group-hover:text-white transition-colors">
+                          <Link
+                            href={`/team/pm/${pm.id}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold bg-slate-100 hover:bg-[#0084d4] text-slate-700 hover:text-white transition-colors"
+                          >
                             <span>View Projects &amp; Team</span>
                             <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                          </span>
+                          </Link>
                         </div>
                       </div>
 
@@ -287,10 +264,35 @@ function TeamDirectoryContent() {
                           <span className="font-semibold text-slate-800">{pCount} Projects</span>
                           <span>&bull;</span>
                           <span>{tCount} Tasks</span>
+                          <span>&bull;</span>
+                          <span className="text-slate-400">ID: {pm.employeeId}</span>
                         </div>
-                        <span className="text-slate-400">ID: {pm.employeeId}</span>
+                        <div className="flex items-center gap-2">
+                          {(isCeo || isPm) && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingUser(pm)}
+                              className="text-slate-600 hover:text-[#0084d4] hover:bg-sky-50 px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 font-medium"
+                              title="Edit project manager"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+                          )}
+                          {(isCeo || isPm) && pm.id !== effectiveUser.id && (
+                            <button
+                              type="button"
+                              onClick={() => setDeletingUser(pm)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 font-medium"
+                              title="Remove project manager"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Remove</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </Link>
+                    </div>
                   );
                 })}
               </div>
@@ -298,7 +300,7 @@ function TeamDirectoryContent() {
           </div>
         )}
 
-        {(isPm || (isCeo && activeTab === "employers")) && (
+        {(isCeo || isPm) && activeTab === "employers" && (
           <div className="space-y-4">
             <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -313,13 +315,13 @@ function TeamDirectoryContent() {
 
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={empSearch}
                     onChange={(e) => setEmpSearch(e.target.value)}
                     placeholder="Search employers, roles..."
-                    className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60"
+                    className="h-9 pl-8 pr-3 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60 shadow-2xs"
                   />
                 </div>
 
@@ -341,14 +343,12 @@ function TeamDirectoryContent() {
                   <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                   <p className="text-[14px] font-semibold text-slate-700">No Employers Found</p>
                   <p className="text-[12px] text-slate-400 mt-1">
-                    {isPm
-                      ? "No employers are currently assigned to projects under your management."
-                      : "No employers match your search criteria."}
+                    No employers match your search criteria.
                   </p>
                 </div>
               ) : (
                 filteredEmployers.map((emp) => {
-                  const relevantProjects = isPm ? myManagedProjects : projects;
+                  const relevantProjects = projects;
                   const leadProjects = relevantProjects.filter((p) => p.teamLeadId === emp.id);
                   const memberProjects = relevantProjects.filter(
                     (p) => p.teamMemberIds.includes(emp.id) && p.teamLeadId !== emp.id
@@ -437,17 +437,30 @@ function TeamDirectoryContent() {
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                       <span>ID: {emp.employeeId}</span>
-                      {isCeo && emp.id !== effectiveUser.id && (
-                        <button
-                          type="button"
-                          onClick={() => setDeletingUser(emp)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 font-medium"
-                          title="Remove team member"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Remove</span>
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {(isCeo || isPm) && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingUser(emp)}
+                            className="text-slate-600 hover:text-[#0084d4] hover:bg-sky-50 px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 font-medium"
+                            title="Edit team member"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            <span>Edit</span>
+                          </button>
+                        )}
+                        {(isCeo || isPm) && emp.id !== effectiveUser.id && (
+                          <button
+                            type="button"
+                            onClick={() => setDeletingUser(emp)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 font-medium"
+                            title="Remove team member"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Remove</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -467,6 +480,12 @@ function TeamDirectoryContent() {
         onClose={() => setIsAddMemberOpen(false)}
       />
 
+      <EditMemberModal
+        user={editingUser}
+        isOpen={Boolean(editingUser)}
+        onClose={() => setEditingUser(null)}
+      />
+
       {deletingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden p-6 space-y-4 animate-in zoom-in-95 duration-150">
@@ -474,7 +493,9 @@ function TeamDirectoryContent() {
               <Trash2 className="w-5 h-5" />
             </div>
             <div className="text-center space-y-1">
-              <h3 className="text-[15px] font-bold text-slate-900">Remove Team Member?</h3>
+              <h3 className="text-[15px] font-bold text-slate-900">
+                Remove {deletingUser.role === "project_manager" ? "Project Manager" : "Team Member"}?
+              </h3>
               <p className="text-[12px] text-slate-500">
                 Are you sure you want to remove <strong>{deletingUser.fullName}</strong> ({deletingUser.email}) from the organization? This action cannot be undone.
               </p>

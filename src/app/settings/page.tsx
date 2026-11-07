@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import { NotificationPreferences } from "@/data/teamflowData";
 import UserAvatar from "@/components/UserAvatar";
 import { SettingsSkeleton } from "@/components/Skeletons";
 import {
@@ -24,7 +25,13 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const { currentUser, updateUserProfile, hasHydrated } = useTeamFlow();
+  const {
+    currentUser,
+    updateUserProfile,
+    hasHydrated,
+    notificationPreferences,
+    updateNotificationPreferences,
+  } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [isEditing, setIsEditing] = useState(false);
@@ -33,7 +40,19 @@ export default function SettingsPage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [taskAlerts, setTaskAlerts] = useState(true);
+  const [prefs, setPrefs] = useState<NotificationPreferences>({
+    taskAlerts: true,
+    projectAlerts: true,
+    leaveAlerts: true,
+    holidayAlerts: true,
+  });
+
+  useEffect(() => {
+    if (notificationPreferences) {
+      setPrefs(notificationPreferences);
+    }
+  }, [notificationPreferences]);
+
   const [savedNotifs, setSavedNotifs] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -187,7 +206,16 @@ export default function SettingsPage() {
     }
   };
 
+  const handleTogglePref = (key: keyof NotificationPreferences) => {
+    setPrefs((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      updateNotificationPreferences(next);
+      return next;
+    });
+  };
+
   const handleSaveNotifications = () => {
+    updateNotificationPreferences(prefs);
     setSavedNotifs(true);
     setTimeout(() => setSavedNotifs(false), 2500);
   };
@@ -423,20 +451,75 @@ export default function SettingsPage() {
             <span>Notification Preferences</span>
           </div>
 
-          <div className="space-y-3 pt-1">
-            <label className="flex items-center justify-between py-2 cursor-pointer">
+          <div className="divide-y divide-slate-100 pt-1">
+            {/* Task Assignment Alerts */}
+            <label className="flex items-center justify-between py-2.5 cursor-pointer group">
               <div>
-                <p className="text-[13px] font-semibold text-slate-800">
+                <p className="text-[13px] font-semibold text-slate-800 group-hover:text-slate-900 transition-colors">
                   Task Assignment Alerts
                 </p>
                 <p className="text-[11px] text-slate-400">
-                  Get notified in real-time when new tasks or deliverables are assigned to you
+                  Get notified in real-time when new tasks, deliverables, or deadlines are assigned to you
                 </p>
               </div>
               <input
                 type="checkbox"
-                checked={taskAlerts}
-                onChange={(e) => setTaskAlerts(e.target.checked)}
+                checked={prefs.taskAlerts}
+                onChange={() => handleTogglePref("taskAlerts")}
+                className="w-4 h-4 accent-[#0084d4] rounded cursor-pointer"
+              />
+            </label>
+
+            {/* Project Added Alerts */}
+            <label className="flex items-center justify-between py-2.5 cursor-pointer group">
+              <div>
+                <p className="text-[13px] font-semibold text-slate-800 group-hover:text-slate-900 transition-colors">
+                  Project Added Alerts
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Get notified when new projects are created or you are assigned to a project team
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={prefs.projectAlerts}
+                onChange={() => handleTogglePref("projectAlerts")}
+                className="w-4 h-4 accent-[#0084d4] rounded cursor-pointer"
+              />
+            </label>
+
+            {/* Leave & Time-Off Alerts */}
+            <label className="flex items-center justify-between py-2.5 cursor-pointer group">
+              <div>
+                <p className="text-[13px] font-semibold text-slate-800 group-hover:text-slate-900 transition-colors">
+                  Leave &amp; Time-Off Alerts
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Get notified about leave applications, status decisions, and manager approvals
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={prefs.leaveAlerts}
+                onChange={() => handleTogglePref("leaveAlerts")}
+                className="w-4 h-4 accent-[#0084d4] rounded cursor-pointer"
+              />
+            </label>
+
+            {/* Company Holiday Declarations */}
+            <label className="flex items-center justify-between py-2.5 cursor-pointer group">
+              <div>
+                <p className="text-[13px] font-semibold text-slate-800 group-hover:text-slate-900 transition-colors">
+                  Company Holiday Declarations
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Get notified when official company holidays or office closures are announced
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={prefs.holidayAlerts}
+                onChange={() => handleTogglePref("holidayAlerts")}
                 className="w-4 h-4 accent-[#0084d4] rounded cursor-pointer"
               />
             </label>

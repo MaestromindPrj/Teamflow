@@ -23,7 +23,8 @@ import {
   ChevronDown,
   Send,
   Cpu,
-  Sparkles
+  Coins,
+  Pencil
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
@@ -95,6 +96,9 @@ export default function ProjectDetailModal({
     projectName: string;
     projectCode: string;
   } | null>(null);
+
+  const [isEditingBudget, setIsEditingBudget] = useState(false);
+  const [budgetInput, setBudgetInput] = useState("");
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -255,10 +259,6 @@ export default function ProjectDetailModal({
                   <span>Scheduled to start</span>
                 </span>
               )}
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-sky-50/70 text-[#0084d4] border border-sky-100 inline-flex items-center gap-1" title="Project status automatically updates based on task completion. Manual override is also supported.">
-                <Sparkles className="w-2.5 h-2.5 text-[#0084d4]" />
-                <span>Auto Workflow</span>
-              </span>
               <span className="text-[12px] text-slate-400 font-medium">
                 {project.category}
               </span>
@@ -319,6 +319,57 @@ export default function ProjectDetailModal({
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
               <span>Deadline: <strong className="text-slate-800">{project.deadline}</strong></span>
             </div>
+            {(isCeo || isPm) && (
+              <div className="flex items-center gap-1.5 bg-emerald-50/70 border border-emerald-200/70 px-2.5 py-0.5 rounded-md text-[12px]">
+                <Coins className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="text-emerald-700 font-medium">Budget:</span>
+                {isEditingBudget ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={budgetInput}
+                      onChange={(e) => setBudgetInput(e.target.value)}
+                      className="w-24 px-1.5 py-0.2 text-[11px] font-bold border border-emerald-300 rounded bg-white text-slate-800 focus:outline-hidden"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const trimmed = budgetInput.trim();
+                        if (trimmed) {
+                          updateProject(project.id, { budget: trimmed });
+                        }
+                        setIsEditingBudget(false);
+                      }}
+                      className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 px-1 cursor-pointer"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingBudget(false);
+                      }}
+                      className="text-[10px] text-slate-400 hover:text-slate-600 px-0.5 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <span
+                    onClick={() => {
+                      setBudgetInput(currentProject.budget || "₹50,000");
+                      setIsEditingBudget(true);
+                    }}
+                    className="font-bold text-emerald-900 hover:underline cursor-pointer flex items-center gap-1"
+                    title="Click to edit budget"
+                  >
+                    {currentProject.budget || "₹50,000"}
+                    <Pencil className="w-2.5 h-2.5 opacity-60" />
+                  </span>
+                )}
+              </div>
+            )}
             {project.techStack && project.techStack.length > 0 && (
               <div className="flex items-center gap-1.5 flex-wrap">
                 <div className="flex items-center gap-1 text-slate-400">

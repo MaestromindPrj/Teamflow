@@ -13,8 +13,17 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "TeamFlow - Enterprise Project Management",
+  title: "Maestrominds - Enterprise Project Management",
   description: "Advanced Multi-Role Project Operations & Tracking System",
+  icons: {
+    icon: [
+      { url: "/logo.png" },
+      { url: "/icon.png" },
+      { url: "/favicon.ico" }
+    ],
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

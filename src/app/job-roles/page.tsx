@@ -21,7 +21,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { CardGridSkeleton } from "@/components/Skeletons";
 
 export default function JobRolesPage() {
-  const { currentUser, users, jobRoles, updateJobRole, deleteJobRole, hasHydrated } = useTeamFlow();
+  const { currentUser, users, jobRoles, updateJobRole, deleteJobRole, hasHydrated, jobRolesLoaded } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -73,7 +73,7 @@ export default function JobRolesPage() {
     setTimeout(() => setSuccessMessage(""), 3000);
   };
 
-  if (!mounted || !hasHydrated || !currentUser.id) {
+  if (!mounted || !hasHydrated || !currentUser.id || !jobRolesLoaded) {
     return (
       <CardGridSkeleton
         title="Job Roles"
@@ -143,7 +143,7 @@ export default function JobRolesPage() {
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-1.5 h-8.5 px-3 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Add Job Role</span>

@@ -17,7 +17,6 @@ export default function CreateCategoryModal({
 }: CreateCategoryModalProps) {
   const { categories, createCategory } = useTeamFlow();
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,7 +24,6 @@ export default function CreateCategoryModal({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
         setName("");
-        setDescription("");
         setErrorMessage("");
         onClose();
       }
@@ -54,13 +52,12 @@ export default function CreateCategoryModal({
     }
 
     setIsSubmitting(true);
-    const success = await createCategory(trimmed, description.trim());
+    const success = await createCategory(trimmed);
     setIsSubmitting(false);
 
     if (success) {
       if (onSuccess) onSuccess(trimmed);
       setName("");
-      setDescription("");
       setErrorMessage("");
       onClose();
     } else {
@@ -70,7 +67,6 @@ export default function CreateCategoryModal({
 
   const handleClose = () => {
     setName("");
-    setDescription("");
     setErrorMessage("");
     onClose();
   };
@@ -121,19 +117,6 @@ export default function CreateCategoryModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Artificial Intelligence, Data Pipeline"
               className="w-full px-3.5 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900 shadow-2xs"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
-              Description <span className="text-slate-400 font-normal">(Optional)</span>
-            </label>
-            <textarea
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of initiatives under this category..."
-              className="w-full px-3.5 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900 resize-none shadow-2xs"
             />
           </div>
 

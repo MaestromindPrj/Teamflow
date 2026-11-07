@@ -101,10 +101,8 @@ export default function ApplyLeaveModal({
     myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
   );
 
-  const eligibleUsers = isCeo
+  const eligibleUsers = (isCeo || isPm)
     ? users.filter((u) => u.role !== "ceo")
-    : isPm
-    ? users.filter((u) => u.id === currentUser.id || myEmployerIds.has(u.id))
     : [currentUser];
 
   const [selectedUserId, setSelectedUserId] = useState<string>(

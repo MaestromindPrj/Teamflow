@@ -2,50 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { X, FolderPlus, Shield, Users, UserCheck, Crown, Sparkles, AlertCircle, Calendar, Plus } from "lucide-react";
-import { useTeamFlow, TechStackItem } from "@/context/TeamFlowContext";
+import { useTeamFlow, TechStackItem, generateProjectCodeFromCategory } from "@/context/TeamFlowContext";
 import UserAvatar from "@/components/UserAvatar";
 
 interface NewProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (projectId: string) => void;
-}
-
-function generateProjectCode(projectName: string, existingProjects: { code: string }[]): string {
-  const existingCodes = new Set(existingProjects.map((p) => p.code.toUpperCase()));
-  const trimmed = projectName.trim();
-
-  let prefix = "";
-  if (!trimmed) {
-    prefix = "PRJ";
-  } else {
-    const stopWords = new Set(["a", "an", "the", "and", "for", "of", "in", "on", "with", "to", "at", "by", "from"]);
-    const words = trimmed
-      .split(/[\s\-_]+/)
-      .filter((w) => w.length > 0 && !stopWords.has(w.toLowerCase()));
-
-    if (words.length >= 2) {
-      prefix = words.slice(0, 4).map((w) => w[0].toUpperCase()).join("");
-      if (prefix.length < 3 && words[0].length >= 3) {
-        prefix = words[0].substring(0, 3).toUpperCase();
-      }
-    } else if (words.length === 1) {
-      prefix = words[0].replace(/[^a-zA-Z0-9]/g, "").substring(0, 4).toUpperCase();
-    }
-
-    if (!prefix || prefix.length < 2) {
-      prefix = "PRJ";
-    }
-  }
-
-  let num = 1;
-  let candidate = `${prefix}-${String(num).padStart(2, "0")}`;
-  while (existingCodes.has(candidate)) {
-    num++;
-    candidate = `${prefix}-${String(num).padStart(2, "0")}`;
-  }
-
-  return candidate;
 }
 
 export default function NewProjectModal({
@@ -90,18 +53,22 @@ export default function NewProjectModal({
   const employers = users.filter((u) => u.role === "employer");
 
   const [name, setName] = useState("");
-  const [code, setCode] = useState("");
+  const [category, setCategory] = useState(() => categories[0]?.name || "");
+  const [code, setCode] = useState(() =>
+    generateProjectCodeFromCategory(categories[0]?.name || "", projects)
+  );
 
   useEffect(() => {
-    setCode(generateProjectCode(name, projects));
-  }, [name, projects]);
-  const [category, setCategory] = useState(() => categories[0]?.name || "");
+    setCode(generateProjectCodeFromCategory(category, projects));
+  }, [category, projects]);
 
   useEffect(() => {
     if (categories.length > 0 && !categories.some((c) => c.name === category)) {
-      setCategory(categories[0].name);
+      const fallbackCat = categories[0].name;
+      setCategory(fallbackCat);
+      setCode(generateProjectCodeFromCategory(fallbackCat, projects));
     }
-  }, [categories, category]);
+  }, [categories, category, projects]);
   const [status, setStatus] = useState<"Planning" | "In Progress" | "In Review" | "Completed">("Planning");
   const [priority, setPriority] = useState<"High" | "Medium" | "Low">("Medium");
   const [startDate, setStartDate] = useState(() => {
@@ -159,7 +126,7 @@ export default function NewProjectModal({
     }
     setError(null);
 
-    const finalCode = (code.trim() || generateProjectCode(name, projects)).toUpperCase();
+    const finalCode = (code.trim() || generateProjectCodeFromCategory(category, projects)).toUpperCase();
 
     const newProject = createProject({
       name: name.trim(),
@@ -224,7 +191,6 @@ export default function NewProjectModal({
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
-                  setCode(generateProjectCode(e.target.value, projects));
                 }}
                 placeholder="e.g. NextGen Mobile Banking Gateway"
                 className="w-full px-3.5 py-2 text-[13px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-900"
@@ -321,7 +287,11 @@ export default function NewProjectModal({
               </label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => {
+                  const newCat = e.target.value;
+                  setCategory(newCat);
+                  setCode(generateProjectCodeFromCategory(newCat, projects));
+                }}
                 className="w-full px-3.5 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800"
               >
                 {categories.map((cat) => (
@@ -444,7 +414,7 @@ export default function NewProjectModal({
             </div>
           )}
 
-          {currentUser.role === "ceo" && (
+          {(currentUser.role === "ceo" || currentUser.role === "project_manager") && (
             <div>
               <label className="block text-[12px] font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
                 <Shield className="w-3.5 h-3.5 text-blue-600" />
@@ -457,7 +427,7 @@ export default function NewProjectModal({
               >
                 {projectManagers.length === 0 ? (
                   <option value={currentUser.id}>
-                    {currentUser.fullName || "CEO"} (Direct Executive Oversight)
+                    {currentUser.fullName || "Management"} (Direct Executive Oversight)
                   </option>
                 ) : (
                   projectManagers.map((pm) => (

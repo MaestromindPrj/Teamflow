@@ -50,31 +50,27 @@ export default function Sidebar() {
       <aside className="w-56 md:w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 select-none" suppressHydrationWarning>
         <div>
           <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-[#0084d4] to-[#0284c7] flex items-center justify-center text-white shadow-xs">
-                <svg
-                  className="w-4.5 h-4.5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="9" y="3" width="6" height="5" rx="1.5" />
-                  <rect x="3" y="15" width="6" height="5" rx="1.5" />
-                  <rect x="15" y="15" width="6" height="5" rx="1.5" />
-                  <path d="M12 8v4" />
-                  <path d="M6 12h12" />
-                  <path d="M6 12v3" />
-                  <path d="M18 12v3" />
-                </svg>
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
+                <img
+                  src="/logo.png"
+                  alt="Maestrominds Logo"
+                  className="w-full h-full object-contain rounded-xl"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLElement).style.display = "none";
+                    const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
+                    if (sibling) sibling.style.display = "flex";
+                  }}
+                />
+                <div className="hidden w-full h-full items-center justify-center bg-linear-to-tr from-[#0084d4] to-[#0284c7] text-white font-black text-sm rounded-xl">
+                  M
+                </div>
               </div>
-              <div>
-                <span className="font-bold text-[16px] text-slate-900 tracking-tight block leading-tight">
-                  TeamFlow
+              <div className="flex flex-col justify-center min-w-0">
+                <span className="font-bold text-[16px] text-slate-900 tracking-tight leading-none">
+                  Maestrominds
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">
+                <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase mt-1 leading-none">
                   Enterprise PM
                 </span>
               </div>
@@ -118,31 +114,28 @@ export default function Sidebar() {
     <aside className="w-56 md:w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 select-none">
       <div>
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-[#0084d4] to-[#0284c7] flex items-center justify-center text-white shadow-xs">
-              <svg
-                className="w-4.5 h-4.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="9" y="3" width="6" height="5" rx="1.5" />
-                <rect x="3" y="15" width="6" height="5" rx="1.5" />
-                <rect x="15" y="15" width="6" height="5" rx="1.5" />
-                <path d="M12 8v4" />
-                <path d="M6 12h12" />
-                <path d="M6 12v3" />
-                <path d="M18 12v3" />
-              </svg>
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Maestrominds Logo"
+                className="w-full h-full object-contain rounded-xl"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = "none";
+                  const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
+                  if (sibling) sibling.style.display = "flex";
+                }}
+              />
+              <div className="hidden w-full h-full items-center justify-center bg-linear-to-tr from-[#0084d4] to-[#0284c7] text-white font-black text-sm rounded-xl">
+                M
+              </div>
             </div>
-            <div>
-              <span className="font-bold text-[16px] text-slate-900 tracking-tight block leading-tight">
-                TeamFlow
+            <div className="flex flex-col justify-center min-w-0">
+              <span className="font-bold text-[16px] text-slate-900 tracking-tight leading-none">
+                Maestrominds
               </span>
-              <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">
+              <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase mt-1 leading-none">
                 Enterprise PM
               </span>
             </div>

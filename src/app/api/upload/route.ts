@@ -9,16 +9,15 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function detectFileType(fileName: string, mimeType?: string): "image" | "pdf" | "figma" | "zip" | "doc" {
+const ALLOWED_EXTENSIONS = ["doc", "docx", "pdf", "fig", "png", "jpeg", "jpg"];
+
+function detectFileType(fileName: string, mimeType?: string): "image" | "pdf" | "figma" | "doc" {
   const ext = fileName.split(".").pop()?.toLowerCase();
-  if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext || "") || mimeType?.startsWith("image/")) {
+  if (["png", "jpg", "jpeg"].includes(ext || "") || mimeType === "image/png" || mimeType === "image/jpeg") {
     return "image";
   }
   if (ext === "pdf" || mimeType === "application/pdf") {
     return "pdf";
-  }
-  if (["zip", "rar", "7z", "tar", "gz"].includes(ext || "")) {
-    return "zip";
   }
   if (ext === "fig") {
     return "figma";
@@ -41,6 +40,14 @@ export async function POST(req: NextRequest) {
     }
 
     const fileName = customName?.trim() || file.name;
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
+      return NextResponse.json(
+        { error: "Only .doc, .docx, .pdf, .fig, .png, and .jpeg files are allowed." },
+        { status: 400 }
+      );
+    }
+
     const detectedType = detectFileType(fileName, file.type);
 
     if (isDbConfigured() && (taskId || projectId)) {
@@ -56,10 +63,13 @@ export async function POST(req: NextRequest) {
         }
 
         if (targetProjId) {
-          const projTasks = await sql`SELECT attachments FROM tasks WHERE project_id = ${targetProjId};`;
+          const projTasks = await sql`SELECT id, attachments FROM tasks WHERE project_id = ${targetProjId};`;
           const projRows = await sql`SELECT attachments FROM projects WHERE id = ${targetProjId} LIMIT 1;`;
           const projectDirectAtts = (projRows[0]?.attachments as TaskAttachment[]) || [];
-          const taskAtts = projTasks.flatMap((t) => (t.attachments as TaskAttachment[]) || []);
+          // Do not treat the current task's pending placeholder as a duplicate
+          const taskAtts = projTasks
+            .filter((t) => !taskId || t.id !== taskId)
+            .flatMap((t) => (t.attachments as TaskAttachment[]) || []);
           const allProjectAtts = [...projectDirectAtts, ...taskAtts];
 
           const isDuplicate = allProjectAtts.some(
@@ -144,7 +154,19 @@ export async function POST(req: NextRequest) {
             date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
           };
 
-          const updatedAttachments = [attachment, ...currentAttachments];
+          const existingIdx = currentAttachments.findIndex(
+            (a) => a.name.trim().toLowerCase() === fileName.trim().toLowerCase()
+          );
+
+          let updatedAttachments: TaskAttachment[];
+          if (existingIdx >= 0) {
+            updatedAttachments = currentAttachments.map((a, idx) =>
+              idx === existingIdx ? { ...a, url: secureUrl, size: sizeStr } : a
+            );
+          } else {
+            updatedAttachments = [attachment, ...currentAttachments];
+          }
+
           const updatedActivity = [newActivity, ...currentActivity];
 
           await sql`

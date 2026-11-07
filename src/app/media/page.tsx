@@ -122,10 +122,8 @@ function MediaHubContent() {
   // Filter media visible to current user based on roles
   const visibleMedia = useMemo(() => {
     return allMediaItems.filter((item) => {
-      // CEO can view all company deliverables
-      if (isCeo) return true;
-      // PM can view deliverables for projects they manage
-      if (isPm) return item.projectManagerId === currentUser.id;
+      // CEO and PM can view all company deliverables
+      if (isCeo || isPm) return true;
       // Team Lead can view deliverables for projects they lead
       const isLeadOnProj = isUserTeamLead(currentUser.id, item.projectId);
       if (isLeadOnProj) return true;
@@ -154,15 +152,11 @@ function MediaHubContent() {
   // Filter deletion requests relevant to current user
   const relevantRequests = useMemo(() => {
     return mediaDeletionRequests.filter((r) => {
-      if (isCeo) return true;
-      if (isPm) {
-        const proj = projects.find((p) => p.id === r.projectId);
-        return proj?.projectManagerId === currentUser.id;
-      }
+      if (isCeo || isPm) return true;
       if (r.teamLeadId === currentUser.id) return true;
       return r.requestedBy === currentUser.id;
     });
-  }, [mediaDeletionRequests, isCeo, isPm, currentUser.id, projects]);
+  }, [mediaDeletionRequests, isCeo, isPm, currentUser.id]);
 
   const pendingRequestsCount = useMemo(() => {
     return relevantRequests.filter((r) => r.status === "Pending").length;
@@ -196,10 +190,8 @@ function MediaHubContent() {
       <Header
         title="Deliverables &amp; Asset Vault"
         subtitle={
-          isCeo
+          isCeo || isPm
             ? "Enterprise Deliverables • Full deletion authority across all initiatives"
-            : isPm
-            ? "Portfolio Media Vault • Deletion authority across all managed projects"
             : "Project Deliverables Vault • Direct deletion for Team Leads, request deletion for Team Members"
         }
       />
@@ -211,24 +203,23 @@ function MediaHubContent() {
           tabs={[
             {
               id: "All",
-              label: "All Assets",
+              label: "All",
               icon: <FolderKanban className="w-4 h-4" />,
               count: allMediaItems.filter((item) => {
-                if (isCeo) return true;
-                if (isPm) return item.projectManagerId === currentUser.id;
+                if (isCeo || isPm) return true;
                 const isLead = isUserTeamLead(currentUser.id, item.projectId);
                 return isLead || item.taskAssignedTo === currentUser.id || item.uploadedBy === currentUser.id;
               }).length,
             },
             {
               id: "figma",
-              label: "Figma UI",
+              label: "Figma",
               icon: <span className="font-bold text-[10px] leading-none">FIG</span>,
               count: visibleMedia.filter((m) => m.type === "figma").length,
             },
             {
               id: "pdf",
-              label: "PDF Documents",
+              label: "PDFs",
               icon: <FileText className="w-4 h-4" />,
               count: visibleMedia.filter((m) => m.type === "pdf").length,
             },
@@ -240,13 +231,13 @@ function MediaHubContent() {
             },
             {
               id: "zip",
-              label: "ZIP Packages",
+              label: "ZIPs",
               icon: <Archive className="w-4 h-4" />,
               count: visibleMedia.filter((m) => m.type === "zip").length,
             },
             {
               id: "doc",
-              label: "Doc Files",
+              label: "Docs",
               icon: <FileText className="w-4 h-4" />,
               count: visibleMedia.filter((m) => m.type === "doc").length,
             },
@@ -410,13 +401,13 @@ function MediaHubContent() {
 
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search assets by file, project..."
-                    className="pl-8 pr-3 py-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-56"
+                    className="h-9 pl-8 pr-3 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-56 shadow-2xs"
                   />
                 </div>
 

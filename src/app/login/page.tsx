@@ -55,12 +55,25 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#0084d4] text-white shadow-md shadow-sky-500/20 mb-1">
-          <Network className="w-6 h-6 stroke-[2.2]" />
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white border border-slate-200/80 shadow-xs p-1.5 mb-1 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Maestrominds Logo"
+            className="w-full h-full object-contain rounded-xl"
+            onError={(e) => {
+              (e.currentTarget as HTMLElement).style.display = "none";
+              const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
+              if (sibling) sibling.style.display = "flex";
+            }}
+          />
+          <div className="hidden w-full h-full rounded-xl bg-linear-to-tr from-[#0084d4] to-[#0284c7] text-white items-center justify-center font-black text-xl">
+            M
+          </div>
         </div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">TeamFlow</h1>
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Maestrominds</h1>
         <p className="text-[13px] text-slate-500 font-medium">
-          MaestroMinds Enterprise Operations &amp; Delivery Suite
+          Enterprise Operations &amp; Delivery Suite
         </p>
       </div>
 

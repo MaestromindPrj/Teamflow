@@ -23,6 +23,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import { NotificationPreferences } from "@/data/teamflowData";
 import UserAvatar from "@/components/UserAvatar";
 
 interface HeaderProps {
@@ -46,7 +47,8 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
     logout,
     mediaDeletionRequests,
     isUserTeamLead,
-    hasHydrated
+    hasHydrated,
+    notificationPreferences
   } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -63,7 +65,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
       detail: string;
       time: string;
       link?: string;
-      category?: "leave" | "task" | "deadline" | "media" | "reward";
+      category?: "leave" | "holiday" | "project" | "task" | "deadline" | "media" | "reward";
       badgeColor?: string;
     }> = [];
 
@@ -107,17 +109,19 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
 
     // =========================================================================
     // 2. LEAVE APPROVAL / REJECTION DECISIONS
-    //    - Employer who applied gets notified regarding approval/rejection
-    //    - If CEO approved/rejected: notify PM
-    //    - If PM approved/rejected: notify CEO
+    //    - Only notify applicant employee regarding their upcoming leave decision
+    //    - Past leaves that already concluded are excluded from active notifications
     // =========================================================================
     const decidedLeaves = leaveRequests.filter((r) => r.status === "Approved" || r.status === "Rejected");
     decidedLeaves.forEach((r) => {
+      const leaveEnd = r.endDate || r.startDate;
+      if (leaveEnd < todayStr) return;
+
       const isApproved = r.status === "Approved";
       const statusTitle = isApproved ? "Approved" : "Rejected";
       const dateRangeStr = r.endDate && r.endDate !== r.startDate ? `${r.startDate} → ${r.endDate}` : r.startDate;
 
-      // 2A. The employer who applied gets notified:
+      // The employer who applied gets notified:
       if (r.userId === currentUser.id) {
         list.push({
           id: `notif-leave-emp-${r.id}-${r.status}`,
@@ -129,50 +133,31 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           badgeColor: isApproved ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
         });
       }
-
-      // Identify reviewer role
-      const reviewer = users.find((u) => u.id === r.reviewedById);
-      const reviewerRole = r.reviewedByRole || reviewer?.role;
-      const isReviewerCeo = reviewerRole === "ceo" || r.reviewedByName?.toLowerCase().includes("ceo") || r.reviewedById === "u-ceo-1";
-      const isReviewerPm = reviewerRole === "project_manager" || reviewer?.role === "project_manager" || (!isReviewerCeo && r.reviewedById && r.reviewedById !== "u-ceo-1");
-
-      // 2B. If reviewed by CEO -> Notify the PM
-      if (isReviewerCeo && isPm && r.reviewedById !== currentUser.id) {
-        list.push({
-          id: `notif-leave-ceo-decision-${r.id}-${r.status}`,
-          title: `Leave ${statusTitle} by CEO`,
-          detail: `CEO ${r.reviewedByName || "CEO"} ${statusTitle.toLowerCase()} ${r.userName}'s ${r.leaveType} leave (${dateRangeStr}).`,
-          time: `CEO ${statusTitle}`,
-          link: `/attendance?view=requests&leaveId=${r.id}`,
-          category: "leave",
-          badgeColor: isApproved ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
-        });
-      }
-
-      // 2C. If reviewed by PM -> Notify the CEO
-      if (isReviewerPm && isCeo && r.reviewedById !== currentUser.id) {
-        list.push({
-          id: `notif-leave-pm-decision-${r.id}-${r.status}`,
-          title: `Leave ${statusTitle} by PM`,
-          detail: `PM ${r.reviewedByName || "Project Manager"} ${statusTitle.toLowerCase()} ${r.userName}'s ${r.leaveType} leave (${dateRangeStr}).`,
-          time: `PM ${statusTitle}`,
-          link: `/attendance?view=requests&leaveId=${r.id}`,
-          category: "leave",
-          badgeColor: isApproved ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
-        });
-      }
     });
 
     // =========================================================================
     // 3. COMPANY HOLIDAY DECLARATIONS
-    //    - If CEO declares: notify employers and PMs
-    //    - If PM declares: notify other PMs, CEO, and employers
-    //    - The user who declared it is excluded from receiving their own notification
+    //    - Only notify employees about active upcoming holidays announced recently
+    //    - Exclude declarant, past holidays, and management with calendar control
     // =========================================================================
     if (Array.isArray(officeLeaves)) {
       officeLeaves.forEach((ol) => {
         // Exclude the user who declared it
         if (ol.declaredById && ol.declaredById === currentUser.id) return;
+
+        // Skip past holidays whose dates have already concluded
+        const holidayEnd = ol.endDate || ol.date;
+        if (holidayEnd < todayStr) return;
+
+        // Only notify if declared today / recently (within last 24h)
+        if (ol.createdAt) {
+          const createdTime = new Date(ol.createdAt).getTime();
+          const oneDayMs = 24 * 60 * 60 * 1000;
+          if (Date.now() - createdTime > oneDayMs) return;
+        }
+
+        // Leadership & PMs manage official calendar directly, no redundant bell alert needed
+        if (isCeo || isPm) return;
 
         const dateRangeStr =
           ol.endDate && ol.endDate !== ol.date
@@ -184,17 +169,9 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           (!ol.declaredByRole && ol.declaredByName?.toLowerCase().includes("ceo")) ||
           ol.declaredById === "u-ceo-1";
 
-        const isDeclarantPm =
-          ol.declaredByRole === "project_manager" ||
-          (!ol.declaredByRole && ol.declaredByName?.toLowerCase().includes("pm")) ||
-          (!isDeclarantCeo && ol.declaredById && ol.declaredById !== "u-ceo-1");
-
-        let declarantTitle = "Leadership";
-        if (isDeclarantCeo) {
-          declarantTitle = `CEO ${ol.declaredByName || "Executive"}`;
-        } else if (isDeclarantPm) {
-          declarantTitle = `PM ${ol.declaredByName || "Project Manager"}`;
-        }
+        let declarantTitle = isDeclarantCeo
+          ? `CEO ${ol.declaredByName || "Executive"}`
+          : `PM ${ol.declaredByName || "Project Manager"}`;
 
         list.push({
           id: `notif-holiday-${ol.id}`,
@@ -202,7 +179,8 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           detail: `${ol.title} (${dateRangeStr}) has been declared as an official company holiday by ${declarantTitle}.`,
           time: "Company Holiday",
           link: "/office-leaves",
-          category: "leave"
+          category: "holiday",
+          badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
         });
       });
     }
@@ -285,7 +263,50 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
     });
 
     // =========================================================================
-    // 5. OTHER WORKSPACE NOTIFICATIONS (Deliverables, Reviews, Media, Rewards)
+    // 5. PROJECT NOTIFICATIONS (New project added or user assigned to project)
+    // =========================================================================
+    if (Array.isArray(projects)) {
+      projects.forEach((p) => {
+        const isProjectManager = p.projectManagerId === currentUser.id;
+        const isTeamLead = p.teamLeadId === currentUser.id;
+        const isTeamMember = Array.isArray(p.teamMemberIds) && p.teamMemberIds.includes(currentUser.id);
+
+        if (isCeo) {
+          list.push({
+            id: `notif-proj-ceo-${p.id}`,
+            title: "New Project Added",
+            detail: `"${p.name}" (${p.code}) • Category: ${p.category} • Priority: ${p.priority}`,
+            time: p.status || "Active",
+            link: `/projects?projectId=${p.id}`,
+            category: "project",
+            badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200"
+          });
+        } else if (isPm && isProjectManager) {
+          list.push({
+            id: `notif-proj-pm-${p.id}`,
+            title: "Project Initiative Assigned",
+            detail: `You are managing project "${p.name}" (${p.code}) • Category: ${p.category}`,
+            time: "PM Assigned",
+            link: `/projects?projectId=${p.id}`,
+            category: "project",
+            badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200"
+          });
+        } else if (isEmployer && (isTeamLead || isTeamMember)) {
+          list.push({
+            id: `notif-proj-emp-${p.id}`,
+            title: isTeamLead ? "Assigned as Team Lead" : "Assigned to Project",
+            detail: `You have been added to "${p.name}" (${p.code}) as ${isTeamLead ? "Team Lead" : "Team Member"} in ${p.category}.`,
+            time: "Project Added",
+            link: `/projects?projectId=${p.id}`,
+            category: "project",
+            badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200"
+          });
+        }
+      });
+    }
+
+    // =========================================================================
+    // 6. OTHER WORKSPACE NOTIFICATIONS (Deliverables, Reviews, Media, Rewards)
     // =========================================================================
     if (isEmployer) {
       // Reward points
@@ -326,10 +347,11 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
         const isLead = r.teamLeadId === currentUser.id || proj?.teamLeadId === currentUser.id || isUserTeamLead(currentUser.id, r.projectId);
         const isProjectPm = proj?.projectManagerId === currentUser.id;
         const isRequester = r.requestedBy === currentUser.id;
-        const isReviewer = r.reviewedBy === currentUser.id;
 
+        // Only active pending requests that require management action generate alerts.
+        // Completed/resolved requests (Accepted/Rejected) are historical data and do not alert.
         if (r.status === "Pending") {
-          const shouldNotify = (isCeo || isProjectPm || isLead) && !isRequester;
+          const shouldNotify = (isCeo || isPm || isLead) && !isRequester;
           if (shouldNotify) {
             list.push({
               id: `notif-del-pending-${r.id}`,
@@ -341,61 +363,6 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
               badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
             });
           }
-        } else if (r.status === "Approved" || r.status === "Rejected") {
-          const isApproved = r.status === "Approved";
-          const statusVerb = isApproved ? "accepted" : "rejected";
-          const statusTitle = isApproved ? "Accepted" : "Rejected";
-          const reviewerLabel = r.reviewedByName
-            ? `${r.reviewedByName}${r.reviewedByRole ? ` (${r.reviewedByRole})` : ""}`
-            : "Management";
-
-          if (isRequester && !isReviewer) {
-            list.push({
-              id: `notif-del-decided-emp-${r.id}-${r.status}`,
-              title: isApproved ? "Media Deletion Request Accepted" : "Media Deletion Request Rejected",
-              detail: `Your request for deleting "${r.attachmentName}" in ${r.projectName} was ${statusVerb} by ${reviewerLabel}.`,
-              time: statusTitle,
-              link: `/media`,
-              category: "media",
-              badgeColor: isApproved ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
-            });
-          }
-
-          if (isLead && !isRequester && !isReviewer) {
-            list.push({
-              id: `notif-del-decided-lead-${r.id}-${r.status}`,
-              title: `Media Deletion Request ${statusTitle}`,
-              detail: `The request for deleting "${r.attachmentName}" in ${r.projectName} by ${r.requestedByName} was ${statusVerb} by ${reviewerLabel}.`,
-              time: statusTitle,
-              link: `/media`,
-              category: "media",
-              badgeColor: isApproved ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
-            });
-          }
-
-          if (isProjectPm && !isRequester && !isReviewer) {
-            list.push({
-              id: `notif-del-decided-pm-${r.id}-${r.status}`,
-              title: `Media Deletion Request ${statusTitle}`,
-              detail: `The request for deleting "${r.attachmentName}" in ${r.projectName} by ${r.requestedByName} was ${statusVerb} by ${reviewerLabel}.`,
-              time: statusTitle,
-              link: `/media`,
-              category: "media",
-              badgeColor: isApproved ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
-            });
-          }
-
-          if (isCeo && !isRequester && !isReviewer) {
-            list.push({
-              id: `notif-del-decided-ceo-${r.id}-${r.status}`,
-              title: `Media Deletion Request ${statusTitle}`,
-              detail: `The request for deleting "${r.attachmentName}" in ${r.projectName} by ${r.requestedByName} was ${statusVerb} by ${reviewerLabel}.`,
-              time: statusTitle,
-              link: `/media`,
-              category: "media",
-              badgeColor: isApproved ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
-            });
-          }
         }
       });
     }
@@ -405,21 +372,94 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
 
   const [dismissedNotifIds, setDismissedNotifIds] = useState<string[]>([]);
 
+  const [localPrefs, setLocalPrefs] = useState<NotificationPreferences>(() => {
+    return (
+      notificationPreferences || {
+        taskAlerts: true,
+        projectAlerts: true,
+        leaveAlerts: true,
+        holidayAlerts: true,
+      }
+    );
+  });
+
+  useEffect(() => {
+    if (notificationPreferences) {
+      setLocalPrefs(notificationPreferences);
+    }
+  }, [notificationPreferences]);
+
+  useEffect(() => {
+    const handlePrefEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<NotificationPreferences>;
+      if (customEvent.detail) {
+        setLocalPrefs(customEvent.detail);
+      } else {
+        try {
+          const userKey = `teamflow_notif_prefs_${currentUser.id || "guest"}`;
+          const saved = localStorage.getItem(userKey) || localStorage.getItem("teamflow_notif_prefs");
+          if (saved) setLocalPrefs(JSON.parse(saved));
+        } catch {}
+      }
+    };
+
+    window.addEventListener("teamflow_notif_prefs_updated", handlePrefEvent);
+    window.addEventListener("storage", handlePrefEvent);
+    return () => {
+      window.removeEventListener("teamflow_notif_prefs_updated", handlePrefEvent);
+      window.removeEventListener("storage", handlePrefEvent);
+    };
+  }, [currentUser.id]);
+
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("teamflow_dismissed_notifs");
-      if (saved) setDismissedNotifIds(JSON.parse(saved));
+      const userKey = `teamflow_dismissed_notifs_${currentUser.id || "guest"}`;
+      const saved = localStorage.getItem(userKey);
+      const globalSaved = localStorage.getItem("teamflow_dismissed_notifs");
+      const combined = Array.from(new Set([
+        ...(saved ? JSON.parse(saved) : []),
+        ...(globalSaved ? JSON.parse(globalSaved) : [])
+      ]));
+      setDismissedNotifIds(combined);
     } catch {}
-  }, []);
+  }, [currentUser.id]);
 
   const notifications = useMemo(() => {
-    return dynamicNotifications.filter((n) => !dismissedNotifIds.includes(n.id));
-  }, [dynamicNotifications, dismissedNotifIds]);
+    const activePrefs = localPrefs || notificationPreferences || {
+      taskAlerts: true,
+      projectAlerts: true,
+      leaveAlerts: true,
+      holidayAlerts: true,
+    };
+
+    return dynamicNotifications.filter((n) => {
+      // 1. Manually dismissed check
+      if (dismissedNotifIds.includes(n.id)) return false;
+
+      // 2. Notification Preferences check
+      if (!activePrefs.taskAlerts && (n.category === "task" || n.category === "deadline")) {
+        return false;
+      }
+      if (!activePrefs.projectAlerts && n.category === "project") {
+        return false;
+      }
+      if (!activePrefs.leaveAlerts && n.category === "leave") {
+        return false;
+      }
+      if (!activePrefs.holidayAlerts && n.category === "holiday") {
+        return false;
+      }
+
+      return true;
+    });
+  }, [dynamicNotifications, dismissedNotifIds, localPrefs, notificationPreferences]);
 
   const handleDismissNotification = (id: string) => {
     setDismissedNotifIds((prev) => {
-      const updated = [...prev, id];
+      const updated = Array.from(new Set([...prev, id]));
       try {
+        const userKey = `teamflow_dismissed_notifs_${currentUser.id || "guest"}`;
+        localStorage.setItem(userKey, JSON.stringify(updated));
         localStorage.setItem("teamflow_dismissed_notifs", JSON.stringify(updated));
       } catch {}
       return updated;
@@ -435,11 +475,15 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
   };
 
   const handleClearAllNotifications = () => {
-    const allIds = dynamicNotifications.map((n) => n.id);
-    setDismissedNotifIds(allIds);
-    try {
-      localStorage.setItem("teamflow_dismissed_notifs", JSON.stringify(allIds));
-    } catch {}
+    setDismissedNotifIds((prev) => {
+      const allIds = Array.from(new Set([...prev, ...notifications.map((n) => n.id)]));
+      try {
+        const userKey = `teamflow_dismissed_notifs_${currentUser.id || "guest"}`;
+        localStorage.setItem(userKey, JSON.stringify(allIds));
+        localStorage.setItem("teamflow_dismissed_notifs", JSON.stringify(allIds));
+      } catch {}
+      return allIds;
+    });
   };
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -609,21 +653,22 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           )}
         </div>
 
-        <div className="relative" ref={notifRef}>
+        <div className="relative" ref={notifRef} suppressHydrationWarning>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             className="w-9 h-9 rounded-lg bg-white border border-slate-200/90 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-colors shadow-2xs relative cursor-pointer"
             title="Notifications"
+            suppressHydrationWarning
           >
             <Bell className="w-4 h-4 stroke-[1.8]" />
-            {notifications.length > 0 && (
+            {mounted && hasHydrated && notifications.length > 0 && (
               <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-[#de2d1d] text-white text-[9.5px] font-bold rounded-full flex items-center justify-center shadow-xs animate-in zoom-in-75">
                 {notifications.length > 9 ? "9+" : notifications.length}
               </span>
             )}
           </button>
 
-          {showNotifications && (
+          {mounted && hasHydrated && showNotifications && (
             <div className="absolute right-0 mt-2 w-88 sm:w-96 max-h-[440px] flex flex-col bg-white rounded-xl shadow-xl border border-slate-200/90 p-3.5 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 font-medium text-slate-800">
                 <div className="flex items-center gap-1.5">
@@ -660,6 +705,10 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
                       <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                         {n.category === "leave" ? (
                           <Calendar className="w-3.5 h-3.5 text-[#0084d4]" />
+                        ) : n.category === "holiday" ? (
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        ) : n.category === "project" ? (
+                          <FolderKanban className="w-3.5 h-3.5 text-indigo-600" />
                         ) : n.category === "deadline" ? (
                           <Clock className="w-3.5 h-3.5 text-amber-600" />
                         ) : n.category === "task" ? (

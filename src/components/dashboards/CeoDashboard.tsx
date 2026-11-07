@@ -513,8 +513,6 @@ export default function CeoDashboard() {
                 <th className="pb-3 pr-3">Staff Member</th>
                 <th className="pb-3 px-3">Role</th>
                 <th className="pb-3 px-3">Job Role</th>
-                <th className="pb-3 px-3">Clock In</th>
-                <th className="pb-3 px-3">Clock Out</th>
                 <th className="pb-3 px-3">Worked Duration</th>
                 <th className="pb-3 pl-3 text-right">Attendance Status</th>
               </tr>
@@ -523,12 +521,9 @@ export default function CeoDashboard() {
               {totalWorkforce.map((staff) => {
                 const clockState = userClockInData[staff.id];
                 const isUserIn = clockState?.isClockedIn ?? false;
-                const clockInTime = isUserIn || clockState?.clockInTimeString ? (clockState?.clockInTimeString || "—") : "—";
-                const clockOutTime = isUserIn ? "—" : (clockState?.clockOutTimeString || "—");
                 const elapsed = clockState?.elapsedSeconds || 0;
                 const durationStr = isUserIn || elapsed > 0 ? `${Math.floor(elapsed / 3600)}h ${Math.floor((elapsed % 3600) / 60)}m` : "0h 00m";
-                const isLate = clockInTime !== "—" && isLateClockIn(clockInTime);
-                const status = isLate ? "Late" : isUserIn ? "Present" : clockState?.clockOutTimeString ? "Checked Out" : "Not Clocked In";
+                const status = isUserIn ? "Present" : clockState?.clockOutTimeString ? "Checked Out" : "Not Clocked In";
 
                 return (
                   <tr key={staff.id} className="hover:bg-slate-50/60 transition-colors">
@@ -547,8 +542,6 @@ export default function CeoDashboard() {
                       </span>
                     </td>
                     <td className="py-3 px-3 text-[12px] text-slate-500">{staff.jobTitle || "Employer"}</td>
-                    <td className="py-3 px-3 text-[12px] text-slate-800 font-medium" suppressHydrationWarning>{clockInTime}</td>
-                    <td className="py-3 px-3 text-[12px] text-slate-500" suppressHydrationWarning>{clockOutTime}</td>
                     <td className="py-3 px-3 text-[12px] font-bold text-[#0084d4]" suppressHydrationWarning>{durationStr}</td>
                     <td className="py-3 pl-3 text-right">
                       <StatusBadge status={status as any} />

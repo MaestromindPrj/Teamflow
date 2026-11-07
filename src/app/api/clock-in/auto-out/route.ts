@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
       UPDATE attendance
       SET clock_out = ${clockOutTimeString},
           duration = ${formattedDuration},
-          status = CASE WHEN status = 'Late' THEN 'Late' ELSE 'Checked Out' END,
+          status = 'Checked Out',
           sessions = ${JSON.stringify(updatedSessions)}::jsonb
       WHERE user_id = ${userId} AND date = ${clockInDate};
     `;

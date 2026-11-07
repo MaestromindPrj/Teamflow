@@ -17,16 +17,15 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function detectFileType(fileName: string, mimeType?: string): "image" | "pdf" | "figma" | "zip" | "doc" {
+const ALLOWED_EXTS = ["doc", "docx", "pdf", "fig", "png", "jpeg", "jpg"];
+
+function detectFileType(fileName: string, mimeType?: string): "image" | "pdf" | "figma" | "doc" {
   const ext = fileName.split(".").pop()?.toLowerCase();
-  if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext || "") || mimeType?.startsWith("image/")) {
+  if (["png", "jpg", "jpeg"].includes(ext || "") || mimeType?.startsWith("image/")) {
     return "image";
   }
   if (ext === "pdf" || mimeType === "application/pdf") {
     return "pdf";
-  }
-  if (["zip", "rar", "7z", "tar", "gz"].includes(ext || "")) {
-    return "zip";
   }
   if (ext === "fig") {
     return "figma";
@@ -59,6 +58,12 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
 
   const handleFileSelect = (file: File | undefined) => {
     if (!file) return;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!ext || !ALLOWED_EXTS.includes(ext)) {
+      alert("Only .doc, .docx, .pdf, .fig, .png, and .jpeg files are allowed.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setSelectedFile(file);
     setCalculatedSize(formatFileSize(file.size));
     setMediaType(detectFileType(file.name, file.type));
@@ -91,25 +96,26 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
     e.preventDefault();
     if (!title.trim() || !assignedTo) return;
 
-    const newTask = createTask({
-      projectId: project.id,
-      title: title.trim(),
-      description: description.trim(),
-      assignedTo,
-      priority,
-      deadline,
-      status
-    });
-
-    if (selectedFile) {
-      uploadTaskMedia(newTask.id, {
-        name: selectedFile.name,
-        size: calculatedSize || formatFileSize(selectedFile.size),
-        type: mediaType,
-        url: URL.createObjectURL(selectedFile),
-        rawFile: selectedFile
-      });
-    }
+    createTask(
+      {
+        projectId: project.id,
+        title: title.trim(),
+        description: description.trim(),
+        assignedTo,
+        priority,
+        deadline,
+        status,
+      },
+      selectedFile
+        ? {
+            name: selectedFile.name,
+            size: calculatedSize || formatFileSize(selectedFile.size),
+            type: mediaType,
+            url: URL.createObjectURL(selectedFile),
+            rawFile: selectedFile,
+          }
+        : undefined
+    );
 
     resetForm();
     onClose();
@@ -239,6 +245,7 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
             <input
               type="file"
               ref={fileInputRef}
+              accept=".doc,.docx,.pdf,.fig,.png,.jpeg,.jpg"
               onChange={(e) => handleFileSelect(e.target.files?.[0])}
               className="hidden"
             />
@@ -284,7 +291,7 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
                   Upload media attachment
                 </span>
                 <span className="text-[11px] text-slate-400 hidden sm:inline">
-                  (.png, .jpg, .pdf, .fig, .zip)
+                  (.doc, .pdf, .fig, .docx, .png, .jpeg)
                 </span>
               </div>
             )}

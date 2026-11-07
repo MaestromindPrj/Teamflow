@@ -14,6 +14,7 @@ import {
   Mail
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
+import { DEFAULT_JOB_ROLES } from "@/data/teamflowData";
 
 interface CreateMemberModalProps {
   isOpen: boolean;
@@ -34,7 +35,31 @@ function generateInitialPassword(): string {
 
 export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModalProps) {
   const { users, jobRoles, departments, addTeamMember } = useTeamFlow();
-  const availableRoles = jobRoles && jobRoles.length > 0 ? jobRoles : departments;
+  const [activeRoles, setActiveRoles] = useState<{ id: string; name: string }[]>(() => {
+    return (jobRoles && jobRoles.length > 0) ? jobRoles : DEFAULT_JOB_ROLES;
+  });
+
+  useEffect(() => {
+    if (jobRoles && jobRoles.length > 0) {
+      setActiveRoles(jobRoles);
+    }
+  }, [jobRoles]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/job-roles")
+        .then((res) => res.json())
+        .then((data) => {
+          const list = data.jobRoles || data.departments;
+          if (Array.isArray(list) && list.length > 0) {
+            setActiveRoles(list);
+          }
+        })
+        .catch(() => null);
+    }
+  }, [isOpen]);
+
+  const availableRoles = activeRoles;
 
   const [fullName, setFullName] = useState("");
   const [emailUsername, setEmailUsername] = useState("");
@@ -53,6 +78,11 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
   const [copied, setCopied] = useState(false);
 
   const normalizedInputEmail = emailUsername.trim().toLowerCase();
+  const isInvalidDomain = Boolean(
+    normalizedInputEmail &&
+    normalizedInputEmail.includes("@") &&
+    !normalizedInputEmail.endsWith("@maestrominds.co.in")
+  );
   const computedEmail = normalizedInputEmail.includes("@")
     ? normalizedInputEmail
     : `${normalizedInputEmail}@maestrominds.co.in`;
@@ -96,7 +126,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
     const portalUrl = typeof window !== "undefined" && !window.location.origin.includes("localhost")
       ? `${window.location.origin}/login`
       : "https://teamflow-topaz.vercel.app/login";
-    const text = `MaestroMinds TeamFlow Account Created:\nName: ${createdCredentials.name}\nEmail: ${createdCredentials.email}\nRole: ${createdCredentials.role}\nJob Role: ${createdCredentials.jobTitle}\nInitial Password: ${createdCredentials.password}\nLogin Portal: ${portalUrl}`;
+    const text = `Maestrominds Account Created:\nName: ${createdCredentials.name}\nEmail: ${createdCredentials.email}\nRole: ${createdCredentials.role}\nJob Role: ${createdCredentials.jobTitle}\nInitial Password: ${createdCredentials.password}\nLogin Portal: ${portalUrl}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -128,6 +158,11 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
       return;
     }
 
+    if (rawEmailInput.includes("@") && !rawEmailInput.endsWith("@maestrominds.co.in")) {
+      setErrorMessage("Only @maestrominds.co.in email addresses are accepted.");
+      return;
+    }
+
     const companyEmail = rawEmailInput.includes("@")
       ? rawEmailInput
       : `${rawEmailInput}@maestrominds.co.in`;
@@ -137,8 +172,13 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
       return;
     }
 
+    if (role === "employer" && !selectedJobRole.trim()) {
+      setErrorMessage("Please select a job role.");
+      return;
+    }
+
     const passwordToUse = generateInitialPassword();
-    const finalJobTitle = role === "employer" ? (selectedJobRole || "Software Developer") : "Project Manager";
+    const finalJobTitle = role === "employer" ? selectedJobRole.trim() : "Project Manager";
 
     setIsSubmitting(true);
     try {
@@ -212,7 +252,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                       via Gmail.
                     </p>
                     <p className="text-[11px] text-emerald-600/90 text-left">
-                      (If not visible in Inbox, please check Spam/Junk folder)
+                      (If not visible in Inbox, please check Spam/Junk and select &quot;Report not spam&quot;)
                     </p>
                   </div>
                 </div>
@@ -341,12 +381,17 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                 }}
                 placeholder="name@maestrominds.co.in or username"
                 className={`w-full px-3.5 py-2 text-[13px] bg-white border rounded-lg focus:outline-hidden text-slate-900 shadow-2xs transition-colors ${
-                  isEmailTaken
+                  isEmailTaken || isInvalidDomain
                     ? "border-red-400 focus:border-red-500 ring-1 ring-red-200"
                     : "border-slate-200 focus:border-[#0084d4]"
                 }`}
               />
-              {isEmailTaken ? (
+              {isInvalidDomain ? (
+                <p className="text-[11px] text-red-600 font-semibold mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                  <span>Only @maestrominds.co.in is allowed (e.g. name@maestrominds.co.in).</span>
+                </p>
+              ) : isEmailTaken ? (
                 <p className="text-[11px] text-red-600 font-semibold mt-1 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
                   <span>User already exists with this email address.</span>

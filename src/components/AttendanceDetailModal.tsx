@@ -1,28 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   X,
   Clock,
   Calendar,
   CheckCircle2,
   AlertCircle,
-  Shield,
-  UserCheck,
   Mail,
   FolderKanban,
-  Activity,
+  History,
   LogOut,
-  Sparkles,
-  Coffee
+  CalendarDays,
+  Filter,
+  Check
 } from "lucide-react";
-import { useTeamFlow, getLocalDateString, formatSecondsToDuration, isLateClockIn } from "@/context/TeamFlowContext";
+import { useTeamFlow, getLocalDateString, formatSecondsToDuration } from "@/context/TeamFlowContext";
 import { StatusBadge } from "@/components/Badges";
-import { AttendanceRecord, PunchSession } from "@/data/teamflowData";
+import { AttendanceRecord } from "@/data/teamflowData";
 import UserAvatar from "@/components/UserAvatar";
+import { GroupedAttendanceRow, groupAttendanceRecords } from "@/utils/attendanceGrouping";
 
 interface AttendanceDetailModalProps {
-  record: AttendanceRecord | null;
+  record: GroupedAttendanceRow | AttendanceRecord | null;
   onClose: () => void;
 }
 
@@ -30,8 +30,10 @@ export default function AttendanceDetailModal({
   record,
   onClose
 }: AttendanceDetailModalProps) {
-  const { users, projects, userClockInData } = useTeamFlow();
+  const { users, projects, userClockInData, attendance } = useTeamFlow();
   const [currentTime, setCurrentTime] = useState<number>(0);
+  const [periodFilter, setPeriodFilter] = useState<"3" | "7" | "15" | "30" | "all">("7");
+  const [statusFilter, setStatusFilter] = useState<"all" | "worked" | "leave">("all");
 
   useEffect(() => {
     setCurrentTime(Date.now());
@@ -41,372 +43,399 @@ export default function AttendanceDetailModal({
     return () => clearInterval(interval);
   }, []);
 
-  if (!record) return null;
-
   const todayString = getLocalDateString(new Date());
-  const isToday = record.date === todayString;
 
-  const staffUser = users.find((u) => u.id === record.userId);
-  const clockState = userClockInData[record.userId];
+  const targetUserId = record?.userId;
+  const staffUser = users.find((u) => u.id === targetUserId);
+  const clockState = targetUserId ? userClockInData[targetUserId] : undefined;
 
-  const isWorkingNow = isToday && (clockState ? clockState.isClockedIn : record.clockOut === "—" && record.status !== "Leave");
+  // Gather all raw records for this user from state
+  const userAllRawAttendance = useMemo(() => {
+    if (!targetUserId) return [];
+    return attendance.filter((r) => r.userId === targetUserId);
+  }, [attendance, targetUserId]);
 
-  const checkInTime = isToday && (clockState?.isClockedIn || clockState?.clockInTimeString)
-    ? (clockState.clockInTimeString || record.clockIn)
-    : record.clockIn;
+  // Group continuous leave into single rows (e.g. 2026-11-04 - 2026-11-06)
+  const groupedUserHistory = useMemo(() => {
+    return groupAttendanceRecords(userAllRawAttendance);
+  }, [userAllRawAttendance]);
 
-  const checkOutTime = isWorkingNow
-    ? null
-    : isToday && clockState?.clockOutTimeString
-    ? clockState.clockOutTimeString
-    : record.clockOut !== "—"
-    ? record.clockOut
-    : null;
+  // Filter history based on selected period & status
+  const filteredHistory = useMemo(() => {
+    let list = [...groupedUserHistory];
 
-  const recordedSessions: PunchSession[] =
-    (isToday && clockState?.sessions && clockState.sessions.length > 0)
-      ? clockState.sessions
-      : (record.sessions && record.sessions.length > 0)
-      ? record.sessions
-      : (record.clockIn && record.clockIn !== "—")
-      ? [
-          {
-            sessionNumber: 1,
-            clockIn: record.clockIn,
-            clockOut: record.clockOut !== "—" ? record.clockOut : null,
-            duration: record.duration,
-          },
-        ]
-      : [];
+    if (periodFilter !== "all") {
+      const days = Number(periodFilter);
+      const cutoff = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000);
+      const cutoffStr = getLocalDateString(cutoff);
+      list = list.filter((r) => r.endDate >= cutoffStr);
+    }
 
-  let liveDurationStr = record.duration;
-  if (record.status === "Leave") {
-    liveDurationStr = "00h 00m 00s (On Leave)";
-  } else if (isToday && isWorkingNow && clockState?.clockInTimestamp) {
-    const elapsed =
-      (clockState.elapsedSeconds || 0) +
-      Math.max(0, Math.floor((currentTime - clockState.clockInTimestamp) / 1000));
-    const h = Math.floor(elapsed / 3600);
-    const m = Math.floor((elapsed % 3600) / 60);
-    const s = elapsed % 60;
-    liveDurationStr = `${String(h).padStart(2, "0")}h ${String(m).padStart(
-      2,
-      "0"
-    )}m ${String(s).padStart(2, "0")}s`;
-  } else if (isToday && clockState?.elapsedSeconds && !isWorkingNow) {
-    const elapsed = clockState.elapsedSeconds;
-    const h = Math.floor(elapsed / 3600);
-    const m = Math.floor((elapsed % 3600) / 60);
-    const s = elapsed % 60;
-    liveDurationStr = `${String(h).padStart(2, "0")}h ${String(m).padStart(
-      2,
-      "0"
-    )}m ${String(s).padStart(2, "0")}s`;
-  } else {
-    liveDurationStr = record.duration;
-  }
+    if (statusFilter === "worked") {
+      list = list.filter((r) => r.status !== "Leave");
+    } else if (statusFilter === "leave") {
+      list = list.filter((r) => r.status === "Leave");
+    }
 
-  const firstPunchIn = recordedSessions[0]?.clockIn || checkInTime || "—";
-  const lastPunchOut = recordedSessions[recordedSessions.length - 1]?.clockOut || checkOutTime || "—";
+    // Sort descending by date (newest first)
+    list.sort((a, b) => {
+      const aIsToday = a.startDate <= todayString && todayString <= a.endDate;
+      const bIsToday = b.startDate <= todayString && todayString <= b.endDate;
+      if (aIsToday && !bIsToday) return -1;
+      if (bIsToday && !aIsToday) return 1;
+      return b.endDate.localeCompare(a.endDate);
+    });
 
-  const isLate = record.status === "Late" || isLateClockIn(firstPunchIn);
+    return list;
+  }, [groupedUserHistory, periodFilter, statusFilter, todayString]);
 
-  let modalStatus: AttendanceRecord["status"] = record.status;
-  if (record.status === "Leave") {
-    modalStatus = "Leave";
-  } else if (isLate) {
-    modalStatus = "Late";
-  } else if (isToday) {
-    modalStatus = isWorkingNow
-      ? "Present"
-      : clockState?.clockOutTimeString
-      ? "Checked Out"
-      : record.status;
-  } else {
-    modalStatus = record.status;
+  // Compute summary stats for the filtered period
+  const stats = useMemo(() => {
+    let daysWorked = 0;
+    let daysLeave = 0;
+    let totalSeconds = 0;
+
+    filteredHistory.forEach((row) => {
+      if (row.status === "Leave") {
+        daysLeave += row.leaveDaysCount || 1;
+      } else {
+        daysWorked += 1;
+        // Parse duration like "07h 15m 24s" or "7h 15m 24s"
+        const match = row.duration.match(/(\d+)h\s*(\d+)m\s*(\d+)s/);
+        if (match) {
+          const h = parseInt(match[1], 10) || 0;
+          const m = parseInt(match[2], 10) || 0;
+          const s = parseInt(match[3], 10) || 0;
+          totalSeconds += h * 3600 + m * 60 + s;
+        }
+      }
+    });
+
+    // Add active clock-in live elapsed seconds if currently working today
+    const isWorkingNow = clockState?.isClockedIn === true;
+    if (isWorkingNow && clockState?.clockInTimestamp) {
+      const liveAdd = Math.max(0, Math.floor((currentTime - clockState.clockInTimestamp) / 1000));
+      totalSeconds += liveAdd;
+    }
+
+    return {
+      daysWorked,
+      daysLeave,
+      totalDurationFormatted: formatSecondsToDuration(totalSeconds)
+    };
+  }, [filteredHistory, clockState, currentTime]);
+
+  if (!record || !staffUser) return null;
+
+  const isWorkingNow = clockState?.isClockedIn === true;
+
+  let currentLiveStatus: AttendanceRecord["status"] = "Checked Out";
+  if (isWorkingNow) {
+    currentLiveStatus = "Present";
+  } else if (
+    userAllRawAttendance.some(
+      (r) => r.date === todayString && r.status === "Leave"
+    )
+  ) {
+    currentLiveStatus = "Leave";
+  } else if (clockState?.clockOutTimeString) {
+    currentLiveStatus = "Checked Out";
   }
 
   const userProjects = projects.filter(
     (p) =>
-      p.teamMemberIds.includes(record.userId) ||
-      p.teamLeadId === record.userId ||
-      p.projectManagerId === record.userId
+      p.teamMemberIds.includes(staffUser.id) ||
+      p.teamLeadId === staffUser.id ||
+      p.projectManagerId === staffUser.id
   );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100 shrink-0">
-              <Clock className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100 shrink-0">
+              <History className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-[16px] font-bold text-slate-900 tracking-tight">
-                  Workday Attendance Dossier
+                  Work Duration &amp; Attendance History
                 </h2>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
-                  {record.date}
-                </span>
               </div>
               <p className="text-[12px] text-slate-500">
-                Live time tracking, punch timestamps, and workday session details
+                Complete workday logs, leave records, and project assignments for {staffUser.fullName}
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            aria-label="Close dialog"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-5">
-          <div className="flex items-center gap-4 bg-slate-50/80 p-4 rounded-lg border border-slate-100">
+          {/* User Profile Card */}
+          <div className="flex items-center gap-4 bg-slate-50/80 p-4 rounded-xl border border-slate-100">
             <UserAvatar
-              src={staffUser?.avatar}
-              name={record.userName}
-              role={staffUser?.role || record.userRole}
-              className="w-14 h-14 rounded-full border-2 border-white shadow-2xs shrink-0"
-              textClassName="text-[16px]"
+              src={staffUser.avatar}
+              name={staffUser.fullName}
+              role={staffUser.role}
+              className="w-13 h-13 rounded-full border-2 border-white shadow-2xs shrink-0"
+              textClassName="text-[15px]"
             />
             <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-[16px] font-bold text-slate-900 truncate">
-                    {record.userName}
+                    {staffUser.fullName}
                   </h3>
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-[#0084d4] border border-sky-200/70">
-                    {staffUser?.jobTitle || (record.userRole === "project_manager" ? "Project Manager" : "Employer")}
+                    {staffUser.jobTitle || (staffUser.role === "project_manager" ? "Project Manager" : "Employer")}
                   </span>
                 </div>
-                <StatusBadge status={modalStatus} />
+                <StatusBadge status={currentLiveStatus} />
               </div>
               <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400">
                 <span className="inline-flex items-center gap-1">
                   <Mail className="w-3 h-3" />
-                  {staffUser?.email || "staff@teamflow.internal"}
+                  {staffUser.email}
                 </span>
+                <span>&bull;</span>
+                <span className="capitalize">{staffUser.role === "project_manager" ? "Project Manager" : "Employer"}</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="bg-white border border-slate-200/90 rounded-lg p-3.5 shadow-2xs">
+          {/* Quick Metrics for the selected period */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-2xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                First Check-In Punch
+                Days Worked
               </span>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#4ade1d]" />
-                <span className="text-[16px] font-extrabold text-slate-900">
-                  {firstPunchIn}
-                </span>
+              <div className="text-[20px] font-extrabold text-slate-900 leading-none">
+                {stats.daysWorked} {stats.daysWorked === 1 ? "Day" : "Days"}
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                {recordedSessions.length > 1 ? `${recordedSessions.length} sessions logged today` : "Recorded by system"}
-              </span>
+              <span className="text-[10px] text-slate-400 mt-1 block">In selected period</span>
             </div>
 
-            <div className="bg-white border border-slate-200/90 rounded-lg p-3.5 shadow-2xs">
+            <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-2xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                {isWorkingNow ? "Current Status" : "Last Check-Out Punch"}
+                Total Work Duration
               </span>
-              <div className="flex items-center gap-2">
-                {isWorkingNow ? (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-[#4ade1d] animate-ping" />
-                    <span className="text-[13px] font-bold text-[#4ade1d]">
-                      Active On-Duty {recordedSessions.length > 1 ? `(Session ${recordedSessions.length})` : ""}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <LogOut className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-[16px] font-extrabold text-slate-900">
-                      {lastPunchOut}
-                    </span>
-                  </>
-                )}
+              <div className="font-mono text-[16px] font-bold text-[#0084d4] leading-none">
+                {stats.totalDurationFormatted}
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                {isWorkingNow ? "Currently clocked in" : "Shift completed"}
-              </span>
+              <span className="text-[10px] text-slate-400 mt-1 block">Cumulative hours logged</span>
             </div>
 
-            <div className="bg-white border border-slate-200/90 rounded-lg p-3.5 shadow-2xs">
+            <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-2xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                Total Logged Duration
+                Leave Days
               </span>
-              <span className="font-mono text-[15px] font-bold text-[#0084d4] block">
-                {liveDurationStr}
-              </span>
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                {isWorkingNow ? "Live timer across all sessions" : "Cumulative logged hours"}
-              </span>
+              <div className="text-[20px] font-extrabold text-amber-700 leading-none">
+                {stats.daysLeave} {stats.daysLeave === 1 ? "Day" : "Days"}
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1 block">Approved time-off</span>
             </div>
           </div>
 
-          <div className="bg-slate-50/60 rounded-lg border border-slate-100 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[12px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-[#0084d4]" />
-                <span>Day Activity &amp; Punch Timeline</span>
-              </h4>
-              {recordedSessions.length > 0 && (
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-[#0084d4] border border-sky-200">
-                  {recordedSessions.length} {recordedSessions.length === 1 ? "Session" : "Sessions"}
+          {/* Work Duration History Section */}
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-[#0084d4]" />
+                <h4 className="text-[13px] font-bold text-slate-900 tracking-tight">
+                  Work Duration History
+                </h4>
+                <span className="text-[11px] font-semibold px-2 py-0.2 rounded-full bg-slate-100 text-slate-600">
+                  {filteredHistory.length} {filteredHistory.length === 1 ? "Entry" : "Entries"}
                 </span>
-              )}
-            </div>
+              </div>
 
-            {record.status === "Leave" ? (
-              <div className="space-y-2.5">
-                <div className="p-3.5 bg-amber-50/80 border border-amber-200/70 rounded-lg text-amber-900 flex items-start gap-3">
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="space-y-1 text-[12px]">
-                    <div className="font-bold text-amber-950">
-                      Approved Leave Recorded
-                    </div>
-                    
-                    {record.leaveType && (
-                      <div className="pt-1 flex items-center gap-2">
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-200/70 text-amber-900">
-                          {record.leaveType}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+              {/* Filters for Period and Status */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-[11px] font-semibold">
+                  {(["3", "7", "15", "30", "all"] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setPeriodFilter(opt)}
+                      className={`px-2 py-1 rounded-md transition-colors cursor-pointer ${
+                        periodFilter === opt
+                          ? "bg-white text-[#0084d4] font-bold shadow-2xs"
+                          : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      {opt === "all" ? "All" : `${opt}D`}
+                    </button>
+                  ))}
                 </div>
 
-                {record.leaveReason && (
-                  <div className="p-3 bg-white border border-slate-200 rounded-lg text-[12px] text-slate-700">
-                    <strong className="text-slate-900 block text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-0.5">
-                      Submitted Reason / Notes
-                    </strong>
-                    <span>{record.leaveReason}</span>
-                  </div>
-                )}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as "all" | "worked" | "leave")}
+                  aria-label="Filter by Status"
+                  className="px-2.5 py-1 text-[11px] font-medium bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-hidden focus:border-[#0084d4] cursor-pointer"
+                >
+                  <option value="all">All Status</option>
+                  <option value="worked">Worked Only</option>
+                  <option value="leave">Leave Only</option>
+                </select>
               </div>
-            ) : recordedSessions.length === 0 ? (
-              <div className="p-3 bg-slate-100 rounded-md text-[12px] text-slate-500">
-                No clock-in sessions recorded for this date.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recordedSessions.map((session, idx) => {
-                  const isLast = idx === recordedSessions.length - 1;
-                  const isActiveSession = isLast && isWorkingNow && !session.clockOut;
+            </div>
 
-                  let sessionDur = session.duration || "—";
-                  if (isActiveSession && clockState?.clockInTimestamp) {
-                    const liveSec = Math.max(0, Math.floor((currentTime - clockState.clockInTimestamp) / 1000));
-                    sessionDur = formatSecondsToDuration(liveSec);
-                  }
+            {/* History Table */}
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+              <table className="w-full text-left text-[12px]">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="py-2.5 px-3">Date</th>
+                    <th className="py-2.5 px-3">Work Duration (H:M:S)</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3 text-right">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-400 text-[12px]">
+                        No attendance or workday records found for this filter period.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredHistory.map((row) => {
+                      const isRowToday = row.startDate <= todayString && todayString <= row.endDate;
+                      const isRowWorkingNow = isRowToday && isWorkingNow && row.status !== "Leave";
 
-                  const nextSession = recordedSessions[idx + 1];
+                      let durationText = row.duration;
+                      if (row.status === "Leave") {
+                        durationText = "—";
+                      } else if (isRowWorkingNow && clockState?.clockInTimestamp) {
+                        const elapsed =
+                          (clockState.elapsedSeconds || 0) +
+                          Math.max(0, Math.floor((currentTime - clockState.clockInTimestamp) / 1000));
+                        durationText = formatSecondsToDuration(elapsed);
+                      }
 
-                  return (
-                    <div key={`session-${session.sessionNumber || idx}`} className="space-y-2">
-                      <div className="bg-white rounded-lg border border-slate-200/80 p-3 shadow-2xs hover:border-slate-300 transition-colors">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded text-[11px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
-                              Session {session.sessionNumber || idx + 1}
-                            </span>
-                            {isActiveSession ? (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#4ade1d] animate-ping" />
-                                Working Now
+                      return (
+                        <tr
+                          key={row.id}
+                          className={`hover:bg-slate-50/80 transition-colors ${
+                            isRowToday ? "bg-sky-50/30" : ""
+                          }`}
+                        >
+                          {/* Date Column (handles single dates or grouped continuous leave) */}
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              {isRowToday && (
+                                <span className="w-2 h-2 rounded-full bg-[#0084d4] shrink-0" title="Today" />
+                              )}
+                              <span className="font-semibold text-slate-800">
+                                {row.date}
                               </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
-                                <CheckCircle2 className="w-3 h-3 text-[#4ade1d]" />
-                                Completed
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="text-[11px] font-mono font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                            Duration: <span className={isActiveSession ? "text-[#4ade1d]" : "text-slate-900"}>{sessionDur}</span>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-[12px]">
-                          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded border border-slate-100">
-                            <span className="w-2 h-2 rounded-full bg-[#4ade1d] shrink-0" />
-                            <div>
-                              <span className="text-[10px] text-slate-400 block font-medium">Check-In</span>
-                              <span className="font-semibold text-slate-800 font-mono text-[12px]">{session.clockIn}</span>
+                              {row.isLeaveSpan && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                                  {row.leaveDaysCount} Days
+                                </span>
+                              )}
                             </div>
-                          </div>
+                          </td>
 
-                          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded border border-slate-100">
-                            {isActiveSession ? (
-                              <>
-                                <span className="w-2 h-2 rounded-full bg-[#4ade1d] animate-ping shrink-0" />
-                                <div>
-                                  <span className="text-[10px] text-slate-400 block font-medium">Check-Out</span>
-                                  <span className="font-bold text-[#4ade1d] text-[12px]">Active / On-Duty</span>
-                                </div>
-                              </>
+                          {/* Work Duration Column */}
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            {isRowWorkingNow ? (
+                              <span className="font-mono font-bold text-[11px] text-[#4ade1d] bg-[#4ade1d]/15 px-2 py-0.5 rounded-md border border-[#4ade1d]/30 inline-flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#4ade1d] animate-ping" />
+                                {durationText}
+                              </span>
+                            ) : row.status === "Leave" ? (
+                              <span className="text-slate-400 font-mono">—</span>
                             ) : (
-                              <>
-                                <LogOut className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                <div>
-                                  <span className="text-[10px] text-slate-400 block font-medium">Check-Out</span>
-                                  <span className="font-semibold text-slate-800 font-mono text-[12px]">{session.clockOut || "—"}</span>
-                                </div>
-                              </>
+                              <span className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                                {durationText}
+                              </span>
                             )}
-                          </div>
-                        </div>
-                      </div>
+                          </td>
 
-                      {nextSession && (
-                        <div className="flex items-center justify-center py-0.5">
-                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50/80 border border-amber-200/70 rounded-full text-[11px] text-amber-800 shadow-2xs">
-                            <Coffee className="w-3 h-3 text-amber-600 shrink-0" />
-                            <span className="font-semibold">Break / Out of Office:</span>
-                            <span className="font-mono text-amber-900 font-bold">
-                              {session.clockOut || "—"} &rarr; {nextSession.clockIn}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                          {/* Status Badge */}
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <StatusBadge status={isRowWorkingNow ? "Present" : row.status} />
+                          </td>
+
+                          {/* Details / Notes */}
+                          <td className="py-3 px-3 text-right whitespace-nowrap">
+                            {row.status === "Leave" ? (
+                              <div className="text-[11px] text-amber-800 font-medium">
+                                <span className="font-semibold">{row.leaveType || "Approved Leave"}</span>
+                                {row.leaveReason ? (
+                                  <span className="text-slate-400 block text-[10px] truncate max-w-[180px]">
+                                    &ldquo;{row.leaveReason}&rdquo;
+                                  </span>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <div className="text-[11px] text-slate-500 font-mono">
+                                {row.clockIn && row.clockIn !== "—" ? (
+                                  <span>
+                                    {row.clockIn} &rarr; {isRowWorkingNow ? "Now" : row.clockOut || "—"}
+                                  </span>
+                                ) : (
+                                  <span>Workday shift</span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
+          {/* Active Project Initiatives Section (Preserved) */}
           {userProjects.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-[12px] font-bold text-slate-700">
-                Active Project Initiatives ({userProjects.length})
+            <div className="space-y-2.5 pt-4 border-t border-slate-100">
+              <h4 className="text-[12px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <FolderKanban className="w-4 h-4 text-[#0084d4]" />
+                <span>Active Project Initiatives ({userProjects.length})</span>
               </h4>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {userProjects.map((proj) => (
-                  <span
+                  <div
                     key={proj.id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-slate-800 text-[11px] font-medium shadow-2xs"
+                    className="p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs flex items-center justify-between gap-2"
                   >
-                    <FolderKanban className="w-3 h-3 text-[#0084d4]" />
-                    <span className="font-bold">{proj.code}</span>
-                    <span>&bull;</span>
-                    <span className="truncate max-w-[200px]">{proj.name}</span>
-                  </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-[12px] text-slate-900 truncate">
+                          {proj.name}
+                        </span>
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-sky-50 text-[#0084d4] border border-sky-100">
+                          {proj.code}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                        {proj.category || "General"} &bull; Priority: {proj.priority}
+                      </p>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                      {proj.status}
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
           )}
-        </div>
-
-        <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end">
-          
         </div>
       </div>
     </div>

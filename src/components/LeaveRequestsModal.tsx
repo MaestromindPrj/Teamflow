@@ -51,10 +51,7 @@ export default function LeaveRequestsModal({
 
   // Filter requests according to role
   const visibleRequests = leaveRequests.filter((lr) => {
-    if (isCeo) return true;
-    if (isPm) {
-      return lr.userId === currentUser.id || myEmployerIds.has(lr.userId);
-    }
+    if (isCeo || isPm) return true;
     // Regular employee sees their own requests
     return lr.userId === currentUser.id;
   });

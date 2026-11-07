@@ -38,16 +38,15 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function detectFileType(fileName: string, mimeType?: string): "image" | "pdf" | "figma" | "zip" | "doc" {
+const ALLOWED_EXTS = ["doc", "docx", "pdf", "fig", "png", "jpeg", "jpg"];
+
+function detectFileType(fileName: string, mimeType?: string): "image" | "pdf" | "figma" | "doc" {
   const ext = fileName.split(".").pop()?.toLowerCase();
-  if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext || "") || mimeType?.startsWith("image/")) {
+  if (["png", "jpg", "jpeg"].includes(ext || "") || mimeType?.startsWith("image/")) {
     return "image";
   }
   if (ext === "pdf" || mimeType === "application/pdf") {
     return "pdf";
-  }
-  if (["zip", "rar", "7z", "tar", "gz"].includes(ext || "")) {
-    return "zip";
   }
   if (ext === "fig") {
     return "figma";
@@ -92,10 +91,28 @@ export default function UploadProjectMediaModal({ project, isOpen, onClose }: Up
     if (!filesList || filesList.length === 0) return;
     setErrorMessage("");
 
+    const invalidFiles: string[] = [];
+    const validFilesList: File[] = [];
+
+    Array.from(filesList).forEach((file) => {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      if (!ext || !ALLOWED_EXTS.includes(ext)) {
+        invalidFiles.push(file.name);
+      } else {
+        validFilesList.push(file);
+      }
+    });
+
+    if (invalidFiles.length > 0) {
+      setErrorMessage(`Disallowed file: ${invalidFiles.join(", ")}. Only .doc, .docx, .pdf, .fig, .png, and .jpeg files are allowed.`);
+    }
+
+    if (validFilesList.length === 0) return;
+
     const newItems: SelectedFileItem[] = [];
     const currentBatchNames = new Set(selectedFiles.map((f) => f.name.trim().toLowerCase()));
 
-    Array.from(filesList).forEach((file) => {
+    validFilesList.forEach((file) => {
       const lower = file.name.trim().toLowerCase();
       let isDup = false;
       let dupReason = "";
@@ -318,6 +335,7 @@ export default function UploadProjectMediaModal({ project, isOpen, onClose }: Up
           <input
             type="file"
             multiple
+            accept=".doc,.docx,.pdf,.fig,.png,.jpeg,.jpg"
             ref={fileInputRef}
             onChange={(e) => handleFilesAdd(e.target.files)}
             className="hidden"
@@ -360,7 +378,7 @@ export default function UploadProjectMediaModal({ project, isOpen, onClose }: Up
                 Drop files here or click to browse
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Upload multiple images, PDFs, documents, Figma files, or archives
+                Allowed formats: .doc, .pdf, .fig, .docx, .png, .jpeg only
               </p>
             </div>
           </div>

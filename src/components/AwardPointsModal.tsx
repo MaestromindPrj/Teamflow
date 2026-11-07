@@ -45,8 +45,7 @@ export default function AwardPointsModal({
 
   const eligibleRecipients = users.filter((u) => {
     if (u.id === currentUser.id) return false; 
-    if (isCeo) return u.role !== "ceo";
-    if (isPm) return u.role === "employer" && myEmployerIds.has(u.id);
+    if (isCeo || isPm) return u.role !== "ceo";
     return false;
   });
 
@@ -67,11 +66,11 @@ export default function AwardPointsModal({
       }
       setPoints(100);
       setCustomPoints("");
-      setAction(isCeo ? "Executive Recognition" : "Milestone Excellence");
+      setAction(isCeo || isPm ? "Executive Recognition" : "Milestone Excellence");
       setReason("");
       setError(null);
     }
-  }, [isOpen, preselectedUserId, eligibleRecipients.length]);
+  }, [isOpen, preselectedUserId, eligibleRecipients.length, isCeo, isPm]);
 
   if (!isOpen) return null;
 

@@ -16,18 +16,16 @@ export async function GET() {
       SELECT 
         c.id, 
         c.name, 
-        c.description,
         COUNT(p.id)::int as project_count
       FROM project_categories c
       LEFT JOIN projects p ON LOWER(p.category) = LOWER(c.name)
-      GROUP BY c.id, c.name, c.description, c.created_at
+      GROUP BY c.id, c.name, c.created_at
       ORDER BY c.created_at ASC;
     `;
 
     const categories: ProjectCategory[] = rows.map((r) => ({
       id: r.id as string,
       name: r.name as string,
-      description: (r.description as string) || "",
       projectCount: Number(r.project_count || 0),
     }));
 
@@ -47,7 +45,6 @@ export async function POST(req: NextRequest) {
     await initDatabase();
     const body = await req.json();
     const name = (body.name || "").trim();
-    const description = (body.description || "").trim();
 
     if (!name) {
       return NextResponse.json({ error: "Category name is required" }, { status: 400 });
@@ -57,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     // Check if category with this name already exists (case-insensitive)
     const existing = await sql`
-      SELECT id, name, description FROM project_categories WHERE LOWER(name) = LOWER(${name}) LIMIT 1;
+      SELECT id, name FROM project_categories WHERE LOWER(name) = LOWER(${name}) LIMIT 1;
     `;
     if (existing.length > 0) {
       return NextResponse.json({
@@ -65,7 +62,6 @@ export async function POST(req: NextRequest) {
         category: {
           id: existing[0].id as string,
           name: existing[0].name as string,
-          description: (existing[0].description as string) || "",
           projectCount: 0,
         },
       });
@@ -74,16 +70,15 @@ export async function POST(req: NextRequest) {
     const id = body.id || `cat-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
 
     await sql`
-      INSERT INTO project_categories (id, name, description)
-      VALUES (${id}, ${name}, ${description})
+      INSERT INTO project_categories (id, name)
+      VALUES (${id}, ${name})
       ON CONFLICT (id) DO UPDATE SET 
-        name = EXCLUDED.name,
-        description = EXCLUDED.description;
+        name = EXCLUDED.name;
     `;
 
     return NextResponse.json({
       success: true,
-      category: { id, name, description, projectCount: 0 },
+      category: { id, name, projectCount: 0 },
     });
   } catch (error) {
     console.error("POST /api/categories error:", error);
@@ -100,7 +95,7 @@ export async function PUT(req: NextRequest) {
   try {
     await initDatabase();
     const body = await req.json();
-    const { id, name, oldName, description } = body;
+    const { id, name, oldName } = body;
 
     const trimmedName = (name || "").trim();
     if (!id || !trimmedName) {
@@ -111,8 +106,7 @@ export async function PUT(req: NextRequest) {
     await sql`
       UPDATE project_categories
       SET 
-        name = ${trimmedName},
-        description = ${description !== undefined ? description : ""}
+        name = ${trimmedName}
       WHERE id = ${id};
     `;
 
@@ -127,7 +121,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      category: { id, name: trimmedName, description },
+      category: { id, name: trimmedName },
     });
   } catch (error) {
     console.error("PUT /api/categories error:", error);

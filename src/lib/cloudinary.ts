@@ -58,7 +58,7 @@ export async function uploadToCloudinary(
   const configured = configureCloudinary();
   if (!configured) {
     throw new Error(
-      "Database credentials are not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET (or CLOUDINARY_URL) in your environment variables."
+      "Cloudinary credentials are not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET (or CLOUDINARY_URL) in your environment variables."
     );
   }
 

@@ -14,7 +14,7 @@ export async function sendPasswordResetOtpEmail(
   const user = process.env.SMTP_USER || process.env.GMAIL_USER || "";
   const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || "";
   const senderEmail = process.env.SMTP_SENDER_EMAIL || user;
-  const senderName = process.env.SMTP_SENDER_NAME || "MaestroMinds TeamFlow";
+  const senderName = process.env.SMTP_SENDER_NAME || "Maestrominds";
 
   if (!pass || !user) {
     console.warn("Gmail SMTP credentials (SMTP_USER, SMTP_PASS) are not configured.");
@@ -30,7 +30,7 @@ export async function sendPasswordResetOtpEmail(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your TeamFlow Verification Code</title>
+  <title>Your Maestrominds Verification Code</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 40px 15px;">
@@ -40,7 +40,7 @@ export async function sendPasswordResetOtpEmail(
           <!-- Header -->
           <tr>
             <td style="background-color: #0084d4; padding: 24px 32px; text-align: left;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">TeamFlow Enterprise</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">Maestrominds Enterprise</h1>
               <p style="margin: 4px 0 0 0; color: #e0f2fe; font-size: 13px;">Security & Account Authentication</p>
             </td>
           </tr>
@@ -51,7 +51,7 @@ export async function sendPasswordResetOtpEmail(
                 Hello <strong>${params.recipientName}</strong>,
               </p>
               <p style="margin: 0 0 24px 0; color: #475569; font-size: 13px; line-height: 22px;">
-                We received a request to reset the password for your TeamFlow workspace account. Enter the 6-digit verification code below to authorize your password update:
+                We received a request to reset the password for your Maestrominds workspace account. Enter the 6-digit verification code below to authorize your password update:
               </p>
               <!-- OTP Box -->
               <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 22px 16px; text-align: center; margin-bottom: 24px;">
@@ -64,7 +64,7 @@ export async function sendPasswordResetOtpEmail(
               </p>
               <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
               <p style="margin: 0; color: #94a3b8; font-size: 11px; line-height: 18px;">
-                TeamFlow Enterprise PM &bull; Automated Security Dispatch &bull; Do not reply to this email
+                Maestrominds Enterprise PM &bull; Automated Security Dispatch &bull; Do not reply to this email
               </p>
             </td>
           </tr>
@@ -90,9 +90,9 @@ export async function sendPasswordResetOtpEmail(
     const info = await transporter.sendMail({
       from: `"${senderName}" <${senderEmail}>`,
       to: params.toEmail,
-      subject: `${params.otpCode} is your TeamFlow verification code`,
+      subject: `${params.otpCode} is your Maestrominds verification code`,
       html: htmlContent,
-      text: `Hello ${params.recipientName},\n\nYour TeamFlow verification code is: ${params.otpCode}\n\nThis code will expire in 10 minutes.\nIf you did not request this, please disregard.`,
+      text: `Hello ${params.recipientName},\n\nYour Maestrominds verification code is: ${params.otpCode}\n\nThis code will expire in 10 minutes.\nIf you did not request this, please disregard.`,
     });
 
     return {
@@ -124,7 +124,7 @@ export async function sendNewUserCredentialsEmail(
   const user = process.env.SMTP_USER || process.env.GMAIL_USER || "";
   const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || "";
   const senderEmail = process.env.SMTP_SENDER_EMAIL || user;
-  const senderName = process.env.SMTP_SENDER_NAME || "MaestroMinds TeamFlow";
+  const senderName = process.env.SMTP_SENDER_NAME || "Maestrominds";
 
   if (!pass || !user) {
     return {
@@ -141,7 +141,7 @@ export async function sendNewUserCredentialsEmail(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to MaestroMinds TeamFlow</title>
+  <title>Welcome to Maestrominds</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 36px 15px;">
@@ -150,7 +150,7 @@ export async function sendNewUserCredentialsEmail(
         <table role="presentation" width="100%" style="max-width: 540px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
           <tr>
             <td style="background-color: #0084d4; padding: 26px 32px; text-align: left;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">MaestroMinds TeamFlow</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">Maestrominds</h1>
               <p style="margin: 4px 0 0 0; color: #e0f2fe; font-size: 13px;">Workspace Onboarding &bull; Welcome to the Team</p>
             </td>
           </tr>
@@ -160,7 +160,7 @@ export async function sendNewUserCredentialsEmail(
                 Hello <strong>${params.recipientName}</strong>,
               </p>
               <p style="margin: 0 0 20px 0; color: #475569; font-size: 13px; line-height: 22px;">
-                Welcome to <strong>MaestroMinds TeamFlow</strong>! Your workspace account has been created by your team administrator. Here is your access information to get started:
+                Welcome to <strong>Maestrominds</strong>! Your workspace account has been created by your team administrator. Here is your access information to get started:
               </p>
 
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 24px; padding: 16px 20px;">
@@ -186,7 +186,7 @@ export async function sendNewUserCredentialsEmail(
 
               <div style="text-align: center; margin: 28px 0 20px 0;">
                 <a href="${loginUrl}" style="display: inline-block; background-color: #0084d4; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 700; padding: 12px 28px; border-radius: 6px;">
-                  Open TeamFlow Portal &rarr;
+                  Open Maestrominds Portal &rarr;
                 </a>
               </div>
 
@@ -195,7 +195,7 @@ export async function sendNewUserCredentialsEmail(
               </p>
               <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
               <p style="margin: 0; color: #94a3b8; font-size: 11px; line-height: 18px;">
-                MaestroMinds &bull; TeamFlow Workspace &bull; <a href="https://teamflow-topaz.vercel.app" style="color: #0084d4; text-decoration: none;">teamflow-topaz.vercel.app</a>
+                Maestrominds Workspace &bull; <a href="https://teamflow-topaz.vercel.app" style="color: #0084d4; text-decoration: none;">teamflow-topaz.vercel.app</a>
               </p>
             </td>
           </tr>
@@ -220,9 +220,9 @@ export async function sendNewUserCredentialsEmail(
       from: `"${senderName}" <${senderEmail}>`,
       replyTo: senderEmail,
       to: params.toEmail,
-      subject: `Welcome to MaestroMinds TeamFlow - Getting Started`,
+      subject: `Welcome to Maestrominds - Getting Started`,
       html: htmlContent,
-      text: `Hello ${params.recipientName},\n\nWelcome to MaestroMinds TeamFlow! Your workspace account has been created.\n\nWorkspace Portal: ${loginUrl}\nAccount Email: ${params.toEmail}\nRole: ${params.role} (${params.jobTitle})\nAccess Key: ${params.initialPassword}\n\nYou can customize your password at any time from Profile Settings.\n\nBest regards,\nMaestroMinds\nhttps://teamflow-topaz.vercel.app`,
+      text: `Hello ${params.recipientName},\n\nWelcome to Maestrominds! Your workspace account has been created.\n\nWorkspace Portal: ${loginUrl}\nAccount Email: ${params.toEmail}\nRole: ${params.role} (${params.jobTitle})\nAccess Key: ${params.initialPassword}\n\nYou can customize your password at any time from Profile Settings.\n\nBest regards,\nMaestrominds\nhttps://teamflow-topaz.vercel.app`,
     });
 
     return {

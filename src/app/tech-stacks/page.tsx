@@ -13,9 +13,13 @@ import {
   CheckCircle2,
   AlertCircle,
   Cpu,
-  FolderKanban
+  FolderKanban,
+  Search
 } from "lucide-react";
 import Header from "@/components/Header";
+import CreateTechStackModal from "@/components/CreateTechStackModal";
+import ProjectDetailModal from "@/components/ProjectDetailModal";
+import { StatusBadge } from "@/components/Badges";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import { CardGridSkeleton } from "@/components/Skeletons";
 
@@ -34,8 +38,10 @@ export default function TechStacksPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const [newName, setNewName] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [viewingAllTech, setViewingAllTech] = useState<{ id: string; name: string } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -46,30 +52,10 @@ export default function TechStacksPage() {
   const isPm = effectiveUser.role === "project_manager";
   const isAuthorized = isCeo || isPm;
 
-  const handleAdd = async () => {
-    const trimmed = newName.trim();
-    if (!trimmed) {
-      setErrorMessage("Please enter a technology name.");
-      setTimeout(() => setErrorMessage(""), 3000);
-      return;
-    }
-    if (techStacks.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())) {
-      setErrorMessage(`"${trimmed}" already exists in the tech stack list.`);
-      setTimeout(() => setErrorMessage(""), 3000);
-      return;
-    }
-    setIsAdding(true);
-    const ok = await createTechStack(trimmed);
-    setIsAdding(false);
-    if (ok) {
-      setNewName("");
-      setSuccessMessage(`"${trimmed}" added to tech stacks.`);
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } else {
-      setErrorMessage("Failed to add tech stack. Please try again.");
-      setTimeout(() => setErrorMessage(""), 3000);
-    }
-  };
+  const filteredTechStacks = techStacks.filter((t) => {
+    if (!searchQuery.trim()) return true;
+    return t.name.toLowerCase().includes(searchQuery.trim().toLowerCase());
+  });
 
   const handleStartEdit = (id: string, name: string) => {
     setEditingId(id);
@@ -175,35 +161,44 @@ export default function TechStacksPage() {
         )}
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h3 className="text-[14px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
               <Cpu className="w-4 h-4 text-slate-500" />
-              <span>Technology Catalogue ({techStacks.length})</span>
+              <span>Technology Catalogue ({filteredTechStacks.length})</span>
             </h3>
-            {/* Inline add row */}
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="New technology (e.g. Redis, Go)…"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-                className="h-9 px-3.5 text-[13px] border border-slate-200 rounded-lg focus:outline-none focus:border-[#0084d4] placeholder-slate-400 w-64"
-              />
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search technologies..."
+                  className="h-9 pl-8 pr-3 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60 shadow-2xs"
+                />
+              </div>
               <button
                 type="button"
-                onClick={handleAdd}
-                disabled={isAdding}
-                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+                onClick={() => setIsAddModalOpen(true)}
+                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-colors shadow-xs cursor-pointer shrink-0"
               >
                 <Plus className="w-4 h-4" />
-                <span>{isAdding ? "Adding…" : "Add"}</span>
+                <span>Add Tech Stack</span>
               </button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {techStacks.map((tech) => {
+            {filteredTechStacks.length === 0 ? (
+              <div className="py-12 text-center bg-white rounded-lg border border-slate-200/90 p-8 shadow-2xs col-span-full">
+                <Cpu className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-[14px] font-semibold text-slate-700">No Technologies Found</p>
+                <p className="text-[12px] text-slate-400 mt-1">
+                  {searchQuery ? `No tech stacks match "${searchQuery}".` : "No technologies in the catalogue yet."}
+                </p>
+              </div>
+            ) : (
+              filteredTechStacks.map((tech) => {
               const usedInProjects = projects.filter((p) =>
                 (p.techStack || []).some((t: string) => t.toLowerCase() === tech.name.toLowerCase())
               );
@@ -292,20 +287,27 @@ export default function TechStacksPage() {
                     </div>
 
                     {usedInProjects.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {usedInProjects.slice(0, 3).map((p) => (
-                          <span
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        {usedInProjects.slice(0, 4).map((p) => (
+                          <button
                             key={p.id}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200"
-                            title={p.name}
+                            type="button"
+                            onClick={() => setSelectedProjectId(p.id)}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 hover:bg-[#0084d4] text-slate-700 hover:text-white border border-slate-200 hover:border-[#0084d4] transition-all cursor-pointer shadow-2xs"
+                            title={`Click to view project details for ${p.name} (${p.code})`}
                           >
                             {p.code}
-                          </span>
+                          </button>
                         ))}
-                        {usedInProjects.length > 3 && (
-                          <span className="text-[10px] text-slate-400 font-medium self-center">
-                            +{usedInProjects.length - 3} more
-                          </span>
+                        {usedInProjects.length > 4 && (
+                          <button
+                            type="button"
+                            onClick={() => setViewingAllTech(tech)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0084d4] hover:text-[#0070b8] hover:underline self-center transition-colors ml-1 cursor-pointer"
+                            title={`View all ${usedInProjects.length} projects using ${tech.name}`}
+                          >
+                            <span>View All ({usedInProjects.length})</span>
+                          </button>
                         )}
                       </div>
                     ) : (
@@ -316,10 +318,87 @@ export default function TechStacksPage() {
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
       </div>
+
+      <CreateTechStackModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={(name) => {
+          setSuccessMessage(`"${name}" added to tech stacks.`);
+          setTimeout(() => setSuccessMessage(""), 3000);
+        }}
+      />
+
+      {viewingAllTech && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]">
+            <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-[16px] font-bold text-slate-900 tracking-tight">
+                    Projects using {viewingAllTech.name}
+                  </h2>
+                  <p className="text-[12px] text-slate-400">
+                    Click any project below to inspect its deliverables, milestones, and task board
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingAllTech(null)}
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-2.5 divide-y divide-slate-100">
+              {projects
+                .filter((p) => (p.techStack || []).some((t: string) => t.toLowerCase() === viewingAllTech.name.toLowerCase()))
+                .map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => {
+                      setSelectedProjectId(p.id);
+                    }}
+                    className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group border border-transparent hover:border-slate-200"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200/60 uppercase shrink-0">
+                        {p.code}
+                      </span>
+                      <div className="min-w-0">
+                        <h4 className="text-[13px] font-bold text-slate-900 group-hover:text-[#0084d4] transition-colors truncate">
+                          {p.name}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 truncate">
+                          {p.category} &bull; Deadline: {p.deadline || "TBD"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusBadge status={p.status} />
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#0084d4] group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedProjectId && (
+        <ProjectDetailModal
+          projectId={selectedProjectId}
+          onClose={() => setSelectedProjectId(null)}
+        />
+      )}
     </div>
   );
 }

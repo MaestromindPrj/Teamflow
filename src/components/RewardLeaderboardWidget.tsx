@@ -24,24 +24,11 @@ export default function RewardLeaderboardWidget() {
 
   const dynamicLeaderboard = computeLeaderboard(users, tasks, projects, rewardsLedger);
 
-  const visibleLeaderboard = dynamicLeaderboard.filter((item) => {
-    if (isCeo || isEmployer) return true;
-    if (isPm) {
-      return (
-        item.id === currentUser.id ||
-        myEmployerIds.has(item.id)
-      );
-    }
-    return true;
-  });
+  const visibleLeaderboard = dynamicLeaderboard;
 
   const handleRowClick = (userId: string) => {
-    if (isCeo) {
+    if (isCeo || isPm) {
       router.push(`/rewards/${userId}`);
-    } else if (isPm) {
-      if (userId === currentUser.id || myEmployerIds.has(userId)) {
-        router.push(`/rewards/${userId}`);
-      }
     } else if (isEmployer) {
       if (userId === currentUser.id) {
         router.push(`/rewards/${currentUser.id}`);
@@ -54,11 +41,11 @@ export default function RewardLeaderboardWidget() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-100">
         <div>
           <h3 className="text-[15px] font-bold text-slate-900 tracking-tight">
-            {isPm ? "My Team Reward Standings" : "Workforce Reward Leaderboard"}
+            {isCeo || isPm ? "Workforce Reward Leaderboard" : "Workforce Reward Leaderboard"}
           </h3>
           <p className="text-[12px] text-slate-500">
-            {isPm
-              ? "Merit standings for yourself and employers assigned under your management"
+            {isCeo || isPm
+              ? "Merit standings and gamified points across company project managers and employers"
               : "Merit standings and gamified points across company project managers and employers"}
           </p>
         </div>
@@ -87,7 +74,7 @@ export default function RewardLeaderboardWidget() {
               const isCurrent = user.id === currentUser.id;
               const isClickable =
                 isCeo ||
-                (isPm && (isCurrent || myEmployerIds.has(user.id))) ||
+                isPm ||
                 (isEmployer && isCurrent);
 
               return (
