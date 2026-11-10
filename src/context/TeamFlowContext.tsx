@@ -198,7 +198,7 @@ interface TeamFlowContextType {
   addTeamMember: (userData: {
     fullName: string;
     email: string;
-    role: "employer" | "project_manager";
+    role: "employee" | "project_manager";
     jobTitle?: string;
     department?: string;
     initialPassword?: string;
@@ -261,7 +261,7 @@ const EMPTY_FALLBACK_USER: User = {
   name: "",
   fullName: "",
   email: "",
-  role: "employer",
+  role: "employee",
   jobTitle: "",
   avatar: "",
   phone: "",
@@ -1305,7 +1305,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   const addTeamMember = async (memberData: {
     fullName: string;
     email: string;
-    role: "employer" | "project_manager";
+    role: "employee" | "project_manager";
     department?: string;
     jobTitle?: string;
     initialPassword?: string;

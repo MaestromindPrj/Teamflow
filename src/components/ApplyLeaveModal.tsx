@@ -97,7 +97,7 @@ export default function ApplyLeaveModal({
     ? projects.filter((p) => p.projectManagerId === currentUser.id)
     : projects;
 
-  const myEmployerIds = new Set(
+  const myEmployeeIds = new Set(
     myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
   );
 
@@ -424,7 +424,7 @@ export default function ApplyLeaveModal({
               >
                 {eligibleUsers.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.fullName} ({u.jobTitle || (u.role === "project_manager" ? "Project Manager" : "Employer")})
+                    {u.fullName} ({u.jobTitle || (u.role === "project_manager" ? "Project Manager" : "Employee")})
                   </option>
                 ))}
               </select>
@@ -440,7 +440,7 @@ export default function ApplyLeaveModal({
               />
               <div>
                 <div className="font-bold text-slate-900">{currentUser.fullName}</div>
-                <div className="text-[11px] text-slate-500">{currentUser.jobTitle || "Employer"}</div>
+                <div className="text-[11px] text-slate-500">{currentUser.jobTitle || "Employee"}</div>
               </div>
             </div>
           )}

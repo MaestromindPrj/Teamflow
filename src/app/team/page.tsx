@@ -47,12 +47,12 @@ function TeamDirectoryContent() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"project_managers" | "employers">("project_managers");
+  const [activeTab, setActiveTab] = useState<"project_managers" | "employees">("project_managers");
 
   const [pmSearch, setPmSearch] = useState("");
   const [empSearch, setEmpSearch] = useState("");
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
-  const [pmEmployerFilter, setPmEmployerFilter] = useState<"all" | "leads">("all");
+  const [pmEmployeeFilter, setPmEmployeeFilter] = useState<"all" | "leads">("all");
 
   const effectiveUser = currentUser.id ? currentUser : (users[0] || currentUser);
   const isPm = effectiveUser.role === "project_manager";
@@ -62,15 +62,15 @@ function TeamDirectoryContent() {
     ? projects.filter((p) => p.projectManagerId === effectiveUser.id)
     : projects;
 
-  const myEmployerIds = new Set(
+  const myEmployeeIds = new Set(
     myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
   );
 
   const projectManagers = users.filter((u) => u.role === "project_manager");
-  const employers = users.filter((u) => u.role === "employer");
+  const employees = users.filter((u) => u.role === "employee");
 
   useEffect(() => {
-    if (tabParam === "employers" || tabParam === "project_managers") {
+    if (tabParam === "employees" || tabParam === "project_managers") {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -79,7 +79,7 @@ function TeamDirectoryContent() {
     return <TeamDirectorySkeleton />;
   }
 
-  if (effectiveUser.role === "employer") {
+  if (effectiveUser.role === "employee") {
     return (
       <div className="flex-1 flex flex-col pb-12">
         <Header
@@ -94,7 +94,7 @@ function TeamDirectoryContent() {
             <div>
               <h3 className="text-[16px] font-bold text-slate-900">Restricted Access</h3>
               <p className="text-[12px] text-slate-500 mt-1">
-                The Team Directory is reserved for Project Managers and Executive Leadership. Employers manage their daily workflow from their personal dashboard.
+                The Team Directory is reserved for Project Managers and Executive Leadership. Employees manage their daily workflow from their personal dashboard.
               </p>
             </div>
             <Link
@@ -109,7 +109,7 @@ function TeamDirectoryContent() {
     );
   }
 
-  const handleTabChange = (tab: "project_managers" | "employers") => {
+  const handleTabChange = (tab: "project_managers" | "employees") => {
     setActiveTab(tab);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -127,13 +127,13 @@ function TeamDirectoryContent() {
     );
   });
 
-  const leadsUnderPmCount = employers.filter((e) =>
+  const leadsUnderPmCount = employees.filter((e) =>
     myManagedProjects.some((p) => p.teamLeadId === e.id)
   ).length;
 
-  const filteredEmployers = employers
+  const filteredEmployees = employees
     .filter((emp) => {
-      if (isPm && pmEmployerFilter === "leads") {
+      if (isPm && pmEmployeeFilter === "leads") {
         return myManagedProjects.some((p) => p.teamLeadId === emp.id);
       }
       return true;
@@ -151,12 +151,12 @@ function TeamDirectoryContent() {
     <div className="flex-1 flex flex-col pb-12">
       <Header
         title="Organizational Directory & Portfolios"
-        subtitle="Manage project managers, designated project leads, and employers"
+        subtitle="Manage project managers, designated project leads, and employees"
       />
 
       <div className="px-7 py-6 space-y-6">
         {(isCeo || isPm) && (
-          <InPageSubTabs<"project_managers" | "employers">
+          <InPageSubTabs<"project_managers" | "employees">
             activeTab={activeTab}
             onChange={(tab) => handleTabChange(tab)}
             tabs={[
@@ -167,10 +167,10 @@ function TeamDirectoryContent() {
                 count: projectManagers.length,
               },
               {
-                id: "employers",
-                label: "Employers",
+                id: "employees",
+                label: "Employees",
                 icon: <Users className="w-4 h-4" />,
-                count: employers.length,
+                count: employees.length,
               },
             ]}
           />
@@ -311,13 +311,13 @@ function TeamDirectoryContent() {
           </div>
         )}
 
-        {(isCeo || isPm) && activeTab === "employers" && (
+        {(isCeo || isPm) && activeTab === "employees" && (
           <div className="space-y-4">
             <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-[16px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
                   <Users className="w-4 h-4 text-[#4ade1d]" />
-                  <span>Employers Directory</span>
+                  <span>Employees Directory</span>
                 </h2>
                 <p className="text-[12px] text-slate-500">
                   Full organization roster of developers, designers, and QA engineers with their active leads and tasks
@@ -331,7 +331,7 @@ function TeamDirectoryContent() {
                     type="text"
                     value={empSearch}
                     onChange={(e) => setEmpSearch(e.target.value)}
-                    placeholder="Search employers, roles..."
+                    placeholder="Search employees, roles..."
                     className="h-9 pl-8 pr-3 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60 shadow-2xs"
                   />
                 </div>
@@ -349,16 +349,16 @@ function TeamDirectoryContent() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredEmployers.length === 0 ? (
+              {filteredEmployees.length === 0 ? (
                 <div className="col-span-full py-12 text-center bg-white rounded-lg border border-slate-200/90 p-8 shadow-2xs">
                   <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <p className="text-[14px] font-semibold text-slate-700">No Employers Found</p>
+                  <p className="text-[14px] font-semibold text-slate-700">No Employees Found</p>
                   <p className="text-[12px] text-slate-400 mt-1">
-                    No employers match your search criteria.
+                    No employees match your search criteria.
                   </p>
                 </div>
               ) : (
-                filteredEmployers.map((emp) => {
+                filteredEmployees.map((emp) => {
                   const relevantProjects = projects;
                   const leadProjects = relevantProjects.filter((p) => p.teamLeadId === emp.id);
                   const memberProjects = relevantProjects.filter(
@@ -389,7 +389,7 @@ function TeamDirectoryContent() {
                               {emp.id === effectiveUser.id ? `${emp.fullName} (You)` : emp.fullName}
                             </h3>
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              {emp.jobTitle || "Employer"}
+                              {emp.jobTitle || "Employee"}
                             </span>
                           </div>
                           {emp.phone && (

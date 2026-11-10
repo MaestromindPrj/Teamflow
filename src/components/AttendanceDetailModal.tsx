@@ -198,7 +198,7 @@ export default function AttendanceDetailModal({
                     {staffUser.fullName}
                   </h3>
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-[#0084d4] border border-sky-200/70">
-                    {staffUser.jobTitle || (staffUser.role === "project_manager" ? "Project Manager" : "Employer")}
+                    {staffUser.jobTitle || (staffUser.role === "project_manager" ? "Project Manager" : "Employee")}
                   </span>
                 </div>
                 <StatusBadge status={currentLiveStatus} />
@@ -209,7 +209,7 @@ export default function AttendanceDetailModal({
                   {staffUser.email}
                 </span>
                 <span>&bull;</span>
-                <span className="capitalize">{staffUser.role === "project_manager" ? "Project Manager" : "Employer"}</span>
+                <span className="capitalize">{staffUser.role === "project_manager" ? "Project Manager" : "Employee"}</span>
               </div>
             </div>
           </div>

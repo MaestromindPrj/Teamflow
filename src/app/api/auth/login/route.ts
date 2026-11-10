@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       name: dbUser.name as string,
       fullName: dbUser.full_name as string,
       email: dbUser.email as string,
-      role: dbUser.role as "ceo" | "project_manager" | "employer",
+      role: dbUser.role as "ceo" | "project_manager" | "employee",
       jobTitle: (dbUser.job_title as string) || (dbUser.role === "ceo" ? "Chief Executive Officer" : dbUser.role === "project_manager" ? "Project Manager" : "Software Developer"),
       avatar: (dbUser.avatar as string) || "",
       phone: (dbUser.phone as string) || "",

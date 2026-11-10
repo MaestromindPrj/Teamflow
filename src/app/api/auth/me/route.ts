@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
         name: r.name as string,
         fullName: r.full_name as string,
         email: r.email as string,
-        role: r.role as "ceo" | "project_manager" | "employer",
+        role: r.role as "ceo" | "project_manager" | "employee",
         jobTitle: (r.job_title as string) || (r.role === "ceo" ? "Chief Executive Officer" : r.role === "project_manager" ? "Project Manager" : "Software Developer"),
         avatar: (r.avatar as string) || "",
         phone: (r.phone as string) || "",

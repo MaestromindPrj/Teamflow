@@ -58,11 +58,11 @@ function ProjectsContent() {
   const [projectSearch, setProjectSearch] = useState("");
   const [projectStatusFilter, setProjectStatusFilter] = useState<string>("All");
 
-  const isEmployer = currentUser.role === "employer";
+  const isEmployee = currentUser.role === "employee";
   const isPm = currentUser.role === "project_manager";
   const canCreateProject = currentUser.role === "ceo" || isPm;
 
-  const baseProjects = isEmployer
+  const baseProjects = isEmployee
     ? projects.filter((p) => p.teamMemberIds.includes(currentUser.id) || p.teamLeadId === currentUser.id)
     : projects;
 
@@ -92,12 +92,12 @@ function ProjectsContent() {
     <div className="flex-1 flex flex-col pb-12">
       <Header
         title={
-          isEmployer
+          isEmployee
             ? "My Assigned Projects"
             : "Company Projects"
         }
         subtitle={
-          isEmployer
+          isEmployee
             ? "View initiatives assigned to you, appointed team leads, milestones, and deliverables"
             : "Manage and track company projects, appointed leads, execution teams, and delivery milestones"
         }
@@ -110,14 +110,14 @@ function ProjectsContent() {
               <h2 className="text-[16px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
                 <FolderKanban className="w-4 h-4 text-[#0084d4]" />
                 <span>
-                  {isEmployer
+                  {isEmployee
                     ? "My Assigned Projects"
                     : "Company Projects Portfolio"}{" "}
                   ({baseProjects.length})
                 </span>
               </h2>
               <p className="text-[12px] text-slate-500">
-                {isEmployer
+                {isEmployee
                   ? "Initiatives where you are allocated as a team member or team lead."
                   : "Detailed portfolio of all company projects, assigned project managers, designated team leads, and workforce allocations."}
               </p>

@@ -27,7 +27,7 @@ export function getRoleBadgeStyle(role?: string): string {
       return "bg-amber-100 text-amber-800 border-amber-200/80";
     case "project_manager":
       return "bg-purple-100 text-purple-800 border-purple-200/80";
-    case "employer":
+    case "employee":
     default:
       return "bg-sky-100 text-[#0084d4] border-sky-200/80";
   }

@@ -34,7 +34,7 @@ export default function RewardsPage() {
   const isCeo = currentUser.role === "ceo";
   const isPm = currentUser.role === "project_manager";
 
-  const [selectedStaffRole, setSelectedStaffRole] = useState<"All" | "project_manager" | "employer">("All");
+  const [selectedStaffRole, setSelectedStaffRole] = useState<"All" | "project_manager" | "employee">("All");
   const [pmRewardFilter, setPmRewardFilter] = useState<"all" | "leads">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAwardModalOpen, setIsAwardModalOpen] = useState(false);
@@ -47,13 +47,13 @@ export default function RewardsPage() {
     ? projects.filter((p) => p.projectManagerId === currentUser.id)
     : projects;
 
-  const myEmployerIds = new Set(
+  const myEmployeeIds = new Set(
     myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
   );
 
-  const employersUnderPm = users.filter((u) => u.role === "employer" && myEmployerIds.has(u.id));
-  const leadsUnderPm = employersUnderPm.filter((u) => myManagedProjects.some((p) => p.teamLeadId === u.id));
-  const displayedEmployersUnderPm = employersUnderPm.filter((u) => {
+  const employeesUnderPm = users.filter((u) => u.role === "employee" && myEmployeeIds.has(u.id));
+  const leadsUnderPm = employeesUnderPm.filter((u) => myManagedProjects.some((p) => p.teamLeadId === u.id));
+  const displayedEmployeesUnderPm = employeesUnderPm.filter((u) => {
     if (pmRewardFilter === "leads" && !myManagedProjects.some((p) => p.teamLeadId === u.id)) {
       return false;
     }
@@ -114,7 +114,7 @@ export default function RewardsPage() {
         }
         subtitle={
           isCeo || isPm
-            ? "Inspect performance milestones, point ledgers, and merit awards across Project Managers and Employers"
+            ? "Inspect performance milestones, point ledgers, and merit awards across Project Managers and Employees"
             : `Milestones, gamified badges, and quarterly accolades for ${currentUser.fullName}`
         }
       />
@@ -142,7 +142,7 @@ export default function RewardsPage() {
                   Company-Wide Performance Leaderboard
                 </h3>
                 <p className="text-[12px] text-slate-500">
-                  Relative point standings across Project Managers and Employers
+                  Relative point standings across Project Managers and Employees
                 </p>
               </div>
 
@@ -184,7 +184,7 @@ export default function RewardsPage() {
                             <UserAvatar
                               src={user.avatar}
                               name={user.name}
-                              role={user.role === "Project Manager" ? "project_manager" : "employer"}
+                              role={user.role === "Project Manager" ? "project_manager" : "employee"}
                               className="w-7 h-7 rounded-full border border-slate-200"
                               textClassName="text-[10px]"
                             />
@@ -215,7 +215,7 @@ export default function RewardsPage() {
               </div>
             </div>
 
-            <InPageSubTabs<"All" | "project_manager" | "employer">
+            <InPageSubTabs<"All" | "project_manager" | "employee">
               activeTab={selectedStaffRole}
               onChange={(role) => setSelectedStaffRole(role)}
               tabs={[
@@ -232,10 +232,10 @@ export default function RewardsPage() {
                   count: staffUsers.filter((u) => u.role === "project_manager").length,
                 },
                 {
-                  id: "employer",
-                  label: "Employers",
+                  id: "employee",
+                  label: "Employees",
                   icon: <Briefcase className="w-4 h-4" />,
-                  count: staffUsers.filter((u) => u.role === "employer").length,
+                  count: staffUsers.filter((u) => u.role === "employee").length,
                 },
               ]}
             />
@@ -289,7 +289,7 @@ export default function RewardsPage() {
                               }`}
                             >
                               {isPm ? <Briefcase className="w-2.5 h-2.5" /> : <UserCheck className="w-2.5 h-2.5" />}
-                              {isPm ? "Project Manager" : user.jobTitle || "Employer"}
+                              {isPm ? "Project Manager" : user.jobTitle || "Employee"}
                             </span>
                           </div>
                         </div>
@@ -441,9 +441,9 @@ export default function RewardsPage() {
                   tabs={[
                     {
                       id: "all",
-                      label: "All Employers Under Me",
+                      label: "All Employees Under Me",
                       icon: <Users className="w-4 h-4" />,
-                      count: employersUnderPm.length,
+                      count: employeesUnderPm.length,
                     },
                     {
                       id: "leads",
@@ -459,10 +459,10 @@ export default function RewardsPage() {
                     <div>
                       <h3 className="text-[16px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
                         <UserCheck className="w-4 h-4 text-[#4ade1d]" />
-                        <span>Team Rewards Oversight &bull; Employers Under My Management ({displayedEmployersUnderPm.length})</span>
+                        <span>Team Rewards Oversight &bull; Employees Under My Management ({displayedEmployeesUnderPm.length})</span>
                       </h3>
                       <p className="text-[12px] text-slate-500">
-                        Performance standings and point balances for employers assigned to initiatives under your management
+                        Performance standings and point balances for employees assigned to initiatives under your management
                       </p>
                     </div>
 
@@ -472,19 +472,19 @@ export default function RewardsPage() {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search employers under you..."
+                        placeholder="Search employees under you..."
                         className="h-9 pl-8 pr-3 text-[12px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-[#0084d4] text-slate-800 w-full sm:w-60 shadow-2xs"
                       />
                     </div>
                   </div>
 
-                  {displayedEmployersUnderPm.length === 0 ? (
+                  {displayedEmployeesUnderPm.length === 0 ? (
                     <div className="py-8 text-center text-slate-400 text-[13px]">
-                      No employers under your management match this criteria.
+                      No employees under your management match this criteria.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                      {displayedEmployersUnderPm.map((emp) => {
+                      {displayedEmployeesUnderPm.map((emp) => {
                         const profile = computeUserRewards(emp, tasks, projects, rewardsLedger);
                         const empLeadProjects = myManagedProjects.filter((p) => p.teamLeadId === emp.id);
 
@@ -507,7 +507,7 @@ export default function RewardsPage() {
                                     {emp.id === currentUser.id ? `${emp.fullName} (You)` : emp.fullName}
                                   </h4>
                                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    {emp.jobTitle || "Employer"}
+                                    {emp.jobTitle || "Employee"}
                                   </span>
                                 </div>
                               </div>

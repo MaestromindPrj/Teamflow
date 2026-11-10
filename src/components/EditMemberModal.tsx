@@ -53,7 +53,7 @@ export default function EditMemberModal({ user, isOpen, onClose }: EditMemberMod
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"employer" | "project_manager" | "ceo">("employer");
+  const [role, setRole] = useState<"employee" | "project_manager" | "ceo">("employee");
   const [jobTitle, setJobTitle] = useState("");
   const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
@@ -67,7 +67,7 @@ export default function EditMemberModal({ user, isOpen, onClose }: EditMemberMod
     if (user) {
       setFullName(user.fullName || user.name || "");
       setEmail(user.email || "");
-      setRole(user.role || "employer");
+      setRole(user.role || "employee");
       const matchedRole = availableRoles.find(
         (r) => r.name.toLowerCase() === (user.jobTitle || "").trim().toLowerCase()
       );
@@ -130,7 +130,7 @@ export default function EditMemberModal({ user, isOpen, onClose }: EditMemberMod
       return;
     }
 
-    if (role === "employer" && !jobTitle.trim()) {
+    if (role === "employee" && !jobTitle.trim()) {
       setErrorMessage("Please select a job role.");
       return;
     }
@@ -148,7 +148,7 @@ export default function EditMemberModal({ user, isOpen, onClose }: EditMemberMod
       fullName: trimmedName,
       name: trimmedName,
       email: trimmedEmail,
-      role: user.role === "ceo" ? "ceo" : (role as "employer" | "project_manager"),
+      role: user.role === "ceo" ? "ceo" : (role as "employee" | "project_manager"),
       jobTitle: finalJobTitle,
       phone: phone.trim(),
       bio: bio.trim(),
@@ -285,7 +285,7 @@ export default function EditMemberModal({ user, isOpen, onClose }: EditMemberMod
                 <button
                   type="button"
                   onClick={() => {
-                    setRole("employer");
+                    setRole("employee");
                     if (jobTitle === "Project Manager") {
                       setJobTitle(
                         user.jobTitle && user.jobTitle !== "Project Manager"
@@ -295,14 +295,14 @@ export default function EditMemberModal({ user, isOpen, onClose }: EditMemberMod
                     }
                   }}
                   className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
-                    role === "employer"
+                    role === "employee"
                       ? "border-[#0084d4] bg-sky-50/50 text-[#0084d4]"
                       : "border-slate-200 hover:border-slate-300 text-slate-600"
                   }`}
                 >
                   <UserCheck className="w-4 h-4 shrink-0" />
                   <div>
-                    <div className="text-[12px] font-bold">Employer</div>
+                    <div className="text-[12px] font-bold">Employee</div>
                     <div className="text-[10px] text-slate-400">Developer, Designer, QA</div>
                   </div>
                 </button>
@@ -330,7 +330,7 @@ export default function EditMemberModal({ user, isOpen, onClose }: EditMemberMod
           </div>
 
           {/* Job Role / Title */}
-          {role === "employer" ? (
+          {role === "employee" ? (
             <div>
               <label className="block text-[12px] font-semibold text-slate-700 mb-1">
                 Assign Job Role <span className="text-red-500">*</span>
@@ -345,7 +345,7 @@ export default function EditMemberModal({ user, isOpen, onClose }: EditMemberMod
                     if (errorMessage) setErrorMessage("");
                   }}
                   className={`w-full pl-9 pr-3.5 py-2 text-[12px] bg-white border rounded-lg focus:outline-hidden text-slate-900 font-medium cursor-pointer ${
-                    role === "employer" && !jobTitle
+                    role === "employee" && !jobTitle
                       ? "border-amber-300 focus:border-amber-500"
                       : "border-slate-200 focus:border-[#0084d4]"
                   }`}
@@ -448,7 +448,7 @@ export default function EditMemberModal({ user, isOpen, onClose }: EditMemberMod
                 !email.trim() ||
                 isEmailTaken ||
                 isInvalidDomain ||
-                (role === "employer" && !jobTitle.trim())
+                (role === "employee" && !jobTitle.trim())
               }
               className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >

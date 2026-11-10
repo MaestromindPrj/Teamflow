@@ -23,7 +23,7 @@ export async function GET() {
       name: r.name as string,
       fullName: r.full_name as string,
       email: r.email as string,
-      role: r.role as "ceo" | "project_manager" | "employer",
+      role: r.role as "ceo" | "project_manager" | "employee",
       jobTitle: (r.job_title as string) || (r.role === "ceo" ? "Chief Executive Officer" : r.role === "project_manager" ? "Project Manager" : "Software Developer"),
       avatar: (r.avatar as string) || "",
       phone: (r.phone as string) || "",
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const effectiveRole = role === "project_manager" ? "project_manager" : role === "ceo" ? "ceo" : "employer";
+    const effectiveRole = role === "project_manager" ? "project_manager" : role === "ceo" ? "ceo" : "employee";
     const effectiveJobTitle = effectiveRole === "project_manager"
       ? "Project Manager"
       : effectiveRole === "ceo"
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
         const emailResult = await sendNewUserCredentialsEmail({
           toEmail: email,
           recipientName: fullName,
-          role: role === "project_manager" ? "Project Manager" : "Employer",
+          role: role === "project_manager" ? "Project Manager" : "Employee",
           jobTitle: jobTitle || (role === "project_manager" ? "Project Manager" : "Software Developer"),
           initialPassword,
           loginUrl,
@@ -275,7 +275,7 @@ export async function PUT(req: NextRequest) {
       name: u.name as string,
       fullName: u.full_name as string,
       email: u.email as string,
-      role: u.role as "ceo" | "project_manager" | "employer",
+      role: u.role as "ceo" | "project_manager" | "employee",
       jobTitle: (u.job_title as string) || "",
       avatar: (u.avatar as string) || "",
       phone: (u.phone as string) || "",

@@ -70,18 +70,18 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
       badgeColor?: string;
     }> = [];
 
-    const isEmployer = currentUser.role === "employer";
+    const isEmployee = currentUser.role === "employee";
     const isPm = currentUser.role === "project_manager";
     const isCeo = currentUser.role === "ceo";
 
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-    // Managed projects and employers for PM
+    // Managed projects and employees for PM
     const myManagedProjects = isPm
       ? projects.filter((p) => p.projectManagerId === currentUser.id)
       : projects;
-    const myEmployerIds = new Set(
+    const myEmployeeIds = new Set(
       myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
     );
 
@@ -122,7 +122,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
       const statusTitle = isApproved ? "Approved" : "Rejected";
       const dateRangeStr = r.endDate && r.endDate !== r.startDate ? `${r.startDate} → ${r.endDate}` : r.startDate;
 
-      // The employer who applied gets notified:
+      // The employee who applied gets notified:
       if (r.userId === currentUser.id) {
         list.push({
           id: `notif-leave-emp-${r.id}-${r.status}`,
@@ -187,7 +187,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
     }
 
     // =========================================================================
-    // 4. TASK ASSIGNMENT (when an employer is assigned a new task)
+    // 4. TASK ASSIGNMENT (when an employee is assigned a new task)
     // =========================================================================
     const myAssignedActiveTasks = tasks.filter((t) => t.assignedTo === currentUser.id && t.status !== "Completed");
     myAssignedActiveTasks.forEach((t) => {
@@ -292,7 +292,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
             category: "project",
             badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200"
           });
-        } else if (isEmployer && (isTeamLead || isTeamMember)) {
+        } else if (isEmployee && (isTeamLead || isTeamMember)) {
           list.push({
             id: `notif-proj-emp-${p.id}`,
             title: isTeamLead ? "Assigned as Team Lead" : "Assigned to Project",
@@ -309,7 +309,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
     // =========================================================================
     // 6. OTHER WORKSPACE NOTIFICATIONS (Deliverables, Reviews, Media, Rewards)
     // =========================================================================
-    if (isEmployer) {
+    if (isEmployee) {
       // Reward points
       const myRewards = rewardsLedger.filter((r) => r.userId === currentUser.id);
       if (myRewards.length > 0) {
@@ -530,7 +530,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
         };
       default:
         return {
-          label: "Employer",
+          label: "Employee",
           className: "bg-[#4ade1d]/15 text-[#4ade1d] border-[#4ade1d]/30",
           icon: UserCheck
         };
@@ -580,7 +580,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
                 <UserAvatar
                   src={currentUser?.avatar || ""}
                   name={currentUser?.fullName || currentUser?.name || "User"}
-                  role={currentUser?.role || "employer"}
+                  role={currentUser?.role || "employee"}
                   className="w-7 h-7 rounded-full border border-slate-200 shrink-0"
                   textClassName="text-[10px]"
                 />
@@ -589,7 +589,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
                     {currentUser?.fullName || currentUser?.name || "User"}
                   </p>
                   <p className="text-[10px] text-slate-400 capitalize leading-tight">
-                    {currentUser?.role ? currentUser.role.replace("_", " ") : "employer"}
+                    {currentUser?.role ? currentUser.role.replace("_", " ") : "employee"}
                   </p>
                 </div>
               </>

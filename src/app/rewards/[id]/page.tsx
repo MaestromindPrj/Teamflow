@@ -96,7 +96,7 @@ function StaffRewardDetailContent() {
     );
   }
 
-  if (currentUser.role === "employer" && targetUser.id !== currentUser.id) {
+  if (currentUser.role === "employee" && targetUser.id !== currentUser.id) {
     return (
       <div className="flex-1 flex flex-col pb-12">
         <Header title="Personal Rewards" subtitle="Performance record and point ledger" />
@@ -114,7 +114,7 @@ function StaffRewardDetailContent() {
             </div>
             <h3 className="text-slate-800 font-bold text-[15px]">Access Restricted</h3>
             <p className="text-slate-500 text-[12px]">
-              Employers can only view their own rewards and point history. Other staff members&apos; point ledgers are restricted to management.
+              Employees can only view their own rewards and point history. Other staff members&apos; point ledgers are restricted to management.
             </p>
             <Link
               href={`/rewards/${currentUser.id}`}
@@ -202,7 +202,7 @@ function StaffRewardDetailContent() {
                     }`}
                   >
                     {isPm ? <Briefcase className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
-                    {isPm ? "Project Manager" : targetUser.jobTitle || "Employer"}
+                    {isPm ? "Project Manager" : targetUser.jobTitle || "Employee"}
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
                     ID: {targetUser.employeeId}

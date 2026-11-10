@@ -70,7 +70,7 @@ function ProjectManagerDetailContent() {
     );
   }
 
-  if (currentUser.role === "employer") {
+  if (currentUser.role === "employee") {
     return (
       <div className="flex-1 flex flex-col pb-12">
         <Header title="Team Directory" subtitle="Directory access restricted" />
@@ -82,7 +82,7 @@ function ProjectManagerDetailContent() {
             <div>
               <h3 className="text-[16px] font-bold text-slate-900">Restricted Access</h3>
               <p className="text-[12px] text-slate-500 mt-1">
-                Employers manage their daily workflow from their personal dashboard.
+                Employees manage their daily workflow from their personal dashboard.
               </p>
             </div>
             <Link
@@ -355,7 +355,7 @@ function ProjectManagerDetailContent() {
                                         {member.fullName}
                                       </p>
                                       <p className="text-[10px] text-slate-400 truncate">
-                                        {member.jobTitle || "Employer"}
+                                        {member.jobTitle || "Employee"}
                                       </p>
                                     </div>
                                   </div>
@@ -434,7 +434,7 @@ function ProjectManagerDetailContent() {
                         <h4 className="text-[13px] font-bold text-slate-900 truncate">
                           {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName}
                         </h4>
-                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{member.jobTitle || "Employer"}</p>
+                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{member.jobTitle || "Employee"}</p>
                         <p className="text-[10px] text-slate-400 truncate">{member.email}</p>
                       </div>
                     </div>

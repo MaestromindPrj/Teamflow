@@ -19,11 +19,11 @@ export default function AddTeamMemberModal({ project, isOpen, onClose }: AddTeam
 
   if (!isOpen) return null;
 
-  const availableEmployers = users.filter(
-    (u) => u.role === "employer" && !project.teamMemberIds.includes(u.id)
+  const availableEmployees = users.filter(
+    (u) => u.role === "employee" && !project.teamMemberIds.includes(u.id)
   );
 
-  const filteredEmployers = availableEmployers.filter((emp) => {
+  const filteredEmployees = availableEmployees.filter((emp) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -91,14 +91,14 @@ export default function AddTeamMemberModal({ project, isOpen, onClose }: AddTeam
 
         <form onSubmit={handleAddSelected} className="flex flex-col flex-1 min-h-0">
           <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-            {availableEmployers.length === 0 ? (
+            {availableEmployees.length === 0 ? (
               <div className="py-10 text-center space-y-2 bg-slate-50/60 rounded-lg border border-slate-100 p-6">
                 <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                   <UserCheck className="w-5 h-5" />
                 </div>
                 <p className="text-[13px] font-semibold text-slate-700">All Team Members Assigned</p>
                 <p className="text-[11px] text-slate-400">
-                  All company employers are already members of this project.
+                  All company employees are already members of this project.
                 </p>
               </div>
             ) : (
@@ -116,16 +116,16 @@ export default function AddTeamMemberModal({ project, isOpen, onClose }: AddTeam
 
                 <div className="space-y-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Available Staff ({filteredEmployers.length})
+                    Available Staff ({filteredEmployees.length})
                   </span>
 
-                  {filteredEmployers.length === 0 ? (
+                  {filteredEmployees.length === 0 ? (
                     <div className="py-6 text-center text-slate-400 text-[12px]">
                       No members match &quot;{searchQuery}&quot;
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                      {filteredEmployers.map((emp) => {
+                      {filteredEmployees.map((emp) => {
                         const isSelected = selectedMemberIds.includes(emp.id);
 
                         return (
@@ -157,7 +157,7 @@ export default function AddTeamMemberModal({ project, isOpen, onClose }: AddTeam
                                   {emp.fullName}
                                 </p>
                                 <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                                  {emp.jobTitle || "Employer"}
+                                  {emp.jobTitle || "Employee"}
                                 </p>
                               </div>
                             </div>
@@ -191,7 +191,7 @@ export default function AddTeamMemberModal({ project, isOpen, onClose }: AddTeam
             >
               Cancel
             </button>
-            {availableEmployers.length > 0 && (
+            {availableEmployees.length > 0 && (
               <button
                 type="submit"
                 disabled={selectedMemberIds.length === 0}

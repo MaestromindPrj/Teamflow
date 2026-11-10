@@ -331,6 +331,11 @@ export async function initDatabase() {
         WHERE password_hash IS NULL OR password_hash = '';
       `;
 
+      // Automatically migrate any legacy roles to employee
+      await sql`UPDATE users SET role = 'employee' WHERE role != 'ceo' AND role != 'project_manager' AND role != 'employee';`;
+      await sql`UPDATE attendance SET user_role = 'employee' WHERE user_role != 'ceo' AND user_role != 'project_manager' AND user_role != 'employee';`;
+      await sql`UPDATE leave_requests SET user_role = 'employee' WHERE user_role != 'ceo' AND user_role != 'project_manager' AND user_role != 'employee';`;
+
       // Always synchronize historical denormalized names with authoritative users table
       await sql`
         UPDATE attendance a

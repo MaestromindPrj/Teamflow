@@ -12,13 +12,13 @@ export default function RewardLeaderboardWidget() {
   const { currentUser, users, projects, tasks, rewardsLedger } = useTeamFlow();
   const isPm = currentUser.role === "project_manager";
   const isCeo = currentUser.role === "ceo";
-  const isEmployer = currentUser.role === "employer";
+  const isEmployee = currentUser.role === "employee";
 
   const myManagedProjects = isPm
     ? projects.filter((p) => p.projectManagerId === currentUser.id)
     : projects;
 
-  const myEmployerIds = new Set(
+  const myEmployeeIds = new Set(
     myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
   );
 
@@ -29,7 +29,7 @@ export default function RewardLeaderboardWidget() {
   const handleRowClick = (userId: string) => {
     if (isCeo || isPm) {
       router.push(`/rewards/${userId}`);
-    } else if (isEmployer) {
+    } else if (isEmployee) {
       if (userId === currentUser.id) {
         router.push(`/rewards/${currentUser.id}`);
       }
@@ -45,8 +45,8 @@ export default function RewardLeaderboardWidget() {
           </h3>
           <p className="text-[12px] text-slate-500">
             {isCeo || isPm
-              ? "Merit standings and gamified points across company project managers and employers"
-              : "Merit standings and gamified points across company project managers and employers"}
+              ? "Merit standings and gamified points across company project managers and employees"
+              : "Merit standings and gamified points across company project managers and employees"}
           </p>
         </div>
 
@@ -75,7 +75,7 @@ export default function RewardLeaderboardWidget() {
               const isClickable =
                 isCeo ||
                 isPm ||
-                (isEmployer && isCurrent);
+                (isEmployee && isCurrent);
 
               return (
                 <tr

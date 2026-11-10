@@ -123,7 +123,7 @@ export default function Sidebar() {
     );
   }
 
-  const role = currentUser.id ? currentUser.role : "employer";
+  const role = currentUser.id ? currentUser.role : "employee";
   const isCeoOrPm = role === "ceo" || role === "project_manager";
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
@@ -140,7 +140,7 @@ export default function Sidebar() {
     if (role === "ceo" && item.href === "/media") {
       return false;
     }
-    if (role === "employer" && item.href === "/team") {
+    if (role === "employee" && item.href === "/team") {
       return false;
     }
     return true;

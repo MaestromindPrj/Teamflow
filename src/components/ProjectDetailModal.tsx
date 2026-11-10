@@ -142,7 +142,7 @@ export default function ProjectDetailModal({
   const isCeo = currentUser.role === "ceo";
   const isPm = currentUser.role === "project_manager";
   const isLead = isUserTeamLead(currentUser.id, project.id);
-  const isRegularEmployer = currentUser.role === "employer" && !isLead;
+  const isRegularEmployee = currentUser.role === "employee" && !isLead;
   const canDeleteProject = isCeo || isPm;
   const canAddTeamMember = isCeo || isPm;
   const canAssignTechStack = isCeo || isPm || isLead;
@@ -984,7 +984,7 @@ export default function ProjectDetailModal({
                               )}
                             </div>
                             <p className="text-[10px] text-slate-400 truncate">
-                              {member.jobTitle || "Employer"}
+                              {member.jobTitle || "Employee"}
                             </p>
                           </div>
                         </div>

@@ -63,7 +63,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
 
   const [fullName, setFullName] = useState("");
   const [emailUsername, setEmailUsername] = useState("");
-  const [role, setRole] = useState<"employer" | "project_manager">("employer");
+  const [role, setRole] = useState<"employee" | "project_manager">("employee");
   const [selectedJobRole, setSelectedJobRole] = useState<string>(
     availableRoles[0]?.name || ""
   );
@@ -108,7 +108,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
       if (e.key === "Escape" && isOpen) {
         setFullName("");
         setEmailUsername("");
-        setRole("employer");
+        setRole("employee");
         setCreatedCredentials(null);
         setErrorMessage("");
         setCopied(false);
@@ -135,7 +135,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
   const handleClose = () => {
     setFullName("");
     setEmailUsername("");
-    setRole("employer");
+    setRole("employee");
     setCreatedCredentials(null);
     setErrorMessage("");
     setCopied(false);
@@ -172,13 +172,13 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
       return;
     }
 
-    if (role === "employer" && !selectedJobRole.trim()) {
+    if (role === "employee" && !selectedJobRole.trim()) {
       setErrorMessage("Please select a job role.");
       return;
     }
 
     const passwordToUse = generateInitialPassword();
-    const finalJobTitle = role === "employer" ? selectedJobRole.trim() : "Project Manager";
+    const finalJobTitle = role === "employee" ? selectedJobRole.trim() : "Project Manager";
 
     setIsSubmitting(true);
     try {
@@ -194,7 +194,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
       setCreatedCredentials({
         name: trimmedName,
         email: companyEmail,
-        role: role === "employer" ? "Employer" : "Project Manager",
+        role: role === "employee" ? "Employee" : "Project Manager",
         jobTitle: finalJobTitle,
         password: passwordToUse,
         emailSent: result?.emailSent,
@@ -219,7 +219,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                 Add Team Member
               </h2>
               <p className="text-[12px] text-slate-400">
-                Onboard a new employer or project manager with initial login credentials
+                Onboard a new employee or project manager with initial login credentials
               </p>
             </div>
           </div>
@@ -327,15 +327,15 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setRole("employer")}
+                  onClick={() => setRole("employee")}
                   className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-[13px] font-semibold transition-all cursor-pointer ${
-                    role === "employer"
+                    role === "employee"
                       ? "bg-sky-50 border-[#0084d4] text-[#0084d4] shadow-xs"
                       : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
                   }`}
                 >
                   <UserCheck className="w-4 h-4" />
-                  <span>Employer</span>
+                  <span>Employee</span>
                 </button>
 
                 <button
@@ -410,7 +410,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
               )}
             </div>
 
-            {role === "employer" ? (
+            {role === "employee" ? (
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-[12px] font-semibold text-slate-700">

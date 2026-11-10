@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
       id: r.id as string,
       userId: r.user_id as string,
       userName: r.user_name as string,
-      userRole: (r.user_role as AttendanceRecord["userRole"]) || "employer",
+      userRole: (r.user_role as AttendanceRecord["userRole"]) || "employee",
       date: r.date as string,
       clockIn: (r.clock_in as string) || "—",
       clockOut: (r.clock_out as string) || "—",
@@ -118,8 +118,8 @@ export async function POST(req: NextRequest) {
       ? (userLookup[0].full_name || userLookup[0].name || userName || "")
       : (userName || "");
     const resolvedUserRole = userLookup.length > 0
-      ? (userLookup[0].role || userRole || "employer")
-      : (userRole || "employer");
+      ? (userLookup[0].role || userRole || "employee")
+      : (userRole || "employee");
 
     // Prevent duplicate records for the same user on the same date
     const existing = await sql`

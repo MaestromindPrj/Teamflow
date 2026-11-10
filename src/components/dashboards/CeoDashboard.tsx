@@ -36,7 +36,7 @@ export default function CeoDashboard() {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
 
   const projectManagers = users.filter((u) => u.role === "project_manager");
-  const employers = users.filter((u) => u.role === "employer");
+  const employees = users.filter((u) => u.role === "employee");
   const totalWorkforce = users.filter((u) => u.role !== "ceo");
 
   const totalProjects = projects.length;
@@ -95,7 +95,7 @@ export default function CeoDashboard() {
             </div>
             <div className="pt-3 border-t border-slate-100 flex items-center text-[11px] text-slate-500 font-medium gap-1.5" suppressHydrationWarning>
               <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-              <span>{projectManagers.length} PMs &bull; {employers.length} Employers</span>
+              <span>{projectManagers.length} PMs &bull; {employees.length} Employees</span>
             </div>
           </div>
 
@@ -317,7 +317,7 @@ export default function CeoDashboard() {
                                   <div
                                     key={member.id}
                                     className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-md border border-slate-200 shadow-2xs"
-                                    title={`${member.fullName} (${member.jobTitle || "Employer"})`}
+                                    title={`${member.fullName} (${member.jobTitle || "Employee"})`}
                                   >
                                     <UserAvatar
                                       src={member.avatar}
@@ -329,7 +329,7 @@ export default function CeoDashboard() {
                                       {member.fullName}
                                     </span>
                                     <span className="text-[9px] text-slate-400">
-                                      ({member.jobTitle || "Employer"})
+                                      ({member.jobTitle || "Employee"})
                                     </span>
                                   </div>
                                 ))}
@@ -538,10 +538,10 @@ export default function CeoDashboard() {
                             : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
                         }`}
                       >
-                        {staff.role === "project_manager" ? "Project Manager" : "Employer"}
+                        {staff.role === "project_manager" ? "Project Manager" : "Employee"}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-[12px] text-slate-500">{staff.jobTitle || "Employer"}</td>
+                    <td className="py-3 px-3 text-[12px] text-slate-500">{staff.jobTitle || "Employee"}</td>
                     <td className="py-3 px-3 text-[12px] font-bold text-[#0084d4]" suppressHydrationWarning>{durationStr}</td>
                     <td className="py-3 pl-3 text-right">
                       <StatusBadge status={status as any} />

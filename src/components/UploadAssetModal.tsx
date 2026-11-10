@@ -61,13 +61,13 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isPm = currentUser.role === "project_manager";
-  const isEmployer = currentUser.role === "employer";
+  const isEmployee = currentUser.role === "employee";
 
   const availableProjects = useMemo(() => {
-    return isEmployer
+    return isEmployee
       ? projects.filter((p) => p.teamMemberIds.includes(currentUser.id) || p.teamLeadId === currentUser.id)
       : projects;
-  }, [projects, currentUser, isEmployer]);
+  }, [projects, currentUser, isEmployee]);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     availableProjects[0]?.id || ""

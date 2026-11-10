@@ -40,7 +40,7 @@ export default function LeaveRequestsModal({
     ? projects.filter((p) => p.projectManagerId === currentUser.id)
     : projects;
 
-  const myEmployerIds = new Set(
+  const myEmployeeIds = new Set(
     myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
   );
 
@@ -179,7 +179,7 @@ export default function LeaveRequestsModal({
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-slate-900 text-[13px]">{displayName}</span>
                           <span className="text-[11px] px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                            {staffUser?.jobTitle || (req.userRole === "project_manager" ? "Project Manager" : "Employer")}
+                            {staffUser?.jobTitle || (req.userRole === "project_manager" ? "Project Manager" : "Employee")}
                           </span>
                         </div>
                         <span className="text-[11px] text-slate-400 block mt-0.5">

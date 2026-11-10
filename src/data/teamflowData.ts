@@ -3,7 +3,7 @@ export interface User {
   name: string;
   fullName: string;
   email: string;
-  role: "ceo" | "project_manager" | "employer";
+  role: "ceo" | "project_manager" | "employee";
   jobTitle: string;
   avatar: string;
   phone: string;
@@ -75,7 +75,7 @@ export interface AttendanceRecord {
   id: string;
   userId: string;
   userName: string;
-  userRole: "ceo" | "project_manager" | "employer";
+  userRole: "ceo" | "project_manager" | "employee";
   date: string;
   clockIn: string;
   clockOut: string;
@@ -90,7 +90,7 @@ export interface LeaveRequest {
   id: string;
   userId: string;
   userName: string;
-  userRole: "ceo" | "project_manager" | "employer";
+  userRole: "ceo" | "project_manager" | "employee";
   startDate: string;
   endDate: string;
   leaveType: string;

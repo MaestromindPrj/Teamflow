@@ -243,7 +243,7 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
             >
               {assignableUsers.map((member) => (
                 <option key={member.id} value={member.id}>
-                  {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.jobTitle || "Employer"}) {member.id === project.teamLeadId ? "• [Team Lead]" : ""}
+                  {member.id === currentUser.id ? `${member.fullName} (You)` : member.fullName} ({member.jobTitle || "Employee"}) {member.id === project.teamLeadId ? "• [Team Lead]" : ""}
                 </option>
               ))}
             </select>

@@ -69,7 +69,7 @@ export default function SettingsPage() {
     name: currentUser.name,
     fullName: currentUser.fullName,
     email: currentUser.email,
-    role: currentUser.jobTitle || (currentUser.role === "ceo" ? "Chief Executive Officer" : currentUser.role === "project_manager" ? "Project Manager" : "Employer"),
+    role: currentUser.jobTitle || (currentUser.role === "ceo" ? "Chief Executive Officer" : currentUser.role === "project_manager" ? "Project Manager" : "Employee"),
     employeeId: currentUser.employeeId,
     phone: currentUser.phone || "",
     avatar: currentUser.avatar || "",
@@ -81,7 +81,7 @@ export default function SettingsPage() {
       name: currentUser.name,
       fullName: currentUser.fullName,
       email: currentUser.email,
-      role: currentUser.jobTitle || (currentUser.role === "ceo" ? "Chief Executive Officer" : currentUser.role === "project_manager" ? "Project Manager" : "Employer"),
+      role: currentUser.jobTitle || (currentUser.role === "ceo" ? "Chief Executive Officer" : currentUser.role === "project_manager" ? "Project Manager" : "Employee"),
       employeeId: currentUser.employeeId,
       phone: currentUser.phone || "",
       avatar: currentUser.avatar || "",
@@ -227,7 +227,7 @@ export default function SettingsPage() {
       ? "Project Manager"
       : currentUser.role === "ceo"
       ? "CEO"
-      : currentUser.jobTitle || "Employer";
+      : currentUser.jobTitle || "Employee";
 
   if (!mounted || !hasHydrated || !currentUser.id) {
     return <SettingsSkeleton />;

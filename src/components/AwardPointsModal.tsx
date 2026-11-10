@@ -39,7 +39,7 @@ export default function AwardPointsModal({
     ? projects.filter((p) => p.projectManagerId === currentUser.id)
     : projects;
 
-  const myEmployerIds = new Set(
+  const myEmployeeIds = new Set(
     myManagedProjects.flatMap((p) => [...p.teamMemberIds, p.teamLeadId].filter(Boolean))
   );
 
@@ -137,8 +137,8 @@ export default function AwardPointsModal({
               </h3>
               <p className="text-[12px] text-slate-500 mt-0.5">
                 {isCeo
-                  ? "Executive grant: award performance merit to Project Managers and Employers"
-                  : "PM endorsement: grant reward points to employers in your project workforce"}
+                  ? "Executive grant: award performance merit to Project Managers and Employees"
+                  : "PM endorsement: grant reward points to employees in your project workforce"}
               </p>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function AwardPointsModal({
             >
               {eligibleRecipients.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.fullName} — {u.jobTitle || (u.role === "project_manager" ? "Project Manager" : "Employer")}
+                  {u.fullName} — {u.jobTitle || (u.role === "project_manager" ? "Project Manager" : "Employee")}
                 </option>
               ))}
             </select>

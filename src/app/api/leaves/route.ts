@@ -136,8 +136,8 @@ export async function POST(req: NextRequest) {
       ? (targetUserLookup[0].full_name || targetUserLookup[0].name || userName || "")
       : (userName || "");
     const resolvedUserRole = targetUserLookup.length > 0
-      ? (targetUserLookup[0].role || userRole || "employer")
-      : (userRole || "employer");
+      ? (targetUserLookup[0].role || userRole || "employee")
+      : (userRole || "employee");
 
     const appById = appliedById || userId;
     const appUserLookup = await sql`
@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
       id: requestId,
       userId,
       userName: userName || "",
-      userRole: userRole || "employer",
+      userRole: userRole || "employee",
       startDate,
       endDate: finalEndDate,
       leaveType,
@@ -310,8 +310,8 @@ export async function PATCH(req: NextRequest) {
         ? (uRows[0].full_name || uRows[0].name || reqData.user_name || "")
         : (reqData.user_name || "");
       const attUserRole = uRows.length > 0
-        ? (uRows[0].role || reqData.user_role || "employer")
-        : (reqData.user_role || "employer");
+        ? (uRows[0].role || reqData.user_role || "employee")
+        : (reqData.user_role || "employee");
 
       const dates = getDatesInRange(reqData.start_date as string, reqData.end_date as string);
       for (const date of dates) {

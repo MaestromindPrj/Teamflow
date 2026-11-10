@@ -221,7 +221,7 @@ export function computeLeaderboard(
       return {
         id: u.id,
         name: u.fullName,
-        role: u.jobTitle || (u.role === "project_manager" ? "Project Manager" : "Employer"),
+        role: u.jobTitle || (u.role === "project_manager" ? "Project Manager" : "Employee"),
         points: stats.currentBalance,
         avatar: u.avatar,
         rank: 0,

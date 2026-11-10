@@ -50,7 +50,7 @@ export default function NewProjectModal({
   };
 
   const projectManagers = users.filter((u) => u.role === "project_manager");
-  const employers = users.filter((u) => u.role === "employer");
+  const employees = users.filter((u) => u.role === "employee");
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState(() => categories[0]?.name || "");
@@ -86,11 +86,11 @@ export default function NewProjectModal({
   );
 
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(
-    employers.map((e) => e.id)
+    employees.map((e) => e.id)
   );
 
   const [selectedLeadId, setSelectedLeadId] = useState<string>(
-    employers[0]?.id || currentUser.id
+    employees[0]?.id || currentUser.id
   );
 
   if (!isOpen) return null;
@@ -152,7 +152,7 @@ export default function NewProjectModal({
     onClose();
   };
 
-  const eligibleLeads = employers.filter((emp) => selectedMemberIds.includes(emp.id));
+  const eligibleLeads = employees.filter((emp) => selectedMemberIds.includes(emp.id));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
@@ -446,17 +446,17 @@ export default function NewProjectModal({
                 Assign Team Members ({selectedMemberIds.length} selected)
               </label>
               <span className="text-[11px] text-slate-400">
-                Select employers working on this project
+                Select employees working on this project
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-1 border border-slate-200 rounded-lg bg-slate-50/50">
-              {employers.length === 0 ? (
+              {employees.length === 0 ? (
                 <div className="col-span-full py-4 text-center text-slate-400 text-[12px]">
-                  No employers onboarded yet. You can add employers in the Team page and assign them later.
+                  No employees onboarded yet. You can add employees in the Team page and assign them later.
                 </div>
               ) : (
-                employers.map((emp) => {
+                employees.map((emp) => {
                   const isSelected = selectedMemberIds.includes(emp.id);
                   return (
                     <div
@@ -485,7 +485,7 @@ export default function NewProjectModal({
                           {emp.fullName}
                         </p>
                         <p className="text-[10px] text-slate-400 truncate">
-                          {emp.jobTitle || "Employer"}
+                          {emp.jobTitle || "Employee"}
                         </p>
                       </div>
                     </div>
@@ -508,7 +508,7 @@ export default function NewProjectModal({
 
             {eligibleLeads.length === 0 ? (
               <p className="text-[12px] text-amber-700 font-medium">
-                No employers added to roster yet. The team lead will default to you or can be appointed after adding team members.
+                No employees added to roster yet. The team lead will default to you or can be appointed after adding team members.
               </p>
             ) : (
               <select
@@ -518,7 +518,7 @@ export default function NewProjectModal({
               >
                 {eligibleLeads.map((lead) => (
                   <option key={lead.id} value={lead.id}>
-                    {lead.id === currentUser.id ? `${lead.fullName} (You)` : lead.fullName} — {lead.jobTitle || "Employer"}
+                    {lead.id === currentUser.id ? `${lead.fullName} (You)` : lead.fullName} — {lead.jobTitle || "Employee"}
                   </option>
                 ))}
               </select>

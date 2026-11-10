@@ -24,7 +24,7 @@ import CheckInStatusBar from "@/components/CheckInStatusBar";
 import RewardLeaderboardWidget from "@/components/RewardLeaderboardWidget";
 import DashboardCalendarWidget from "@/components/DashboardCalendarWidget";
 
-export default function EmployerDashboard() {
+export default function EmployeeDashboard() {
   const { currentUser, users, projects, tasks, isUserTeamLead } = useTeamFlow();
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export default function EmployerDashboard() {
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white/10 text-white text-[11px] font-semibold border border-white/20">
               <UserCheck className="w-3 h-3 text-[#4ade1d]" />
-              <span>Employer Workspace</span>
+              <span>Employee Workspace</span>
             </div>
             <h2 className="text-[19px] font-bold tracking-tight">
               Welcome back, {currentUser.fullName || currentUser.name}

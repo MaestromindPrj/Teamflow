@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 import CeoDashboard from "@/components/dashboards/CeoDashboard";
 import ProjectManagerDashboard from "@/components/dashboards/ProjectManagerDashboard";
-import EmployerDashboard from "@/components/dashboards/EmployerDashboard";
+import EmployeeDashboard from "@/components/dashboards/EmployeeDashboard";
 
 export default function DashboardPage() {
   const { currentUser, hasHydrated } = useTeamFlow();
@@ -54,7 +54,7 @@ export default function DashboardPage() {
         };
       default:
         return {
-          title: `Employer Workspace • ${activeFullName}`,
+          title: `Employee Workspace • ${activeFullName}`,
           subtitle: "Assigned tasks, deadlines, and media deliverables"
         };
     }
@@ -69,7 +69,7 @@ export default function DashboardPage() {
       <main className="flex-1">
         {activeRole === "ceo" && <CeoDashboard />}
         {activeRole === "project_manager" && <ProjectManagerDashboard />}
-        {activeRole === "employer" && <EmployerDashboard />}
+        {activeRole === "employee" && <EmployeeDashboard />}
       </main>
     </div>
   );

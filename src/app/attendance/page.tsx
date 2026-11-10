@@ -49,7 +49,7 @@ function AttendanceContent() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const [roleFilter, setRoleFilter] = useState<"All" | "project_manager" | "employer" | "leave">("All");
+  const [roleFilter, setRoleFilter] = useState<"All" | "project_manager" | "employee" | "leave">("All");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "3" | "7" | "30">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "working" | "checked_out" | "leave">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -175,7 +175,7 @@ function AttendanceContent() {
       ? Math.round((currentlyActiveCount / relevantStaff.length) * 100)
       : 0;
 
-  const isEmployer = !isCeo && !isPm;
+  const isEmployee = !isCeo && !isPm;
   const isCurrentUserOnLeaveToday = Boolean(
     baseAttendance.find((r) => r.userId === currentUser.id && r.date === todayString && r.status === "Leave")
   );
@@ -228,7 +228,7 @@ function AttendanceContent() {
         title="Attendance & Workday Logs"
         subtitle={
           isCeo || isPm
-            ? "Executive workforce roster: monitor real-time check-in and check-out logs of all Project Managers and Employers"
+            ? "Executive workforce roster: monitor real-time check-in and check-out logs of all Project Managers and Employees"
             : "Personal workday records, attendance rate, and punch clock"
         }
       />
@@ -266,7 +266,7 @@ function AttendanceContent() {
             </div>
           </div>
         )}
-        {isEmployer ? (
+        {isEmployee ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg border border-slate-200/90 p-4.5 shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
@@ -415,7 +415,7 @@ function AttendanceContent() {
         )}
 
         {(isCeo || isPm) ? (
-          <InPageSubTabs<"All" | "project_manager" | "employer" | "leave">
+          <InPageSubTabs<"All" | "project_manager" | "employee" | "leave">
             activeTab={roleFilter}
             onChange={(filter) => setRoleFilter(filter)}
             tabs={[
@@ -430,8 +430,8 @@ function AttendanceContent() {
                 icon: <Shield className="w-4 h-4" />,
               },
               {
-                id: "employer" as const,
-                label: "Employers",
+                id: "employee" as const,
+                label: "Employees",
                 icon: <Briefcase className="w-4 h-4" />,
               },
               {
@@ -442,7 +442,7 @@ function AttendanceContent() {
             ]}
           />
         ) : (
-          <InPageSubTabs<"All" | "project_manager" | "employer" | "leave">
+          <InPageSubTabs<"All" | "project_manager" | "employee" | "leave">
             activeTab={roleFilter}
             onChange={(filter) => setRoleFilter(filter)}
             tabs={[
@@ -656,7 +656,7 @@ function AttendanceContent() {
                                 : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
                             }`}
                           >
-                            {staffUser?.jobTitle || (row.userRole === "project_manager" ? "Project Manager" : "Employer")}
+                            {staffUser?.jobTitle || (row.userRole === "project_manager" ? "Project Manager" : "Employee")}
                           </span>
                         </td>
 
