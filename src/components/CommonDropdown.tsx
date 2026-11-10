@@ -30,7 +30,7 @@ const CommonDropdown = forwardRef<HTMLSelectElement, CommonDropdownProps>(
           ref={ref}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
-          className={`common-dropdown h-9 text-[12px] font-medium bg-white border border-slate-200/90 rounded-lg text-slate-700 hover:border-slate-300 hover:bg-slate-50/60 focus:outline-hidden focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-all shadow-2xs cursor-pointer appearance-none pl-3 pr-8 ${
+          className={`common-dropdown no-arrow h-9 text-[12px] font-medium bg-white border border-slate-200/90 rounded-lg text-slate-700 hover:border-slate-300 hover:bg-slate-50/60 focus:outline-hidden focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-all shadow-2xs cursor-pointer appearance-none pl-3 pr-8 ${
             icon ? "pl-8" : ""
           } ${className}`}
           {...props}

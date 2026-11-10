@@ -233,7 +233,7 @@ function ProjectsContent() {
                               if (nextStatus === "Planning" && hasCompletedTasks) return;
                               updateProject(project.id, { status: nextStatus });
                             }}
-                            className={`text-[11px] font-semibold rounded-md pl-2 pr-5 py-0.5 border cursor-pointer appearance-none focus:outline-hidden transition-colors ${
+                            className={`text-[11px] font-semibold rounded-md pl-2 pr-5 py-0.5 border cursor-pointer appearance-none no-arrow focus:outline-hidden transition-colors ${
                               project.status === "In Progress"
                                 ? "bg-[#e0f2fe] text-[#0284c7] border-sky-200/70 hover:bg-sky-100"
                                 : project.status === "In Review"
