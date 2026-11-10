@@ -294,7 +294,7 @@ export default function Sidebar() {
             <ChevronRight className="w-4 h-4 text-slate-400" />
           ) : (
             <>
-              <span className="text-[11px] font-medium text-slate-400">Collapse sidebar</span>
+              <span></span>
               <ChevronLeft className="w-4 h-4 text-slate-400" />
             </>
           )}
