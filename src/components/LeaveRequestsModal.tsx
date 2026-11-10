@@ -153,6 +153,9 @@ export default function LeaveRequestsModal({
           ) : (
             tabFiltered.map((req) => {
               const staffUser = users.find((u) => u.id === req.userId);
+              const displayName = staffUser?.fullName || staffUser?.name || req.userName;
+              const appliedByUser = users.find((u) => u.id === req.appliedById);
+              const appliedByDisplayName = appliedByUser?.fullName || appliedByUser?.name || req.appliedByName;
               const isMultiDay = req.startDate !== req.endDate;
               const isPending = req.status === "Pending";
               const isApproved = req.status === "Approved";
@@ -167,20 +170,20 @@ export default function LeaveRequestsModal({
                     <div className="flex items-center gap-3">
                       <UserAvatar
                         src={staffUser?.avatar}
-                        name={req.userName}
+                        name={displayName}
                         role={staffUser?.role || req.userRole}
                         className="w-10 h-10 rounded-full border border-slate-200 shrink-0"
                         textClassName="text-[12px]"
                       />
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-slate-900 text-[13px]">{req.userName}</span>
+                          <span className="font-bold text-slate-900 text-[13px]">{displayName}</span>
                           <span className="text-[11px] px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600 border border-slate-200">
                             {staffUser?.jobTitle || (req.userRole === "project_manager" ? "Project Manager" : "Employer")}
                           </span>
                         </div>
                         <span className="text-[11px] text-slate-400 block mt-0.5">
-                          Applied by {req.appliedByName}
+                          Applied by {appliedByDisplayName}
                         </span>
                       </div>
                     </div>

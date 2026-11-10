@@ -34,6 +34,7 @@ function MediaHubContent() {
   const tabParam = searchParams.get("tab");
   const {
     currentUser,
+    users,
     projects,
     tasks,
     isUserTeamLead,
@@ -143,16 +144,18 @@ function MediaHubContent() {
       }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
+        const uploader = users.find((u) => u.id === item.uploadedBy);
+        const uploaderName = uploader?.fullName || uploader?.name || item.uploadedByName;
         return (
           item.name.toLowerCase().includes(q) ||
           item.projectName.toLowerCase().includes(q) ||
           item.taskTitle.toLowerCase().includes(q) ||
-          item.uploadedByName.toLowerCase().includes(q)
+          uploaderName.toLowerCase().includes(q)
         );
       }
       return true;
     });
-  }, [userAccessibleMedia, selectedType, searchQuery]);
+  }, [userAccessibleMedia, selectedType, searchQuery, users]);
 
   // Filter deletion requests relevant to current user
   const relevantRequests = useMemo(() => {
@@ -548,7 +551,7 @@ function MediaHubContent() {
 
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                         <div className="truncate pr-2">
-                          <span>Uploaded by: <strong className="text-slate-700">{file.uploadedByName}</strong></span>
+                          <span>Uploaded by: <strong className="text-slate-700">{users.find((u) => u.id === file.uploadedBy)?.fullName || users.find((u) => u.id === file.uploadedBy)?.name || file.uploadedByName}</strong></span>
                         </div>
 
                         {/* Action Buttons: Delete (CEO/PM/TeamLead) or Request Deletion (Team Member) */}

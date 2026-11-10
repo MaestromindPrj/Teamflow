@@ -21,30 +21,46 @@ export async function GET(req: NextRequest) {
 
     if (userId && date) {
       rows = await sql`
-        SELECT id, user_id, user_name, user_role, date, clock_in, clock_out, duration, status, sessions, leave_type, leave_reason
-        FROM attendance
-        WHERE user_id = ${userId} AND date = ${date}
-        ORDER BY created_at DESC, id ASC;
+        SELECT a.id, a.user_id,
+               COALESCE(u.full_name, u.name, a.user_name) AS user_name,
+               COALESCE(u.role, a.user_role) AS user_role,
+               a.date, a.clock_in, a.clock_out, a.duration, a.status, a.sessions, a.leave_type, a.leave_reason
+        FROM attendance a
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE a.user_id = ${userId} AND a.date = ${date}
+        ORDER BY a.created_at DESC, a.id ASC;
       `;
     } else if (userId) {
       rows = await sql`
-        SELECT id, user_id, user_name, user_role, date, clock_in, clock_out, duration, status, sessions, leave_type, leave_reason
-        FROM attendance
-        WHERE user_id = ${userId}
-        ORDER BY created_at DESC, id ASC;
+        SELECT a.id, a.user_id,
+               COALESCE(u.full_name, u.name, a.user_name) AS user_name,
+               COALESCE(u.role, a.user_role) AS user_role,
+               a.date, a.clock_in, a.clock_out, a.duration, a.status, a.sessions, a.leave_type, a.leave_reason
+        FROM attendance a
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE a.user_id = ${userId}
+        ORDER BY a.created_at DESC, a.id ASC;
       `;
     } else if (date) {
       rows = await sql`
-        SELECT id, user_id, user_name, user_role, date, clock_in, clock_out, duration, status, sessions, leave_type, leave_reason
-        FROM attendance
-        WHERE date = ${date}
-        ORDER BY created_at DESC, id ASC;
+        SELECT a.id, a.user_id,
+               COALESCE(u.full_name, u.name, a.user_name) AS user_name,
+               COALESCE(u.role, a.user_role) AS user_role,
+               a.date, a.clock_in, a.clock_out, a.duration, a.status, a.sessions, a.leave_type, a.leave_reason
+        FROM attendance a
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE a.date = ${date}
+        ORDER BY a.created_at DESC, a.id ASC;
       `;
     } else {
       rows = await sql`
-        SELECT id, user_id, user_name, user_role, date, clock_in, clock_out, duration, status, sessions, leave_type, leave_reason
-        FROM attendance
-        ORDER BY created_at DESC, id ASC;
+        SELECT a.id, a.user_id,
+               COALESCE(u.full_name, u.name, a.user_name) AS user_name,
+               COALESCE(u.role, a.user_role) AS user_role,
+               a.date, a.clock_in, a.clock_out, a.duration, a.status, a.sessions, a.leave_type, a.leave_reason
+        FROM attendance a
+        LEFT JOIN users u ON a.user_id = u.id
+        ORDER BY a.created_at DESC, a.id ASC;
       `;
     }
 
@@ -94,6 +110,17 @@ export async function POST(req: NextRequest) {
 
     const sql = getDb();
 
+    // Dynamically resolve authoritative full name and role from users table
+    const userLookup = await sql`
+      SELECT full_name, name, role FROM users WHERE id = ${userId} LIMIT 1;
+    `;
+    const resolvedUserName = userLookup.length > 0
+      ? (userLookup[0].full_name || userLookup[0].name || userName || "")
+      : (userName || "");
+    const resolvedUserRole = userLookup.length > 0
+      ? (userLookup[0].role || userRole || "employer")
+      : (userRole || "employer");
+
     // Prevent duplicate records for the same user on the same date
     const existing = await sql`
       SELECT id FROM attendance
@@ -109,8 +136,8 @@ export async function POST(req: NextRequest) {
       VALUES (
         ${recordId},
         ${userId},
-        ${userName || ""},
-        ${userRole || "employer"},
+        ${resolvedUserName},
+        ${resolvedUserRole},
         ${date},
         ${clockIn || "—"},
         ${clockOut || "—"},

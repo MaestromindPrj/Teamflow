@@ -31,16 +31,32 @@ export async function GET(req: NextRequest) {
 
     if (userId) {
       rows = await sql`
-        SELECT id, user_id, points, action, reason, awarded_by_id, awarded_by_name, date
-        FROM rewards_ledger
-        WHERE user_id = ${userId}
-        ORDER BY created_at DESC, id DESC;
+        SELECT rl.id, rl.user_id, rl.points, rl.action, rl.reason, rl.awarded_by_id,
+               COALESCE(
+                 CASE WHEN u_aw.full_name IS NOT NULL THEN
+                   u_aw.full_name || ' (' || CASE WHEN u_aw.role = 'ceo' THEN 'CEO' ELSE 'Project Manager' END || ')'
+                 ELSE NULL END,
+                 rl.awarded_by_name
+               ) AS awarded_by_name,
+               rl.date
+        FROM rewards_ledger rl
+        LEFT JOIN users u_aw ON rl.awarded_by_id = u_aw.id
+        WHERE rl.user_id = ${userId}
+        ORDER BY rl.created_at DESC, rl.id DESC;
       `;
     } else {
       rows = await sql`
-        SELECT id, user_id, points, action, reason, awarded_by_id, awarded_by_name, date
-        FROM rewards_ledger
-        ORDER BY created_at DESC, id DESC;
+        SELECT rl.id, rl.user_id, rl.points, rl.action, rl.reason, rl.awarded_by_id,
+               COALESCE(
+                 CASE WHEN u_aw.full_name IS NOT NULL THEN
+                   u_aw.full_name || ' (' || CASE WHEN u_aw.role = 'ceo' THEN 'CEO' ELSE 'Project Manager' END || ')'
+                 ELSE NULL END,
+                 rl.awarded_by_name
+               ) AS awarded_by_name,
+               rl.date
+        FROM rewards_ledger rl
+        LEFT JOIN users u_aw ON rl.awarded_by_id = u_aw.id
+        ORDER BY rl.created_at DESC, rl.id DESC;
       `;
     }
 

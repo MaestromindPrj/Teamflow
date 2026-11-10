@@ -244,7 +244,7 @@ export default function Sidebar() {
             <ChevronRight className="w-4 h-4 text-slate-500" />
           ) : (
             <>
-              
+              <span> </span>
               <ChevronLeft className="w-4 h-4 text-slate-400" />
             </>
           )}

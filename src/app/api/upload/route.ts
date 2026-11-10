@@ -164,6 +164,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (uploadedBy && isDbConfigured()) {
+      try {
+        await initDatabase();
+        const sql = getDb();
+        const uRows = await sql`SELECT full_name, name FROM users WHERE id = ${uploadedBy} LIMIT 1;`;
+        if (uRows.length > 0) {
+          uploadedByName = uRows[0].full_name || uRows[0].name || uploadedByName;
+        }
+      } catch {}
+    }
+
     const attachment: TaskAttachment = {
       id: `att-${Date.now()}`,
       name: fileName,

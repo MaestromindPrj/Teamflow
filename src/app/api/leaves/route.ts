@@ -38,16 +38,38 @@ export async function GET(req: NextRequest) {
     let rows;
     if (userId) {
       rows = await sql`
-        SELECT id, user_id, user_name, user_role, start_date, end_date, leave_type, reason, status, applied_by_id, applied_by_name, reviewed_by_id, reviewed_by_name, reviewed_by_role, created_at
-        FROM leave_requests
-        WHERE user_id = ${userId}
-        ORDER BY created_at DESC;
+        SELECT lr.id, lr.user_id,
+               COALESCE(u.full_name, u.name, lr.user_name) AS user_name,
+               COALESCE(u.role, lr.user_role) AS user_role,
+               lr.start_date, lr.end_date, lr.leave_type, lr.reason, lr.status,
+               lr.applied_by_id,
+               COALESCE(u_app.full_name, u_app.name, lr.applied_by_name) AS applied_by_name,
+               lr.reviewed_by_id,
+               COALESCE(u_rev.full_name, u_rev.name, lr.reviewed_by_name) AS reviewed_by_name,
+               lr.reviewed_by_role, lr.created_at
+        FROM leave_requests lr
+        LEFT JOIN users u ON lr.user_id = u.id
+        LEFT JOIN users u_app ON lr.applied_by_id = u_app.id
+        LEFT JOIN users u_rev ON lr.reviewed_by_id = u_rev.id
+        WHERE lr.user_id = ${userId}
+        ORDER BY lr.created_at DESC;
       `;
     } else {
       rows = await sql`
-        SELECT id, user_id, user_name, user_role, start_date, end_date, leave_type, reason, status, applied_by_id, applied_by_name, reviewed_by_id, reviewed_by_name, reviewed_by_role, created_at
-        FROM leave_requests
-        ORDER BY created_at DESC;
+        SELECT lr.id, lr.user_id,
+               COALESCE(u.full_name, u.name, lr.user_name) AS user_name,
+               COALESCE(u.role, lr.user_role) AS user_role,
+               lr.start_date, lr.end_date, lr.leave_type, lr.reason, lr.status,
+               lr.applied_by_id,
+               COALESCE(u_app.full_name, u_app.name, lr.applied_by_name) AS applied_by_name,
+               lr.reviewed_by_id,
+               COALESCE(u_rev.full_name, u_rev.name, lr.reviewed_by_name) AS reviewed_by_name,
+               lr.reviewed_by_role, lr.created_at
+        FROM leave_requests lr
+        LEFT JOIN users u ON lr.user_id = u.id
+        LEFT JOIN users u_app ON lr.applied_by_id = u_app.id
+        LEFT JOIN users u_rev ON lr.reviewed_by_id = u_rev.id
+        ORDER BY lr.created_at DESC;
       `;
     }
 
@@ -105,6 +127,37 @@ export async function POST(req: NextRequest) {
     }
 
     const sql = getDb();
+
+    // Look up authoritative names from users table
+    const targetUserLookup = await sql`
+      SELECT full_name, name, role FROM users WHERE id = ${userId} LIMIT 1;
+    `;
+    const resolvedUserName = targetUserLookup.length > 0
+      ? (targetUserLookup[0].full_name || targetUserLookup[0].name || userName || "")
+      : (userName || "");
+    const resolvedUserRole = targetUserLookup.length > 0
+      ? (targetUserLookup[0].role || userRole || "employer")
+      : (userRole || "employer");
+
+    const appById = appliedById || userId;
+    const appUserLookup = await sql`
+      SELECT full_name, name FROM users WHERE id = ${appById} LIMIT 1;
+    `;
+    const resolvedAppliedByName = appUserLookup.length > 0
+      ? (appUserLookup[0].full_name || appUserLookup[0].name || appliedByName || resolvedUserName)
+      : (appliedByName || resolvedUserName);
+
+    const revById = reviewedById || (status === "Approved" ? appById : null);
+    let resolvedReviewedByName = reviewedByName || (status === "Approved" ? resolvedAppliedByName : null);
+    if (revById) {
+      const revUserLookup = await sql`
+        SELECT full_name, name FROM users WHERE id = ${revById} LIMIT 1;
+      `;
+      if (revUserLookup.length > 0) {
+        resolvedReviewedByName = revUserLookup[0].full_name || revUserLookup[0].name || resolvedReviewedByName;
+      }
+    }
+
     const requestId = `leave-${Date.now()}-${userId}`;
     const finalEndDate = endDate || startDate;
     const leaveStatus = status === "Approved" ? "Approved" : "Pending";
@@ -116,17 +169,17 @@ export async function POST(req: NextRequest) {
       ) VALUES (
         ${requestId},
         ${userId},
-        ${userName || ""},
-        ${userRole || "employer"},
+        ${resolvedUserName},
+        ${resolvedUserRole},
         ${startDate},
         ${finalEndDate},
         ${leaveType},
         ${reason || ""},
         ${leaveStatus},
-        ${appliedById || userId},
-        ${appliedByName || userName || ""},
-        ${reviewedById || (leaveStatus === "Approved" ? appliedById : null)},
-        ${reviewedByName || (leaveStatus === "Approved" ? appliedByName : null)},
+        ${appById},
+        ${resolvedAppliedByName},
+        ${revById},
+        ${resolvedReviewedByName},
         ${reviewedByRole || null}
       );
     `;
@@ -142,8 +195,8 @@ export async function POST(req: NextRequest) {
           ) VALUES (
             ${attId},
             ${userId},
-            ${userName || ""},
-            ${userRole || "employer"},
+            ${resolvedUserName},
+            ${resolvedUserRole},
             ${date},
             '—',
             '—',
@@ -249,6 +302,17 @@ export async function PATCH(req: NextRequest) {
     `;
 
     if (status === "Approved") {
+      // Lookup latest user details for attendance entry
+      const uRows = await sql`
+        SELECT full_name, name, role FROM users WHERE id = ${reqData.user_id} LIMIT 1;
+      `;
+      const attUserName = uRows.length > 0
+        ? (uRows[0].full_name || uRows[0].name || reqData.user_name || "")
+        : (reqData.user_name || "");
+      const attUserRole = uRows.length > 0
+        ? (uRows[0].role || reqData.user_role || "employer")
+        : (reqData.user_role || "employer");
+
       const dates = getDatesInRange(reqData.start_date as string, reqData.end_date as string);
       for (const date of dates) {
         const attId = `att-${reqData.user_id}-${date}`;
@@ -258,8 +322,8 @@ export async function PATCH(req: NextRequest) {
           ) VALUES (
             ${attId},
             ${reqData.user_id},
-            ${reqData.user_name || ""},
-            ${reqData.user_role || "employer"},
+            ${attUserName},
+            ${attUserRole},
             ${date},
             '—',
             '—',

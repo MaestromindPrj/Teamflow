@@ -21,9 +21,13 @@ export async function GET() {
     await initDatabase();
     const sql = getDb();
     const rows = await sql`
-      SELECT id, title, date, end_date, declared_by_id, declared_by_name, declared_by_role, created_at
-      FROM office_leaves
-      ORDER BY date ASC;
+      SELECT ol.id, ol.title, ol.date, ol.end_date, ol.declared_by_id,
+             COALESCE(u.full_name, u.name, ol.declared_by_name) AS declared_by_name,
+             COALESCE(u.role, ol.declared_by_role) AS declared_by_role,
+             ol.created_at
+      FROM office_leaves ol
+      LEFT JOIN users u ON ol.declared_by_id = u.id
+      ORDER BY ol.date ASC;
     `;
 
     const officeLeaves: OfficeLeave[] = rows.map((r) => ({
@@ -66,9 +70,19 @@ export async function POST(req: NextRequest) {
     const id = body.id || `off-leave-${date}-${Date.now()}`;
     const sql = getDb();
 
+    let resolvedDeclaredByName = declaredByName;
+    let resolvedDeclaredByRole = declaredByRole;
+    if (declaredById) {
+      const uRows = await sql`SELECT full_name, name, role FROM users WHERE id = ${declaredById} LIMIT 1;`;
+      if (uRows.length > 0) {
+        resolvedDeclaredByName = uRows[0].full_name || uRows[0].name || declaredByName;
+        resolvedDeclaredByRole = uRows[0].role || declaredByRole;
+      }
+    }
+
     await sql`
       INSERT INTO office_leaves (id, title, date, end_date, declared_by_id, declared_by_name, declared_by_role)
-      VALUES (${id}, ${title}, ${date}, ${endDate}, ${declaredById}, ${declaredByName}, ${declaredByRole})
+      VALUES (${id}, ${title}, ${date}, ${endDate}, ${declaredById}, ${resolvedDeclaredByName}, ${resolvedDeclaredByRole})
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
         date = EXCLUDED.date,

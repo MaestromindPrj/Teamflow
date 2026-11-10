@@ -283,10 +283,12 @@ export function sanitizeUserData(u: User): User {
      u.avatar.includes("/avatars/marcus.jpg") ||
      u.avatar.includes("/avatars/ajay.jpg"));
 
+  const bestName = (u.fullName && u.fullName.trim()) || (u.name && u.name.trim()) || "";
+
   return {
     ...u,
-    name: u.name || u.fullName || "",
-    fullName: u.fullName || u.name || "",
+    name: bestName,
+    fullName: bestName,
     avatar: hasDummyAvatar ? "" : (u.avatar || ""),
     phone: u.phone || "",
     bio: u.bio || "",
@@ -988,12 +990,21 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (patchData.fullName) {
+      const cleanNewName = patchData.fullName.trim();
       setAttendance((prev) =>
         prev.map((rec) =>
           rec.userId === effectiveUserId
-            ? { ...rec, userName: patchData.fullName!.trim() }
+            ? { ...rec, userName: cleanNewName }
             : rec
         )
+      );
+      setLeaveRequests((prev) =>
+        prev.map((lr) => ({
+          ...lr,
+          ...(lr.userId === effectiveUserId ? { userName: cleanNewName } : {}),
+          ...(lr.appliedById === effectiveUserId ? { appliedByName: cleanNewName } : {}),
+          ...(lr.reviewedById === effectiveUserId ? { reviewedByName: cleanNewName } : {}),
+        }))
       );
     }
 
@@ -1062,16 +1073,25 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (updates.fullName || updates.role) {
+        const cleanName = updates.fullName?.trim();
         setAttendance((prev) =>
           prev.map((rec) =>
             rec.userId === id
               ? {
                   ...rec,
-                  userName: updates.fullName?.trim() || rec.userName,
+                  userName: cleanName || rec.userName,
                   userRole: updates.role || rec.userRole,
                 }
               : rec
           )
+        );
+        setLeaveRequests((prev) =>
+          prev.map((lr) => ({
+            ...lr,
+            ...(lr.userId === id ? { userName: cleanName || lr.userName, userRole: updates.role || lr.userRole } : {}),
+            ...(lr.appliedById === id ? { appliedByName: cleanName || lr.appliedByName } : {}),
+            ...(lr.reviewedById === id ? { reviewedByName: cleanName || lr.reviewedByName } : {}),
+          }))
         );
       }
 
@@ -2402,6 +2422,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
             if (existingYesterday) {
               const closedYesterday: AttendanceRecord = {
                 ...existingYesterday,
+                userName: targetUser?.fullName || targetUser?.name || existingYesterday.userName,
+                userRole: targetUser?.role || existingYesterday.userRole,
                 clockOut: "12:00 AM",
                 duration: day1Duration,
                 status: "Checked Out",
@@ -2547,6 +2569,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         if (existing) {
           const updatedRecord: AttendanceRecord = {
             ...existing,
+            userName: targetUser.fullName || targetUser.name || existing.userName,
+            userRole: targetUser.role || existing.userRole,
             clockOut: clockOutTimeStr,
             duration: formattedDuration,
             status: "Checked Out",
@@ -2868,6 +2892,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           const firstPunch = existingToday.clockIn && existingToday.clockIn !== "—" ? existingToday.clockIn : timeString;
           const updatedRecord: AttendanceRecord = {
             ...existingToday,
+            userName: targetUser.fullName || targetUser.name || existingToday.userName,
+            userRole: targetUser.role || existingToday.userRole,
             clockIn: firstPunch,
             clockOut: "—",
             status: "Present",
@@ -2913,6 +2939,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           if (prevRec) {
             const closedPrev: AttendanceRecord = {
               ...prevRec,
+              userName: targetUser.fullName || targetUser.name || prevRec.userName,
+              userRole: targetUser.role || prevRec.userRole,
               clockOut: "12:00 AM",
               duration: day1Duration,
               status: "Checked Out",
@@ -3014,6 +3042,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           if (existingToday) {
             const updatedRecord: AttendanceRecord = {
               ...existingToday,
+              userName: targetUser.fullName || targetUser.name || existingToday.userName,
+              userRole: targetUser.role || existingToday.userRole,
               clockOut: timeString,
               duration: formattedDuration,
               status: "Checked Out",

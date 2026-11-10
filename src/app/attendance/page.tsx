@@ -134,8 +134,9 @@ function AttendanceContent() {
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const staffUser = users.find((u) => u.id === rec.userId);
+        const displayName = staffUser?.fullName || staffUser?.name || rec.userName;
         return (
-          rec.userName.toLowerCase().includes(query) ||
+          displayName.toLowerCase().includes(query) ||
           (staffUser?.jobTitle || "").toLowerCase().includes(query) ||
           rec.userRole.toLowerCase().includes(query) ||
           rec.date.toLowerCase().includes(query)
@@ -156,9 +157,11 @@ function AttendanceContent() {
       const dateComp = b.endDate.localeCompare(a.endDate);
       if (dateComp !== 0) return dateComp;
 
-      return a.userName.localeCompare(b.userName);
+      const nameA = users.find((u) => u.id === a.userId)?.fullName || a.userName;
+      const nameB = users.find((u) => u.id === b.userId)?.fullName || b.userName;
+      return nameA.localeCompare(nameB);
     });
-  }, [visibleAttendance, todayString]);
+  }, [visibleAttendance, todayString, users]);
 
   const relevantStaff = users.filter((u) => u.role !== "ceo");
 
@@ -617,6 +620,8 @@ function AttendanceContent() {
                       rowStatus = row.status === "Late" ? "Present" : row.status;
                     }
 
+                    const displayName = staffUser?.fullName || staffUser?.name || row.userName;
+
                     return (
                       <tr
                         key={row.id}
@@ -629,14 +634,14 @@ function AttendanceContent() {
                           <div className="flex items-center gap-2.5">
                             <UserAvatar
                               src={staffUser?.avatar}
-                              name={row.userName}
+                              name={displayName}
                               role={staffUser?.role}
                               className="w-[34px] h-[34px] rounded-full border border-slate-200 shrink-0 group-hover:border-[#0084d4] transition-colors"
                               textClassName="text-[11px]"
                             />
                             <div>
                               <span className="font-semibold text-slate-900 leading-tight group-hover:text-[#0084d4] transition-colors">
-                                {row.userName}
+                                {displayName}
                               </span>
                             </div>
                           </div>

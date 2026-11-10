@@ -108,8 +108,14 @@ export async function POST(req: NextRequest) {
         initial_password = COALESCE(users.initial_password, EXCLUDED.initial_password);
     `;
 
-    if (fullName) {
-      await sql`UPDATE attendance SET user_name = ${fullName.trim()} WHERE user_id = ${id};`;
+    const cleanSyncName = (fullName || effectiveName || "").trim();
+    if (cleanSyncName) {
+      await sql`UPDATE attendance SET user_name = ${cleanSyncName}, user_role = ${effectiveRole} WHERE user_id = ${id};`;
+      await sql`UPDATE leave_requests SET user_name = ${cleanSyncName}, user_role = ${effectiveRole} WHERE user_id = ${id};`;
+      await sql`UPDATE leave_requests SET applied_by_name = ${cleanSyncName} WHERE applied_by_id = ${id};`;
+      await sql`UPDATE leave_requests SET reviewed_by_name = ${cleanSyncName} WHERE reviewed_by_id = ${id};`;
+      await sql`UPDATE office_leaves SET declared_by_name = ${cleanSyncName} WHERE declared_by_id = ${id};`;
+      await sql`UPDATE rewards_ledger SET awarded_by_name = ${cleanSyncName} || ' (' || CASE WHEN ${effectiveRole} = 'ceo' THEN 'CEO' ELSE 'Project Manager' END || ')' WHERE awarded_by_id = ${id};`;
     }
 
     let emailSent = false;
@@ -245,15 +251,15 @@ export async function PUT(req: NextRequest) {
       `;
     }
 
-    // Keep attendance logs in sync if name or role changed
-    if (fullName || role) {
-      if (fullName && role) {
-        await sql`UPDATE attendance SET user_name = ${fullName.trim()}, user_role = ${role} WHERE user_id = ${id};`;
-      } else if (fullName) {
-        await sql`UPDATE attendance SET user_name = ${fullName.trim()} WHERE user_id = ${id};`;
-      } else if (role) {
-        await sql`UPDATE attendance SET user_role = ${role} WHERE user_id = ${id};`;
-      }
+    // Keep all related logs and historical tables in sync if name or role changed
+    const cleanSyncName = (effectiveFullName || effectiveName || "").trim();
+    if (cleanSyncName) {
+      await sql`UPDATE attendance SET user_name = ${cleanSyncName}, user_role = ${effectiveRole} WHERE user_id = ${id};`;
+      await sql`UPDATE leave_requests SET user_name = ${cleanSyncName}, user_role = ${effectiveRole} WHERE user_id = ${id};`;
+      await sql`UPDATE leave_requests SET applied_by_name = ${cleanSyncName} WHERE applied_by_id = ${id};`;
+      await sql`UPDATE leave_requests SET reviewed_by_name = ${cleanSyncName} WHERE reviewed_by_id = ${id};`;
+      await sql`UPDATE office_leaves SET declared_by_name = ${cleanSyncName} WHERE declared_by_id = ${id};`;
+      await sql`UPDATE rewards_ledger SET awarded_by_name = ${cleanSyncName} || ' (' || CASE WHEN ${effectiveRole} = 'ceo' THEN 'CEO' ELSE 'Project Manager' END || ')' WHERE awarded_by_id = ${id};`;
     }
 
     const updatedRows = await sql`

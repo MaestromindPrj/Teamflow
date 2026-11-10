@@ -684,7 +684,7 @@ export default function ProjectDetailModal({
                                         </p>
                                       )}
                                       <p className="text-[10px] text-slate-400 truncate">
-                                        {file.size} &bull; by {file.uploadedByName}
+                                        {file.size} &bull; by {users.find((u) => u.id === file.uploadedBy)?.fullName || users.find((u) => u.id === file.uploadedBy)?.name || file.uploadedByName}
                                       </p>
                                     </div>
                                   </div>
@@ -821,7 +821,7 @@ export default function ProjectDetailModal({
                           </p>
                         )}
                         <p className="text-slate-400">
-                          Uploaded by: <strong className="text-slate-700">{file.uploadedByName}</strong>
+                          Uploaded by: <strong className="text-slate-700">{users.find((u) => u.id === file.uploadedBy)?.fullName || users.find((u) => u.id === file.uploadedBy)?.name || file.uploadedByName}</strong>
                         </p>
                       </div>
 
