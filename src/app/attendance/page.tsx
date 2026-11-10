@@ -27,6 +27,7 @@ import LeaveRequestsModal from "@/components/LeaveRequestsModal";
 import { AttendanceRecord } from "@/data/teamflowData";
 import InPageSubTabs, { SubTabItem } from "@/components/InPageSubTabs";
 import UserAvatar from "@/components/UserAvatar";
+import CommonDropdown from "@/components/CommonDropdown";
 import { AttendanceSkeleton } from "@/components/Skeletons";
 import { GroupedAttendanceRow, groupAttendanceRecords } from "@/utils/attendanceGrouping";
 
@@ -519,31 +520,31 @@ function AttendanceContent() {
               </div>
 
               {/* Date Filter */}
-              <select
+              <CommonDropdown
                 value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value as "all" | "today" | "3" | "7" | "30")}
-                className="h-9 px-2.5 text-[12px] font-medium bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-hidden focus:border-[#0084d4] cursor-pointer shadow-2xs"
+                onChange={(val) => setDateFilter(val as "all" | "today" | "3" | "7" | "30")}
+                options={[
+                  { value: "all", label: "All Dates" },
+                  { value: "today", label: "Today" },
+                  { value: "3", label: "Last 3 Days" },
+                  { value: "7", label: "Last 7 Days" },
+                  { value: "30", label: "Last 30 Days" },
+                ]}
                 title="Filter records by date range"
-              >
-                <option value="all">All Dates</option>
-                <option value="today">Today</option>
-                <option value="3">Last 3 Days</option>
-                <option value="7">Last 7 Days</option>
-                <option value="30">Last 30 Days</option>
-              </select>
+              />
 
               {/* Status Filter */}
-              <select
+              <CommonDropdown
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as "all" | "working" | "checked_out" | "leave")}
-                className="h-9 px-2.5 text-[12px] font-medium bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-hidden focus:border-[#0084d4] cursor-pointer shadow-2xs"
+                onChange={(val) => setStatusFilter(val as "all" | "working" | "checked_out" | "leave")}
+                options={[
+                  { value: "all", label: "All Statuses" },
+                  { value: "working", label: "Working Now" },
+                  { value: "checked_out", label: "Checked Out" },
+                  { value: "leave", label: "On Leave" },
+                ]}
                 title="Filter records by workday status"
-              >
-                <option value="all">All Statuses</option>
-                <option value="working">Working Now</option>
-                <option value="checked_out">Checked Out</option>
-                <option value="leave">On Leave</option>
-              </select>
+              />
 
               {(searchQuery || dateFilter !== "all" || statusFilter !== "all") && (
                 <button

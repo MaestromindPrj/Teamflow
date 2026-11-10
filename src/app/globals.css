@@ -79,3 +79,61 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* =========================================================================
+   Universal Enterprise Dropdown Layout
+   Applied automatically to all select elements and dropdowns
+   ========================================================================= */
+
+select:not(.common-dropdown),
+.common-dropdown {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+  background-position: right 0.75rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 0.95rem 0.95rem !important;
+  padding-right: 2.25rem !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 150ms ease-in-out;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+select.common-dropdown {
+  background-image: none !important;
+  padding-right: 2.25rem !important;
+}
+
+select:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+}
+
+select:focus:not(:disabled) {
+  outline: none !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  background-color: #ffffff !important;
+}
+
+select:disabled {
+  background-color: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+}
+
+/* Polished Option List Styling */
+select option {
+  background-color: #ffffff;
+  color: #0f172a;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
