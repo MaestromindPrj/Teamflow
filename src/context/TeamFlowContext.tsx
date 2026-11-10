@@ -1587,43 +1587,113 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     }).catch((err) => console.warn("Failed to persist task to backend:", err));
 
     if (initialFile?.rawFile && initialFile.rawFile.size <= 100 * 1024 * 1024) {
-      const formData = new FormData();
-      formData.append("file", initialFile.rawFile);
-      formData.append("taskId", newTask.id);
-      formData.append("projectId", taskData.projectId);
-      formData.append("name", initialFile.name);
-      formData.append("uploadedBy", currentUser.id);
-      formData.append("uploadedByName", currentUser.fullName);
+      (async () => {
+        let finalUrl = "";
+        try {
+          const signRes = await fetch("/api/upload/sign");
+          if (signRes.ok) {
+            const signData = await signRes.json();
+            if (signData.configured && signData.signature && signData.apiKey && signData.cloudName) {
+              const ext = initialFile.name.split(".").pop()?.toLowerCase() || "";
+              const isImage = ["png", "jpg", "jpeg", "webp"].includes(ext) || initialFile.type === "image" || (initialFile.rawFile?.type || "").startsWith("image/");
+              const endpointType = isImage ? "image" : "raw";
 
-      fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          const finalUrl = data?.attachment?.url || data?.url;
-          if (finalUrl && !finalUrl.startsWith("blob:")) {
-            setTasks((prev) => {
-              const updated = prev.map((t) => {
-                if (t.id === newTask.id) {
-                  return {
-                    ...t,
-                    attachments: t.attachments.map((att) =>
-                      att.id === attachmentId ? { ...att, url: finalUrl } : att
-                    ),
-                  };
-                }
-                return t;
-              });
-              tasksRef.current = updated;
-              try {
-                localStorage.setItem("teamflow_tasks", JSON.stringify(updated));
-              } catch {}
-              return updated;
-            });
+              const cloudFormData = new FormData();
+              cloudFormData.append("file", initialFile.rawFile!);
+              cloudFormData.append("api_key", signData.apiKey);
+              cloudFormData.append("timestamp", signData.timestamp.toString());
+              cloudFormData.append("signature", signData.signature);
+              cloudFormData.append("folder", signData.folder);
+
+              const cloudRes = await fetch(
+                `https://api.cloudinary.com/v1_1/${signData.cloudName}/${endpointType}/upload`,
+                { method: "POST", body: cloudFormData }
+              );
+
+              if (cloudRes.ok) {
+                const cloudJson = await cloudRes.json();
+                finalUrl = cloudJson.secure_url || cloudJson.url || "";
+              }
+            }
           }
-        })
-        .catch((err) => console.warn("Failed to upload initial task deliverable:", err));
+        } catch (err) {
+          console.warn("Direct upload in createTask error:", err);
+        }
+
+        if (finalUrl) {
+          fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              directUrl: finalUrl,
+              name: initialFile.name,
+              size: initialFile.size,
+              type: initialFile.type,
+              taskId: newTask.id,
+              projectId: taskData.projectId,
+              uploadedBy: currentUser.id,
+              uploadedByName: currentUser.fullName,
+            }),
+          }).catch((err) => console.warn("Failed to sync initial task deliverable JSON:", err));
+
+          setTasks((prev) => {
+            const updated = prev.map((t) => {
+              if (t.id === newTask.id) {
+                return {
+                  ...t,
+                  attachments: t.attachments.map((att) =>
+                    att.id === attachmentId ? { ...att, url: finalUrl } : att
+                  ),
+                };
+              }
+              return t;
+            });
+            tasksRef.current = updated;
+            try {
+              localStorage.setItem("teamflow_tasks", JSON.stringify(updated));
+            } catch {}
+            return updated;
+          });
+        } else {
+          const formData = new FormData();
+          formData.append("file", initialFile.rawFile!);
+          formData.append("taskId", newTask.id);
+          formData.append("projectId", taskData.projectId);
+          formData.append("name", initialFile.name);
+          formData.append("uploadedBy", currentUser.id);
+          formData.append("uploadedByName", currentUser.fullName);
+
+          fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              const url = data?.attachment?.url || data?.url;
+              if (url && !url.startsWith("blob:")) {
+                setTasks((prev) => {
+                  const updated = prev.map((t) => {
+                    if (t.id === newTask.id) {
+                      return {
+                        ...t,
+                        attachments: t.attachments.map((att) =>
+                          att.id === attachmentId ? { ...att, url } : att
+                        ),
+                      };
+                    }
+                    return t;
+                  });
+                  tasksRef.current = updated;
+                  try {
+                    localStorage.setItem("teamflow_tasks", JSON.stringify(updated));
+                  } catch {}
+                  return updated;
+                });
+              }
+            })
+            .catch((err) => console.warn("Failed to upload initial task deliverable:", err));
+        }
+      })();
     }
 
     return newTask;
@@ -1816,8 +1886,12 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
               cloudFormData.append("signature", signData.signature);
               cloudFormData.append("folder", signData.folder);
 
+              const ext = file.name.split(".").pop()?.toLowerCase() || "";
+              const isImage = ["png", "jpg", "jpeg", "webp"].includes(ext) || file.type === "image" || (file.rawFile.type || "").startsWith("image/");
+              const endpointType = isImage ? "image" : "raw";
+
               const cloudRes = await fetch(
-                `https://api.cloudinary.com/v1_1/${signData.cloudName}/auto/upload`,
+                `https://api.cloudinary.com/v1_1/${signData.cloudName}/${endpointType}/upload`,
                 {
                   method: "POST",
                   body: cloudFormData,
@@ -2059,8 +2133,12 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
               cloudFormData.append("signature", signData.signature);
               cloudFormData.append("folder", signData.folder);
 
+              const ext = file.name.split(".").pop()?.toLowerCase() || "";
+              const isImage = ["png", "jpg", "jpeg", "webp"].includes(ext) || file.type === "image" || (file.rawFile.type || "").startsWith("image/");
+              const endpointType = isImage ? "image" : "raw";
+
               const cloudRes = await fetch(
-                `https://api.cloudinary.com/v1_1/${signData.cloudName}/auto/upload`,
+                `https://api.cloudinary.com/v1_1/${signData.cloudName}/${endpointType}/upload`,
                 {
                   method: "POST",
                   body: cloudFormData,

@@ -55,6 +55,7 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
   const [calculatedSize, setCalculatedSize] = useState("");
   const [mediaType, setMediaType] = useState<"image" | "pdf" | "figma" | "zip" | "doc">("figma");
   const [fileError, setFileError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -92,19 +93,64 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
     setSelectedFile(null);
     setCalculatedSize("");
     setFileError("");
+    setIsSubmitting(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
   const handleClose = () => {
+    if (isSubmitting) return;
     resetForm();
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !assignedTo) return;
+    if (!title.trim() || !assignedTo || isSubmitting) return;
+
+    let directUrl = "";
+    let fileForContext: File | null = selectedFile;
+
+    if (selectedFile) {
+      setIsSubmitting(true);
+      try {
+        const signRes = await fetch("/api/upload/sign");
+        if (signRes.ok) {
+          const signData = await signRes.json();
+          if (signData.configured && signData.signature && signData.apiKey && signData.cloudName) {
+            const ext = selectedFile.name.split(".").pop()?.toLowerCase() || "";
+            const isImage = ["png", "jpg", "jpeg", "webp"].includes(ext) || selectedFile.type.startsWith("image/");
+            const endpointType = isImage ? "image" : "raw";
+
+            const cloudFormData = new FormData();
+            cloudFormData.append("file", selectedFile);
+            cloudFormData.append("api_key", signData.apiKey);
+            cloudFormData.append("timestamp", signData.timestamp.toString());
+            cloudFormData.append("signature", signData.signature);
+            cloudFormData.append("folder", signData.folder);
+
+            const cloudRes = await fetch(
+              `https://api.cloudinary.com/v1_1/${signData.cloudName}/${endpointType}/upload`,
+              {
+                method: "POST",
+                body: cloudFormData,
+              }
+            );
+
+            if (cloudRes.ok) {
+              const cloudJson = await cloudRes.json();
+              directUrl = cloudJson.secure_url || cloudJson.url || "";
+              if (directUrl) {
+                fileForContext = null; // Successfully pre-uploaded
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Direct upload in CreateTaskModal fallback:", err);
+      }
+    }
 
     createTask(
       {
@@ -121,11 +167,13 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
             name: selectedFile.name,
             size: calculatedSize || formatFileSize(selectedFile.size),
             type: mediaType,
-            rawFile: selectedFile,
+            url: directUrl || undefined,
+            rawFile: fileForContext,
           }
         : undefined
     );
 
+    setIsSubmitting(false);
     resetForm();
     onClose();
   };
@@ -314,17 +362,19 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={handleClose}
-              className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[12px] font-medium transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[12px] font-medium transition-colors cursor-pointer disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              disabled={isSubmitting}
+              className="px-4 py-2 rounded-lg bg-[#0084d4] hover:bg-[#0277bd] text-white text-[12px] font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <CheckSquare className="w-3.5 h-3.5" />
-              <span>Create Task</span>
+              <span>{isSubmitting ? "Creating Task & Uploading..." : "Create Task"}</span>
             </button>
           </div>
         </form>
