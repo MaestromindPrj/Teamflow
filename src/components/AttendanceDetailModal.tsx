@@ -151,11 +151,11 @@ export default function AttendanceDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100 shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100 shrink-0">
               <History className="w-5 h-5" />
             </div>
             <div>
@@ -183,7 +183,7 @@ export default function AttendanceDetailModal({
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-5">
           {/* User Profile Card */}
-          <div className="flex items-center gap-4 bg-slate-50/80 p-4 rounded-xl border border-slate-100">
+          <div className="flex items-center gap-4 bg-slate-50/80 p-4 rounded-lg border border-slate-100">
             <UserAvatar
               src={staffUser.avatar}
               name={staffUser.fullName}
@@ -220,7 +220,7 @@ export default function AttendanceDetailModal({
 
           {/* Quick Metrics for the selected period */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-2xs">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3.5 shadow-2xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
                 Days Worked
               </span>
@@ -230,7 +230,7 @@ export default function AttendanceDetailModal({
               <span className="text-[10px] text-slate-400 mt-1 block">In selected period</span>
             </div>
 
-            <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-2xs">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3.5 shadow-2xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
                 Total Work Duration
               </span>
@@ -240,7 +240,7 @@ export default function AttendanceDetailModal({
               <span className="text-[10px] text-slate-400 mt-1 block">Cumulative hours logged</span>
             </div>
 
-            <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-2xs">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3.5 shadow-2xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
                 Leave Days
               </span>
@@ -259,7 +259,7 @@ export default function AttendanceDetailModal({
                 <h4 className="text-[13px] font-bold text-slate-900 tracking-tight">
                   Work Duration History
                 </h4>
-                <span className="text-[11px] font-semibold px-2 py-0.2 rounded-full bg-slate-100 text-slate-600">
+                <span className="text-[11px] font-semibold px-2 py-0.2 rounded bg-slate-100 text-slate-600">
                   {filteredHistory.length} {filteredHistory.length === 1 ? "Entry" : "Entries"}
                 </span>
               </div>
@@ -272,7 +272,7 @@ export default function AttendanceDetailModal({
                       key={opt}
                       type="button"
                       onClick={() => setPeriodFilter(opt)}
-                      className={`px-2 py-1 rounded-md transition-colors cursor-pointer ${
+                      className={`px-2 py-1 rounded transition-colors cursor-pointer ${
                         periodFilter === opt
                           ? "bg-white text-[#0084d4] font-bold shadow-2xs"
                           : "text-slate-500 hover:text-slate-800"
@@ -287,7 +287,7 @@ export default function AttendanceDetailModal({
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as "all" | "worked" | "leave")}
                   aria-label="Filter by Status"
-                  className="px-2.5 py-1 text-[11px] font-medium bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-hidden focus:border-[#0084d4] cursor-pointer"
+                  className="px-2.5 py-1 text-[11px] font-medium bg-white border border-slate-200 rounded text-slate-700 focus:outline-hidden focus:border-[#0084d4] cursor-pointer"
                 >
                   <option value="all">All Status</option>
                   <option value="worked">Worked Only</option>
@@ -297,7 +297,7 @@ export default function AttendanceDetailModal({
             </div>
 
             {/* History Table */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+            <div className="border border-slate-200 rounded-lg overflow-hidden shadow-2xs">
               <table className="w-full text-left text-[12px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
@@ -356,14 +356,14 @@ export default function AttendanceDetailModal({
                           {/* Work Duration Column */}
                           <td className="py-3 px-3 whitespace-nowrap">
                             {isRowWorkingNow ? (
-                              <span className="font-mono font-bold text-[11px] text-[#4ade1d] bg-[#4ade1d]/15 px-2 py-0.5 rounded-md border border-[#4ade1d]/30 inline-flex items-center gap-1">
+                              <span className="font-mono font-bold text-[11px] text-[#4ade1d] bg-[#4ade1d]/15 px-2 py-0.5 rounded border border-[#4ade1d]/30 inline-flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#4ade1d] animate-ping" />
                                 {durationText}
                               </span>
                             ) : row.status === "Leave" ? (
                               <span className="text-slate-400 font-mono">—</span>
                             ) : (
-                              <span className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                              <span className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
                                 {durationText}
                               </span>
                             )}
@@ -417,7 +417,7 @@ export default function AttendanceDetailModal({
                 {userProjects.map((proj) => (
                   <div
                     key={proj.id}
-                    className="p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs flex items-center justify-between gap-2"
+                    className="p-3 bg-white rounded-lg border border-slate-200/90 shadow-2xs flex items-center justify-between gap-2"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">

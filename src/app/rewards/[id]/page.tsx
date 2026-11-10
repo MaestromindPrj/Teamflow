@@ -370,7 +370,7 @@ function StaffRewardDetailContent() {
                 <span>Executive &amp; Peer Appreciation</span>
               </h4>
               {profile.appreciation.all?.length > 0 && (
-                <span className="text-[11px] font-bold text-[#de2d1d] bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">
+                <span className="text-[11px] font-bold text-[#de2d1d] bg-red-50 border border-red-100 px-2 py-0.5 rounded">
                   {profile.appreciation.all.length} {profile.appreciation.all.length === 1 ? "Note" : "Notes"}
                 </span>
               )}

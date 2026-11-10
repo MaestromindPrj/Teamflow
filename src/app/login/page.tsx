@@ -78,7 +78,7 @@ export default function LoginPage() {
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-        <div className="bg-white py-8 px-6 shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-200/90 sm:px-8 space-y-6">
+        <div className="bg-white py-8 px-6 shadow-xl shadow-slate-200/50 rounded-lg border border-slate-200/90 sm:px-8 space-y-6">
           <div>
             <h2 className="text-[17px] font-bold text-slate-900 tracking-tight">
               Sign In to Your Account

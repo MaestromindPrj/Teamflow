@@ -371,7 +371,7 @@ export default function ApplyLeaveModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 max-h-[92vh]">
+      <div className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 max-h-[92vh]">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-sky-50 text-[#0084d4] flex items-center justify-center border border-sky-100 shrink-0">
@@ -486,7 +486,7 @@ export default function ApplyLeaveModal({
               </label>
             </div>
 
-            <div className="border border-slate-200 rounded-xl p-3.5 bg-slate-50/30">
+            <div className="border border-slate-200 rounded-lg p-3.5 bg-slate-50/30">
               {isRange && (
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   <button

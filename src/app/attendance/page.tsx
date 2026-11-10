@@ -487,7 +487,7 @@ function AttendanceContent() {
                 <FileText className="w-3.5 h-3.5 text-slate-500" />
                 <span>{isCeo || isPm ? "Leave Requests" : "My Requests"}</span>
                 {pendingLeavesCount > 0 && (
-                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-bold animate-pulse">
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded bg-amber-500 text-white text-[10px] font-bold animate-pulse">
                     {pendingLeavesCount}
                   </span>
                 )}
@@ -676,14 +676,14 @@ function AttendanceContent() {
                         {/* 4. Work Duration (H:M:S) */}
                         <td className="py-3.5 px-3 whitespace-nowrap">
                           {isWorkingNow ? (
-                            <span className="font-mono font-bold text-[12px] text-[#4ade1d] bg-[#4ade1d]/15 px-2.5 py-1 rounded-md border border-[#4ade1d]/30 inline-flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-[12px] text-[#4ade1d] bg-[#4ade1d]/15 px-2.5 py-1 rounded border border-[#4ade1d]/30 inline-flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#4ade1d] animate-ping" />
                               {liveDurationStr}
                             </span>
                           ) : row.status === "Leave" ? (
                             <span className="text-[12px] text-slate-400 font-mono">—</span>
                           ) : (
-                            <span className="font-mono font-bold text-[12px] text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
+                            <span className="font-mono font-bold text-[12px] text-slate-700 bg-slate-100 px-2.5 py-1 rounded">
                               {liveDurationStr}
                             </span>
                           )}

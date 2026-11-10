@@ -234,7 +234,7 @@ export default function ProjectDetailModal({
         <div className="px-6 py-4.5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
           <div className="flex-1 min-w-0 pr-4">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-800 tracking-wider uppercase">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800 tracking-wider uppercase">
                 {project.code}
               </span>
               {canManageProject ? (
@@ -246,7 +246,7 @@ export default function ProjectDetailModal({
                       if (nextStatus === "Planning" && hasCompletedTasks) return;
                       updateProject(project.id, { status: nextStatus });
                     }}
-                    className={`text-[11px] font-semibold rounded-md pl-2.5 pr-6 py-0.5 border cursor-pointer appearance-none no-arrow focus:outline-hidden transition-colors ${
+                    className={`text-[11px] font-semibold rounded pl-2.5 pr-6 py-0.5 border cursor-pointer appearance-none no-arrow focus:outline-hidden transition-colors ${
                       project.status === "In Progress"
                         ? "bg-[#e0f2fe] text-[#0284c7] border-sky-200/70 hover:bg-sky-100"
                         : project.status === "In Review"
@@ -279,7 +279,7 @@ export default function ProjectDetailModal({
               )}
               <PriorityBadge priority={project.priority} />
               {project.status === "Planning" && Boolean(project.startDate && new Date(project.startDate).getTime() <= new Date().setHours(0, 0, 0, 0)) && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1" title={`Scheduled start date reached: ${project.startDate}`}>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1" title={`Scheduled start date reached: ${project.startDate}`}>
                   <Calendar className="w-3 h-3 text-amber-500" />
                   <span>Scheduled to start</span>
                 </span>
@@ -326,7 +326,7 @@ export default function ProjectDetailModal({
               </div>
             )}
             {teamLead && (
-              <div className="flex items-center gap-1.5 bg-[#ffa500]/15 px-2 py-0.5 rounded-md border border-[#ffa500]/30">
+              <div className="flex items-center gap-1.5 bg-[#ffa500]/15 px-2 py-0.5 rounded border border-[#ffa500]/30">
                 <Crown className="w-3.5 h-3.5 text-[#ffa500]" />
                 <span className="text-[#ffa500] font-medium">Team Lead:</span>
                 <span className="font-bold text-[#ffa500]">
@@ -345,7 +345,7 @@ export default function ProjectDetailModal({
               <span>Deadline: <strong className="text-slate-800">{project.deadline}</strong></span>
             </div>
             {(isCeo || isPm) && (
-              <div className="flex items-center gap-1.5 bg-emerald-50/70 border border-emerald-200/70 px-2.5 py-0.5 rounded-md text-[12px]">
+              <div className="flex items-center gap-1.5 bg-emerald-50/70 border border-emerald-200/70 px-2.5 py-0.5 rounded text-[12px]">
                 <Coins className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span className="text-emerald-700 font-medium">Budget:</span>
                 {isEditingBudget ? (
@@ -509,7 +509,7 @@ export default function ProjectDetailModal({
                     <button
                       key={filter}
                       onClick={() => setSelectedTaskFilter(filter)}
-                      className={`px-3 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                      className={`px-3 py-1 rounded text-[11px] font-medium transition-all cursor-pointer ${
                         selectedTaskFilter === filter
                           ? "bg-white text-slate-900 shadow-2xs font-semibold"
                           : "text-slate-500 hover:text-slate-800"
@@ -575,7 +575,7 @@ export default function ProjectDetailModal({
                                     e.target.value as "To Do" | "In Progress" | "Review" | "Completed"
                                   )
                                 }
-                                className="px-2.5 py-1 text-[11px] font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-800 cursor-pointer focus:outline-hidden focus:border-[#0084d4]"
+                                className="px-2.5 py-1 text-[11px] font-semibold bg-slate-50 border border-slate-200 rounded text-slate-800 cursor-pointer focus:outline-hidden focus:border-[#0084d4]"
                                 title="Change task status"
                               >
                                 <option value="To Do">To Do</option>
@@ -617,7 +617,7 @@ export default function ProjectDetailModal({
                           <div className="flex items-center gap-2">
                             <span className="text-slate-400 text-[11px]">Assigned to:</span>
                             {assignee ? (
-                              <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200/80">
+                              <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-200/80">
                                 <UserAvatar
                                   src={assignee.avatar}
                                   name={assignee.name}
@@ -1044,7 +1044,7 @@ export default function ProjectDetailModal({
             onClick={() => setShowDeleteConfirm(false)}
           >
             <div
-              className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
+              className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6 pb-4">
@@ -1109,7 +1109,7 @@ export default function ProjectDetailModal({
         {/* Assign Tech Stack Modal for Team Lead / PM / CEO */}
         {isEditingTechStack && (
           <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#0084d4]">
@@ -1151,7 +1151,7 @@ export default function ProjectDetailModal({
                                 isSelected ? prev.filter((t) => t !== tech.name) : [...prev, tech.name]
                               );
                             }}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                               isSelected
                                 ? "bg-[#0084d4] text-white shadow-2xs border border-[#0084d4]"
                                 : "bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-100"

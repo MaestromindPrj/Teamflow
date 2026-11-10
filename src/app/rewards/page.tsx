@@ -170,7 +170,7 @@ export default function RewardsPage() {
                         >
                           <td className="py-3 pr-3">
                             <span
-                              className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold ${
+                              className={`w-6 h-6 rounded flex items-center justify-center text-[11px] font-bold ${
                                 user.rank === 1
                                   ? "bg-[#ffa500]/15 text-[#ffa500]"
                                   : user.rank === 2
@@ -388,7 +388,7 @@ export default function RewardsPage() {
                     <span>Executive &amp; Peer Appreciation</span>
                   </div>
                   {myRewards.appreciation.all?.length > 0 && (
-                    <span className="text-[11px] font-bold text-[#de2d1d] bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">
+                    <span className="text-[11px] font-bold text-[#de2d1d] bg-red-50 border border-red-100 px-2 py-0.5 rounded">
                       {myRewards.appreciation.all.length} {myRewards.appreciation.all.length === 1 ? "Note" : "Notes"}
                     </span>
                   )}

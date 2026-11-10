@@ -163,7 +163,7 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
 
         <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
           {isOnLeaveToday ? (
-            <span className="text-[11px] font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded bg-amber-100 text-amber-800 border border-amber-200">
               On Approved Leave
             </span>
           ) : (
@@ -234,7 +234,7 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
         </div>
 
         <span
-          className={`text-[11px] font-bold px-2.5 py-1 rounded-md tracking-wider ${
+          className={`text-[11px] font-bold px-2.5 py-1 rounded tracking-wider ${
             isOnLeaveToday
               ? "bg-amber-100 text-amber-800 border border-amber-200"
               : isCheckedIn

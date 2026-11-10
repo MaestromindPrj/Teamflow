@@ -91,7 +91,7 @@ export default function RewardLeaderboardWidget() {
                 >
                   <td className="py-2.5 pr-3">
                     <span
-                      className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold ${
+                      className={`w-6 h-6 rounded flex items-center justify-center text-[11px] font-bold ${
                         user.rank === 1
                           ? "bg-[#ffa500]/15 text-[#ffa500] shadow-2xs"
                           : user.rank === 2

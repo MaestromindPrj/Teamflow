@@ -382,7 +382,7 @@ export default function OfficeLeavesPage() {
       {/* Add Company Holiday Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-200/90 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200/90 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0084d4] flex items-center justify-center">
@@ -432,7 +432,7 @@ export default function OfficeLeavesPage() {
                   </span>
                 </div>
 
-                <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/40">
+                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/40">
                   {/* Calendar Navigation */}
                   <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-200/70">
                     <span className="text-[13px] font-bold text-slate-900">

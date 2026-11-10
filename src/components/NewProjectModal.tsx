@@ -237,7 +237,7 @@ export default function NewProjectModal({
                             isSelected ? prev.filter((t) => t !== tech.name) : [...prev, tech.name]
                           );
                         }}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                           isSelected
                             ? "bg-[#0084d4] text-white shadow-2xs border border-[#0084d4]"
                             : "bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-100"

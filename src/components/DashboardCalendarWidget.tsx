@@ -157,7 +157,7 @@ export default function DashboardCalendarWidget({ className = "" }: { className?
 
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between ${className}`}
+      className={`bg-white rounded-lg border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between ${className}`}
       suppressHydrationWarning
     >
       {/* Calendar Header */}
@@ -301,7 +301,7 @@ export default function DashboardCalendarWidget({ className = "" }: { className?
                 ({upcomingOfficeLeaves[0].date})
               </span>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#0084d4] text-white shrink-0 shadow-2xs">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#0084d4] text-white shrink-0 shadow-2xs">
               Company Holiday
             </span>
           </div>

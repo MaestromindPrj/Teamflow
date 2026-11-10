@@ -498,7 +498,7 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div
-                        className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-xs ${
+                        className={`w-7 h-7 rounded flex items-center justify-center shrink-0 text-xs ${
                           item.isSizeExceeded || item.isDuplicate
                             ? "bg-rose-100 text-rose-600"
                             : "bg-sky-50 text-[#0084d4]"
@@ -525,19 +525,19 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
                     <div className="flex items-center gap-2 shrink-0">
                       {item.isSizeExceeded ? (
                         <span
-                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300 flex items-center gap-1"
+                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300 flex items-center gap-1"
                           title={item.sizeError}
                         >
                           <AlertCircle className="w-3 h-3 text-rose-600" />
                           <span>Exceeds 100 MB</span>
                         </span>
                       ) : item.isDuplicate ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 flex items-center gap-1">
                           <Ban className="w-3 h-3" />
                           <span>Duplicate</span>
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Ready</span>
                         </span>

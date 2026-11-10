@@ -92,7 +92,7 @@ select {
   -webkit-appearance: none;
   -moz-appearance: none;
   border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
+  border-radius: 0.25rem;
   color: #1e293b;
   cursor: pointer;
   transition: all 150ms ease-in-out;

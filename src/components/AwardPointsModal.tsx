@@ -123,7 +123,7 @@ export default function AwardPointsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="bg-white rounded-xl shadow-xl border border-slate-200/90 w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]"
+        className="bg-white rounded-lg shadow-xl border border-slate-200/90 w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4.5 bg-gradient-to-r from-sky-50 via-white to-blue-50/70 border-b border-slate-200 flex items-center justify-between">

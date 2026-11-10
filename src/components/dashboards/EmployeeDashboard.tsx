@@ -45,7 +45,7 @@ export default function EmployeeDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
         <div className="flex flex-col justify-between gap-4 bg-linear-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-lg p-5 shadow-md border border-slate-800">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white/10 text-white text-[11px] font-semibold border border-white/20">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-white/10 text-white text-[11px] font-semibold border border-white/20">
               <UserCheck className="w-3 h-3 text-emerald-400" />
               <span>Employee Workspace</span>
             </div>
@@ -62,12 +62,12 @@ export default function EmployeeDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+          <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-lg bg-sky-50 text-[#0084d4] border border-sky-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <CheckSquare className="w-5 h-5 stroke-[2]" />
               </div>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-[#0084d4] border border-sky-100">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-sky-50 text-[#0084d4] border border-sky-100">
                 Direct
               </span>
             </div>
@@ -85,12 +85,12 @@ export default function EmployeeDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+          <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <Clock className="w-5 h-5 stroke-[2]" />
               </div>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
                 Active
               </span>
             </div>
@@ -108,12 +108,12 @@ export default function EmployeeDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+          <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <CheckCircle2 className="w-5 h-5 stroke-[2]" />
               </div>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-100">
                 Delivered
               </span>
             </div>
@@ -131,12 +131,12 @@ export default function EmployeeDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+          <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/80 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <Crown className="w-5 h-5 stroke-[2]" />
               </div>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/80">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/80">
                 Lead
               </span>
             </div>
@@ -208,7 +208,7 @@ export default function EmployeeDashboard() {
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 uppercase">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 uppercase">
                         {project.code}
                       </span>
                       <StatusBadge status={project.status} />

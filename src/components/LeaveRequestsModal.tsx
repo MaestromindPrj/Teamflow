@@ -83,7 +83,7 @@ export default function LeaveRequestsModal({
                   Leave Applications &amp; History
                 </h2>
                 {pendingCount > 0 && (
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
                     {pendingCount} Pending
                   </span>
                 )}
@@ -190,19 +190,19 @@ export default function LeaveRequestsModal({
 
                     <div>
                       {isApproved && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-bold bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Approved</span>
                         </span>
                       )}
                       {isPending && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
                           <Clock className="w-3 h-3 text-amber-600" />
                           <span>Pending Review</span>
                         </span>
                       )}
                       {isRejected && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
                           <Ban className="w-3 h-3 text-rose-500" />
                           <span>Rejected</span>
                         </span>

@@ -266,7 +266,7 @@ function MediaHubContent() {
                   Team members request Team Leads to delete deliverables. Review and approve or decline requests below.
                 </p>
               </div>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
                 <Clock className="w-3.5 h-3.5" />
                 <span>{pendingRequestsCount} Pending Deletion {pendingRequestsCount === 1 ? "Request" : "Requests"}</span>
               </span>
@@ -379,7 +379,7 @@ function MediaHubContent() {
                               </button>
                             </>
                           ) : (
-                            <span className="text-[11px] text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 font-medium">
+                            <span className="text-[11px] text-amber-700 bg-amber-50 px-2.5 py-1 rounded border border-amber-200 font-medium">
                               Awaiting {req.teamLeadName} to review
                             </span>
                           )}
@@ -515,7 +515,7 @@ function MediaHubContent() {
 
                         {/* Deletion Request Notice Banner (if pending) */}
                         {pendingReq && (
-                          <div className="p-2 rounded-md bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-center justify-between gap-2">
+                          <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-800 flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5 truncate">
                               <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                               <span className="truncate">

@@ -55,7 +55,7 @@ export default function CeoDashboard() {
     <div className="px-7 py-6 space-y-6" suppressHydrationWarning>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+          <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <FolderKanban className="w-5 h-5 stroke-[2]" />
@@ -78,7 +78,7 @@ export default function CeoDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+          <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <Users className="w-5 h-5 stroke-[2]" />
@@ -99,7 +99,7 @@ export default function CeoDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+          <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <Calendar className="w-5 h-5 stroke-[2]" />
@@ -120,7 +120,7 @@ export default function CeoDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
+          <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between group">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-lg bg-sky-50 text-[#0084d4] border border-sky-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <TrendingUp className="w-5 h-5 stroke-[2]" />
@@ -316,7 +316,7 @@ export default function CeoDashboard() {
                                 {members.map((member) => (
                                   <div
                                     key={member.id}
-                                    className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-md border border-slate-200 shadow-2xs"
+                                    className="flex items-center gap-1.5 bg-white px-2 py-1 rounded border border-slate-200 shadow-2xs"
                                     title={`${member.fullName} (${member.jobTitle || "Employee"})`}
                                   >
                                     <UserAvatar

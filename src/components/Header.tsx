@@ -557,7 +557,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
         {mounted && hasHydrated && currentUser.id && currentUser.role !== "ceo" && (
           <button
             onClick={toggleClockInOut}
-            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12px] font-semibold border transition-all cursor-pointer shadow-xs ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold border transition-all cursor-pointer shadow-xs ${
               isClockedIn
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70"
                 : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100/70"
@@ -613,7 +613,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200/90 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-slate-200/90 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-4 py-3 border-b border-slate-100 flex items-start gap-3">
                 <UserAvatar
                   src={currentUser.avatar}
@@ -694,11 +694,11 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           </button>
 
           {mounted && hasHydrated && showNotifications && (
-            <div className="absolute right-0 mt-2 w-88 sm:w-96 max-h-[440px] flex flex-col bg-white rounded-xl shadow-xl border border-slate-200/90 p-3.5 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 mt-2 w-88 sm:w-96 max-h-[440px] flex flex-col bg-white rounded-lg shadow-xl border border-slate-200/90 p-3.5 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 font-medium text-slate-800">
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold text-[13px] text-slate-900">Notifications</span>
-                  <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
+                  <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold">
                     {notifications.length}
                   </span>
                 </div>
