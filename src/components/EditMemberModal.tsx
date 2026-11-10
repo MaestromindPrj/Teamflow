@@ -146,7 +146,7 @@ export default function EditMemberModal({ user, isOpen, onClose }: EditMemberMod
 
     const updates: Partial<User> & { password?: string } = {
       fullName: trimmedName,
-      name: trimmedName.split(" ")[0] || "Staff",
+      name: trimmedName,
       email: trimmedEmail,
       role: user.role === "ceo" ? "ceo" : (role as "employer" | "project_manager"),
       jobTitle: finalJobTitle,

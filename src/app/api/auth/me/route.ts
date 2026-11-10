@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
         avatar: (r.avatar as string) || "",
         phone: (r.phone as string) || "",
         employeeId: (r.employee_id as string) || "",
-        bio: (r.bio as string) || undefined,
+        bio: (r.bio as string) || "",
       },
     });
   } catch (err) {

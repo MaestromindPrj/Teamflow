@@ -117,7 +117,7 @@ export default function SettingsPage() {
         const avatarUrl = data.attachment?.url || data.url;
         if (avatarUrl) {
           setFormData((prev) => ({ ...prev, avatar: avatarUrl }));
-          updateUserProfile({ avatar: avatarUrl });
+          await updateUserProfile({ avatar: avatarUrl });
           setToastMessage("Profile photo updated successfully!");
           setShowSuccessToast(true);
           setTimeout(() => setShowSuccessToast(false), 3000);
@@ -130,11 +130,11 @@ export default function SettingsPage() {
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
       if (dataUrl) {
         setFormData((prev) => ({ ...prev, avatar: dataUrl }));
-        updateUserProfile({ avatar: dataUrl });
+        await updateUserProfile({ avatar: dataUrl });
         setToastMessage("Profile photo updated successfully!");
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 3000);
@@ -144,16 +144,16 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     const updatedFullName = formData.fullName.trim() || currentUser.fullName;
-    updateUserProfile({
+    await updateUserProfile({
       name: updatedFullName,
       fullName: updatedFullName,
       email: formData.email.trim() || currentUser.email,
-      phone: formData.phone,
+      phone: formData.phone.trim(),
       avatar: formData.avatar || currentUser.avatar,
-      bio: formData.bio,
+      bio: formData.bio.trim(),
     });
     setIsEditing(false);
     setToastMessage("Profile details updated successfully.");
@@ -262,7 +262,7 @@ export default function SettingsPage() {
               <div className="relative group/avatar">
                 <div className="w-18 h-18 rounded-full overflow-hidden bg-slate-100 border-2 border-[#0084d4]/40 shrink-0 shadow-2xs">
                   <UserAvatar
-                    src={formData.avatar || currentUser.avatar}
+                    src={currentUser.avatar || formData.avatar}
                     name={currentUser.fullName || currentUser.name}
                     role={currentUser.role}
                     className="w-full h-full rounded-full"
@@ -296,7 +296,7 @@ export default function SettingsPage() {
 
               <div className="flex flex-col items-start gap-1">
                 <h2 className="text-[18px] font-bold text-slate-900 tracking-tight leading-tight">
-                  {currentUser.fullName}
+                  {currentUser.fullName || currentUser.name}
                 </h2>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium bg-sky-100 text-[#0084d4] border border-sky-200/70">
                   {roleLabel}
@@ -350,7 +350,11 @@ export default function SettingsPage() {
           </div>
 
           <div className="mt-4 pt-4 border-t border-slate-100">
-            {formData.bio?.trim() ? (
+            {currentUser.bio?.trim() ? (
+              <p className="text-[13px] text-slate-600 font-normal leading-relaxed">
+                {currentUser.bio}
+              </p>
+            ) : formData.bio?.trim() ? (
               <p className="text-[13px] text-slate-600 font-normal leading-relaxed">
                 {formData.bio}
               </p>

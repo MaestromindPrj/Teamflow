@@ -28,7 +28,7 @@ export async function GET() {
       avatar: (r.avatar as string) || "",
       phone: (r.phone as string) || "",
       employeeId: (r.employee_id as string) || "",
-      bio: (r.bio as string) || undefined,
+      bio: (r.bio as string) || "",
     }));
 
     return NextResponse.json({ users, source: "database" });
@@ -87,10 +87,13 @@ export async function POST(req: NextRequest) {
     }
 
     const effectiveName = (name && name !== id && !name.includes("@") ? name : fullName).trim();
+    const cleanPhone = phone !== undefined ? phone.trim() : "";
+    const cleanBio = bio !== undefined ? (bio.trim() || null) : null;
+    const cleanAvatar = avatar !== undefined ? avatar.trim() : "";
 
     await sql`
       INSERT INTO users (id, name, full_name, email, role, job_title, avatar, phone, employee_id, bio, password_hash, initial_password)
-      VALUES (${id}, ${effectiveName}, ${fullName}, ${normalizedEmail}, ${effectiveRole}, ${effectiveJobTitle}, ${avatar || ""}, ${phone || ""}, ${employeeId || ""}, ${bio || null}, ${passwordHash}, ${initialPassword})
+      VALUES (${id}, ${effectiveName}, ${fullName}, ${normalizedEmail}, ${effectiveRole}, ${effectiveJobTitle}, ${cleanAvatar}, ${cleanPhone}, ${employeeId || ""}, ${cleanBio}, ${passwordHash}, ${initialPassword})
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         full_name = EXCLUDED.full_name,
@@ -100,7 +103,7 @@ export async function POST(req: NextRequest) {
         avatar = EXCLUDED.avatar,
         phone = EXCLUDED.phone,
         employee_id = EXCLUDED.employee_id,
-        bio = COALESCE(EXCLUDED.bio, users.bio),
+        bio = EXCLUDED.bio,
         password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash),
         initial_password = COALESCE(users.initial_password, EXCLUDED.initial_password);
     `;
@@ -154,17 +157,19 @@ export async function PUT(req: NextRequest) {
   try {
     await initDatabase();
     const body = await req.json();
-    const { id, fullName, email, role, jobTitle, phone, bio, password } = body;
+    const { id, name, fullName, email, role, jobTitle, avatar, phone, bio, password } = body;
 
     if (!id) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
     const sql = getDb();
-    const existing = await sql`SELECT id, role, password_hash, initial_password FROM users WHERE id = ${id} LIMIT 1;`;
+    const existing = await sql`SELECT id, name, full_name, email, role, job_title, avatar, phone, bio, password_hash, initial_password FROM users WHERE id = ${id} LIMIT 1;`;
     if (existing.length === 0) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    const current = existing[0];
 
     const normalizedEmail = (email || "").trim().toLowerCase();
     if (normalizedEmail) {
@@ -186,15 +191,20 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    const effectiveRole = role || existing[0].role;
+    const effectiveRole = role || current.role;
     const finalJobTitle =
       effectiveRole === "project_manager"
         ? "Project Manager"
         : effectiveRole === "ceo"
         ? "Chief Executive Officer"
-        : (jobTitle !== undefined ? jobTitle.trim() : null);
+        : (jobTitle !== undefined ? jobTitle.trim() : (current.job_title || "Software Developer"));
 
-    const firstName = fullName ? fullName.trim().split(" ")[0] : undefined;
+    const effectiveFullName = fullName !== undefined ? fullName.trim() : current.full_name;
+    const effectiveName = name !== undefined ? name.trim() : (effectiveFullName || current.name);
+    const finalPhone = phone !== undefined ? phone.trim() : (current.phone || "");
+    const finalBio = bio !== undefined ? (bio.trim() || null) : current.bio;
+    const finalAvatar = avatar !== undefined ? avatar.trim() : (current.avatar || "");
+    const finalEmail = normalizedEmail ? normalizedEmail : current.email;
 
     let newPasswordHash: string | null = null;
     let initialPasswordPlain: string | null = null;
@@ -207,13 +217,14 @@ export async function PUT(req: NextRequest) {
       await sql`
         UPDATE users
         SET
-          full_name = COALESCE(${fullName?.trim() || null}, full_name),
-          name = COALESCE(${firstName || null}, name),
-          email = COALESCE(${normalizedEmail || null}, email),
-          role = COALESCE(${role || null}, role),
-          job_title = COALESCE(${finalJobTitle}, job_title),
-          phone = COALESCE(${phone?.trim() || null}, phone),
-          bio = COALESCE(${bio?.trim() || null}, bio),
+          full_name = ${effectiveFullName},
+          name = ${effectiveName},
+          email = ${finalEmail},
+          role = ${effectiveRole},
+          job_title = ${finalJobTitle},
+          phone = ${finalPhone},
+          bio = ${finalBio},
+          avatar = ${finalAvatar},
           password_hash = ${newPasswordHash},
           initial_password = ${initialPasswordPlain}
         WHERE id = ${id};
@@ -222,13 +233,14 @@ export async function PUT(req: NextRequest) {
       await sql`
         UPDATE users
         SET
-          full_name = COALESCE(${fullName?.trim() || null}, full_name),
-          name = COALESCE(${firstName || null}, name),
-          email = COALESCE(${normalizedEmail || null}, email),
-          role = COALESCE(${role || null}, role),
-          job_title = COALESCE(${finalJobTitle}, job_title),
-          phone = COALESCE(${phone?.trim() || null}, phone),
-          bio = COALESCE(${bio?.trim() || null}, bio)
+          full_name = ${effectiveFullName},
+          name = ${effectiveName},
+          email = ${finalEmail},
+          role = ${effectiveRole},
+          job_title = ${finalJobTitle},
+          phone = ${finalPhone},
+          bio = ${finalBio},
+          avatar = ${finalAvatar}
         WHERE id = ${id};
       `;
     }
@@ -262,7 +274,7 @@ export async function PUT(req: NextRequest) {
       avatar: (u.avatar as string) || "",
       phone: (u.phone as string) || "",
       employeeId: (u.employee_id as string) || "",
-      bio: (u.bio as string) || undefined,
+      bio: (u.bio as string) || "",
     };
 
     return NextResponse.json({ success: true, user: updatedUser });

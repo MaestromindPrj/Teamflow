@@ -245,6 +245,17 @@ function TeamDirectoryContent() {
                               </span>
                             </div>
                             <p className="text-[11px] text-slate-400 mt-0.5 truncate">{pm.email}</p>
+                            {pm.phone && (
+                              <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                                <Phone className="w-3 h-3 text-slate-400" />
+                                <span>{pm.phone}</span>
+                              </p>
+                            )}
+                            {pm.bio && (
+                              <p className="text-[11px] text-slate-600 line-clamp-1 mt-0.5 italic">
+                                &ldquo;{pm.bio}&rdquo;
+                              </p>
+                            )}
                           </div>
                         </Link>
 
@@ -381,6 +392,17 @@ function TeamDirectoryContent() {
                               {emp.jobTitle || "Employer"}
                             </span>
                           </div>
+                          {emp.phone && (
+                            <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              <span>{emp.phone}</span>
+                            </p>
+                          )}
+                          {emp.bio && (
+                            <p className="text-[11px] text-slate-600 line-clamp-2 mt-1 italic">
+                              &ldquo;{emp.bio}&rdquo;
+                            </p>
+                          )}
                         </div>
                       </div>
 

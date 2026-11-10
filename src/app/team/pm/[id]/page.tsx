@@ -147,6 +147,11 @@ function ProjectManagerDetailContent() {
                 <p className="text-[11px] text-slate-400 mt-1">
                   {pm.email}{pm.phone?.trim() ? ` \u2022 ${pm.phone}` : ""}
                 </p>
+                {pm.bio?.trim() && (
+                  <p className="text-[12px] text-slate-600 mt-1.5 italic">
+                    &ldquo;{pm.bio}&rdquo;
+                  </p>
+                )}
               </div>
             </div>
 

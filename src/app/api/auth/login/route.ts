@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       avatar: (dbUser.avatar as string) || "",
       phone: (dbUser.phone as string) || "",
       employeeId: (dbUser.employee_id as string) || "",
-      bio: (dbUser.bio as string) || undefined,
+      bio: (dbUser.bio as string) || "",
     };
 
     const response = NextResponse.json({

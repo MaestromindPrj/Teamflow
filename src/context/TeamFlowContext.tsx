@@ -111,7 +111,7 @@ interface TeamFlowContextType {
   userClockInData: Record<string, UserClockInState>;
   currentUserClockIn: UserClockInState;
   setCurrentUserId: (id: string) => void;
-  updateUserProfile: (updates: Partial<User>) => void;
+  updateUserProfile: (updates: Partial<User>) => Promise<boolean>;
   updateTeamMember: (id: string, updates: Partial<User> & { password?: string }) => Promise<{ success: boolean; error?: string }>;
   deleteUser: (id: string) => Promise<boolean>;
   createProject: (projectData: {
@@ -282,20 +282,14 @@ export function sanitizeUserData(u: User): User {
     (u.avatar.includes("images.unsplash.com") ||
      u.avatar.includes("/avatars/marcus.jpg") ||
      u.avatar.includes("/avatars/ajay.jpg"));
-  const hasDummyPhone =
-    u.phone &&
-    (u.phone.includes("555") ||
-     u.phone === "+91 9834724461");
-  const hasDummyBio =
-    u.bio &&
-    (u.bio.toLowerCase().includes("dummy") ||
-     u.bio.toLowerCase().includes("lorem ipsum"));
 
   return {
     ...u,
+    name: u.name || u.fullName || "",
+    fullName: u.fullName || u.name || "",
     avatar: hasDummyAvatar ? "" : (u.avatar || ""),
-    phone: hasDummyPhone ? "" : (u.phone || ""),
-    bio: hasDummyBio ? "" : (u.bio || ""),
+    phone: u.phone || "",
+    bio: u.bio || "",
   };
 }
 
@@ -970,18 +964,20 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     refreshFromBackend();
   };
 
-  const updateUserProfile = (updates: Partial<User>) => {
+  const updateUserProfile = async (updates: Partial<User>): Promise<boolean> => {
+    const effectiveUserId = currentUserId;
+    if (!effectiveUserId) return false;
+
+    const resolvedName = updates.fullName || updates.name;
+    const patchData: Partial<User> = {
+      ...updates,
+      ...(resolvedName ? { name: resolvedName, fullName: resolvedName } : {}),
+    };
+
     setUsers((prev) => {
       const nextUsers = prev.map((u) => {
-        if (u.id === currentUserId) {
-          const resolvedName = updates.name || updates.fullName || u.name;
-          const updated = { ...u, ...updates, name: resolvedName };
-          fetch("/api/users", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updated),
-          }).catch((err) => console.warn("Failed to persist user profile:", err));
-          return updated;
+        if (u.id === effectiveUserId) {
+          return { ...u, ...patchData };
         }
         return u;
       });
@@ -990,6 +986,44 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       } catch {}
       return nextUsers;
     });
+
+    if (patchData.fullName) {
+      setAttendance((prev) =>
+        prev.map((rec) =>
+          rec.userId === effectiveUserId
+            ? { ...rec, userName: patchData.fullName!.trim() }
+            : rec
+        )
+      );
+    }
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: effectiveUserId, ...patchData }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUsers((prev) =>
+            prev.map((u) => (u.id === effectiveUserId ? { ...u, ...data.user } : u))
+          );
+        }
+        return true;
+      } else {
+        await fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: effectiveUserId, ...patchData }),
+        });
+        return true;
+      }
+    } catch (err) {
+      console.warn("Failed to persist user profile:", err);
+      return false;
+    }
   };
 
   const updateTeamMember = async (
@@ -1251,13 +1285,13 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     const employeeId = isPm
       ? `TF-PM-${Math.floor(100 + Math.random() * 900)}`
       : `TF-EMP-${Math.floor(200 + Math.random() * 800)}`;
-    const firstName = memberData.fullName.trim().split(" ")[0] || "Staff";
+    const trimmedFullName = memberData.fullName.trim();
     const title = isPm ? "Project Manager" : (memberData.jobTitle || memberData.department || "Software Developer");
 
     const newUser: User = {
       id,
-      name: firstName,
-      fullName: memberData.fullName.trim(),
+      name: trimmedFullName,
+      fullName: trimmedFullName,
       email: memberData.email.trim(),
       role: memberData.role,
       jobTitle: title,
