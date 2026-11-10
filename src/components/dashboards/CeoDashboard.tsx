@@ -511,7 +511,6 @@ export default function CeoDashboard() {
             <thead>
               <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                 <th className="pb-3 pr-3">Staff Member</th>
-                <th className="pb-3 px-3">Role</th>
                 <th className="pb-3 px-3">Job Role</th>
                 <th className="pb-3 px-3">Worked Duration</th>
                 <th className="pb-3 pl-3 text-right">Attendance Status</th>
@@ -524,6 +523,8 @@ export default function CeoDashboard() {
                 const elapsed = clockState?.elapsedSeconds || 0;
                 const durationStr = isUserIn || elapsed > 0 ? `${Math.floor(elapsed / 3600)}h ${Math.floor((elapsed % 3600) / 60)}m` : "0h 00m";
                 const status = isUserIn ? "Present" : clockState?.clockOutTimeString ? "Checked Out" : "Not Clocked In";
+                const isPm = staff.role === "project_manager";
+                const jobTitle = staff.jobTitle || (isPm ? "Project Manager" : "Employee");
 
                 return (
                   <tr key={staff.id} className="hover:bg-slate-50/60 transition-colors">
@@ -533,15 +534,14 @@ export default function CeoDashboard() {
                     <td className="py-3 px-3">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
-                          staff.role === "project_manager"
+                          isPm
                             ? "bg-blue-100 text-blue-800 border border-blue-200"
                             : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                         }`}
                       >
-                        {staff.role === "project_manager" ? "Project Manager" : "Employee"}
+                        {jobTitle}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-[12px] text-slate-500">{staff.jobTitle || "Employee"}</td>
                     <td className="py-3 px-3 text-[12px] font-bold text-[#0084d4]" suppressHydrationWarning>{durationStr}</td>
                     <td className="py-3 pl-3 text-right">
                       <StatusBadge status={status as any} />

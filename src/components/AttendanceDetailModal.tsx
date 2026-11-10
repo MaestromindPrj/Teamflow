@@ -208,8 +208,12 @@ export default function AttendanceDetailModal({
                   <Mail className="w-3 h-3" />
                   {staffUser.email}
                 </span>
-                <span>&bull;</span>
-                <span className="capitalize">{staffUser.role === "project_manager" ? "Project Manager" : "Employee"}</span>
+                {staffUser.employeeId && (
+                  <>
+                    <span>&bull;</span>
+                    <span>ID: {staffUser.employeeId}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>

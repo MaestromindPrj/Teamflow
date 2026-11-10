@@ -126,7 +126,10 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
     const portalUrl = typeof window !== "undefined" && !window.location.origin.includes("localhost")
       ? `${window.location.origin}/login`
       : "https://teamflow-topaz.vercel.app/login";
-    const text = `Maestrominds Account Created:\nName: ${createdCredentials.name}\nEmail: ${createdCredentials.email}\nRole: ${createdCredentials.role}\nJob Role: ${createdCredentials.jobTitle}\nInitial Password: ${createdCredentials.password}\nLogin Portal: ${portalUrl}`;
+    const roleTitleText = createdCredentials.jobTitle && createdCredentials.jobTitle.toLowerCase() !== createdCredentials.role.toLowerCase()
+      ? `${createdCredentials.jobTitle} (${createdCredentials.role})`
+      : createdCredentials.jobTitle || createdCredentials.role;
+    const text = `Maestrominds Account Created:\nName: ${createdCredentials.name}\nEmail: ${createdCredentials.email}\nRole: ${roleTitleText}\nInitial Password: ${createdCredentials.password}\nLogin Portal: ${portalUrl}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -272,7 +275,7 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                   Login Credentials
                 </span>
                 <span className="text-[11px] font-semibold text-[#0084d4] bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
-                  {createdCredentials.role}
+                  {createdCredentials.jobTitle || createdCredentials.role}
                 </span>
               </div>
 
@@ -284,7 +287,11 @@ export default function CreateMemberModal({ isOpen, onClose }: CreateMemberModal
                 <span className="col-span-2 font-mono font-semibold text-slate-900">{createdCredentials.email}</span>
 
                 <span className="text-slate-500 font-medium">Job Role:</span>
-                <span className="col-span-2 font-semibold text-slate-700">{createdCredentials.jobTitle}</span>
+                <span className="col-span-2 font-semibold text-slate-700">
+                  {createdCredentials.jobTitle && createdCredentials.jobTitle.toLowerCase() !== createdCredentials.role.toLowerCase()
+                    ? `${createdCredentials.jobTitle} (${createdCredentials.role})`
+                    : createdCredentials.jobTitle || createdCredentials.role}
+                </span>
 
                 <span className="text-slate-500 font-medium">Temporary Password:</span>
                 <span className="col-span-2 font-mono font-bold text-[#0084d4] bg-white px-2 py-1 rounded border border-sky-200 inline-block w-fit">

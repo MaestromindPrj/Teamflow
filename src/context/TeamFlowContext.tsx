@@ -737,10 +737,12 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         fetch("/api/tech-stacks").catch(() => null),
       ]);
 
+      let freshUsers = users;
       if (usersRes && usersRes.ok) {
         const data = await usersRes.json();
         if (Array.isArray(data.users) && data.source !== "error" && data.source !== "fallback_error") {
           const sanitized = data.users.map(sanitizeUserData);
+          freshUsers = sanitized;
           setUsers(sanitized);
           try {
             localStorage.setItem("teamflow_users", JSON.stringify(sanitized));
@@ -787,10 +789,17 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         const data = await attendanceRes.json();
         if (Array.isArray(data.attendance) && data.source !== "error" && data.source !== "fallback_error") {
           const rawAtt: AttendanceRecord[] = data.attendance;
-          setAttendance((prev) => {
-            // Keep user names fresh and in sync with users
-            return rawAtt;
+          const userMap = new Map(freshUsers.map((u) => [u.id, u]));
+          const syncedAtt = rawAtt.map((rec) => {
+            const u = userMap.get(rec.userId);
+            if (!u) return rec;
+            return {
+              ...rec,
+              userName: u.fullName || u.name || rec.userName,
+              userRole: u.role || rec.userRole,
+            };
           });
+          setAttendance(syncedAtt);
         }
       }
 
@@ -816,9 +825,17 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       if (rewardsRes && rewardsRes.ok) {
         const data = await rewardsRes.json();
         if (Array.isArray(data.ledger) && data.source !== "error" && data.source !== "fallback_error") {
-          setRewardsLedger(data.ledger);
+          const userMap = new Map(freshUsers.map((u) => [u.id, u]));
+          const syncedLedger = (data.ledger as RewardLedgerEntry[]).map((entry) => {
+            const awarder = entry.awardedById ? userMap.get(entry.awardedById) : undefined;
+            return {
+              ...entry,
+              ...(awarder ? { awardedByName: awarder.fullName || awarder.name } : {}),
+            };
+          });
+          setRewardsLedger(syncedLedger);
           try {
-            localStorage.setItem("teamflow_rewards_ledger", JSON.stringify(data.ledger));
+            localStorage.setItem("teamflow_rewards_ledger", JSON.stringify(syncedLedger));
           } catch {}
         }
       }
@@ -826,7 +843,20 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       if (leavesRes && leavesRes.ok) {
         const data = await leavesRes.json();
         if (Array.isArray(data.leaveRequests) && data.source !== "error" && data.source !== "fallback_error") {
-          setLeaveRequests(data.leaveRequests);
+          const userMap = new Map(freshUsers.map((u) => [u.id, u]));
+          const syncedLeaves = (data.leaveRequests as LeaveRequest[]).map((lr) => {
+            const u = userMap.get(lr.userId);
+            const app = userMap.get(lr.appliedById);
+            const rev = lr.reviewedById ? userMap.get(lr.reviewedById) : undefined;
+            return {
+              ...lr,
+              userName: u?.fullName || u?.name || lr.userName,
+              userRole: u?.role || lr.userRole,
+              appliedByName: app?.fullName || app?.name || lr.appliedByName,
+              reviewedByName: rev ? (rev.fullName || rev.name) : lr.reviewedByName,
+            };
+          });
+          setLeaveRequests(syncedLeaves);
         }
       }
 

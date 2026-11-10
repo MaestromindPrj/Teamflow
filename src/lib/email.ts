@@ -174,7 +174,11 @@ export async function sendNewUserCredentialsEmail(
                 </tr>
                 <tr>
                   <td style="padding: 6px 0; color: #64748b; font-size: 12px; font-weight: 600;">Role &amp; Title:</td>
-                  <td style="padding: 6px 0; font-size: 13px; font-weight: 600; color: #334155;">${params.role} &bull; ${params.jobTitle}</td>
+                  <td style="padding: 6px 0; font-size: 13px; font-weight: 600; color: #334155;">${
+                    params.jobTitle && params.jobTitle.toLowerCase() !== params.role.toLowerCase()
+                      ? `${params.jobTitle} (${params.role})`
+                      : params.jobTitle || params.role
+                  }</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0 6px 0; color: #64748b; font-size: 12px; font-weight: 600;">Temporary Access Key:</td>
@@ -222,7 +226,11 @@ export async function sendNewUserCredentialsEmail(
       to: params.toEmail,
       subject: `Welcome to Maestrominds - Getting Started`,
       html: htmlContent,
-      text: `Hello ${params.recipientName},\n\nWelcome to Maestrominds! Your workspace account has been created.\n\nWorkspace Portal: ${loginUrl}\nAccount Email: ${params.toEmail}\nRole: ${params.role} (${params.jobTitle})\nAccess Key: ${params.initialPassword}\n\nYou can customize your password at any time from Profile Settings.\n\nBest regards,\nMaestrominds\nhttps://teamflow-topaz.vercel.app`,
+      text: `Hello ${params.recipientName},\n\nWelcome to Maestrominds! Your workspace account has been created.\n\nWorkspace Portal: ${loginUrl}\nAccount Email: ${params.toEmail}\nRole: ${
+        params.jobTitle && params.jobTitle.toLowerCase() !== params.role.toLowerCase()
+          ? `${params.jobTitle} (${params.role})`
+          : params.jobTitle || params.role
+      }\nAccess Key: ${params.initialPassword}\n\nYou can customize your password at any time from Profile Settings.\n\nBest regards,\nMaestrominds\nhttps://teamflow-topaz.vercel.app`,
     });
 
     return {

@@ -152,64 +152,66 @@ export default function RewardsPage() {
                     <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                       <th className="pb-3 pr-3 w-16">Rank</th>
                       <th className="pb-3 px-3">Team Member</th>
-                      <th className="pb-3 px-3">Role</th>
                       <th className="pb-3 px-3">Job Role</th>
                       <th className="pb-3 pl-3 text-right">Total Points</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-[13px]">
-                    {allLeaderboard.map((user) => (
-                      <tr
-                        key={user.id}
-                        onClick={() => router.push(`/rewards/${user.id}`)}
-                        className="hover:bg-slate-50/80 transition-colors cursor-pointer"
-                      >
-                        <td className="py-3 pr-3">
-                          <span
-                            className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold ${
-                              user.rank === 1
-                                ? "bg-[#ffa500]/15 text-[#ffa500]"
-                                : user.rank === 2
-                                ? "bg-slate-200 text-slate-700"
-                                : user.rank === 3
-                                ? "bg-[#ffa500]/15 text-[#ffa500]"
-                                : "bg-slate-100 text-slate-500"
-                            }`}
-                          >
-                            #{user.rank}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2.5">
-                            <UserAvatar
-                              src={user.avatar}
-                              name={user.name}
-                              role={user.role === "Project Manager" ? "project_manager" : "employee"}
-                              className="w-7 h-7 rounded-full border border-slate-200"
-                              textClassName="text-[10px]"
-                            />
-                            <span className="font-semibold text-slate-900">{user.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
-                              user.role === "Project Manager"
-                                ? "bg-blue-100 text-blue-800 border border-blue-200"
-                                : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
-                            }`}
-                          >
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-[12px] text-slate-500">
-                          {staffUsers.find((u) => u.fullName === user.name)?.jobTitle || user.role || "Software Developer"}
-                        </td>
-                        <td className="py-3 pl-3 text-right font-extrabold text-slate-900">
-                          {user.points} pts
-                        </td>
-                      </tr>
-                    ))}
+                    {allLeaderboard.map((user) => {
+                      const staffUser = staffUsers.find((u) => u.id === user.id || u.fullName === user.name);
+                      const isPm = staffUser?.role === "project_manager" || user.role === "Project Manager";
+                      const displayJobRole = staffUser?.jobTitle || user.role || (isPm ? "Project Manager" : "Employee");
+
+                      return (
+                        <tr
+                          key={user.id}
+                          onClick={() => router.push(`/rewards/${user.id}`)}
+                          className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                        >
+                          <td className="py-3 pr-3">
+                            <span
+                              className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold ${
+                                user.rank === 1
+                                  ? "bg-[#ffa500]/15 text-[#ffa500]"
+                                  : user.rank === 2
+                                  ? "bg-slate-200 text-slate-700"
+                                  : user.rank === 3
+                                  ? "bg-[#ffa500]/15 text-[#ffa500]"
+                                  : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              #{user.rank}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2.5">
+                              <UserAvatar
+                                src={user.avatar}
+                                name={user.name}
+                                role={isPm ? "project_manager" : "employee"}
+                                className="w-7 h-7 rounded-full border border-slate-200"
+                                textClassName="text-[10px]"
+                              />
+                              <span className="font-semibold text-slate-900">{user.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
+                                isPm
+                                  ? "bg-blue-100 text-blue-800 border border-blue-200"
+                                  : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              }`}
+                            >
+                              {displayJobRole}
+                            </span>
+                          </td>
+                          <td className="py-3 pl-3 text-right font-extrabold text-slate-900">
+                            {user.points} pts
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
