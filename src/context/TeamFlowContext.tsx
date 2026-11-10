@@ -974,7 +974,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     setUsers((prev) => {
       const nextUsers = prev.map((u) => {
         if (u.id === currentUserId) {
-          const updated = { ...u, ...updates };
+          const resolvedName = updates.name || updates.fullName || u.name;
+          const updated = { ...u, ...updates, name: resolvedName };
           fetch("/api/users", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

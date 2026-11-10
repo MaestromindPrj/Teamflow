@@ -585,7 +585,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
                 />
                 <div className="text-left hidden md:block">
                   <p className="text-[12px] font-semibold text-slate-800 leading-tight">
-                    {currentUser?.name || currentUser?.fullName || "User"}
+                    {currentUser?.fullName || currentUser?.name || "User"}
                   </p>
                   <p className="text-[10px] text-slate-400 capitalize leading-tight">
                     {currentUser?.role ? currentUser.role.replace("_", " ") : "employer"}

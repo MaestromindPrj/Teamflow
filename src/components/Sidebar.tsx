@@ -14,7 +14,9 @@ import {
   Briefcase,
   Layers,
   CalendarRange,
-  Cpu
+  Cpu,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
 
@@ -36,10 +38,27 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { currentUser, users, hasHydrated } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    try {
+      const saved = localStorage.getItem("teamflow_sidebar_collapsed");
+      if (saved !== null) {
+        setIsCollapsed(saved === "true");
+      }
+    } catch {}
   }, []);
+
+  const toggleSidebar = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("teamflow_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   if (pathname === "/login") {
     return null;
@@ -52,6 +71,7 @@ export default function Sidebar() {
           <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100">
             <Link href="/" className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/logo.png"
                   alt="Maestrominds Logo"
@@ -111,10 +131,25 @@ export default function Sidebar() {
   });
 
   return (
-    <aside className="w-56 md:w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 select-none">
-      <div>
-        <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100">
-          <Link href="/" className="flex items-center gap-2.5">
+    <aside
+      className={`bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 select-none transition-all duration-300 ease-in-out ${
+        isCollapsed ? "w-18" : "w-56 md:w-64"
+      }`}
+    >
+      <div className="flex flex-col flex-1 min-h-0">
+        {/* Header / Brand */}
+        <div
+          className={`h-16 flex items-center border-b border-slate-100 px-3.5 ${
+            isCollapsed ? "justify-center" : "justify-between"
+          }`}
+        >
+          <Link
+            href="/"
+            className={`flex items-center gap-2.5 overflow-hidden ${
+              isCollapsed ? "justify-center" : ""
+            }`}
+            title="Maestrominds - Enterprise PM"
+          >
             <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -131,18 +166,33 @@ export default function Sidebar() {
                 M
               </div>
             </div>
-            <div className="flex flex-col justify-center min-w-0">
-              <span className="font-bold text-[16px] text-slate-900 tracking-tight leading-none">
-                Maestrominds
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase mt-1 leading-none">
-                Enterprise PM
-              </span>
-            </div>
+            {!isCollapsed && (
+              <div className="flex flex-col justify-center min-w-0 animate-in fade-in duration-200">
+                <span className="font-bold text-[16px] text-slate-900 tracking-tight leading-none truncate">
+                  Maestrominds
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase mt-1 leading-none truncate">
+                  Enterprise PM
+                </span>
+              </div>
+            )}
           </Link>
+
+          {!isCollapsed && (
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0 ml-1"
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        <nav className="p-3 space-y-1" suppressHydrationWarning>
+        {/* Navigation Items */}
+        <nav className="p-2 space-y-1 overflow-y-auto flex-1" suppressHydrationWarning>
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -154,7 +204,12 @@ export default function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13px] transition-all duration-150 ${
+                title={item.name}
+                className={`flex items-center rounded-lg text-[13px] transition-all duration-150 ${
+                  isCollapsed
+                    ? "justify-center p-2.5"
+                    : "gap-3 px-3.5 py-2.5"
+                } ${
                   isActive
                     ? "bg-[#0084d4] text-white font-medium shadow-xs"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-normal"
@@ -165,11 +220,35 @@ export default function Sidebar() {
                     isActive ? "text-white" : "text-slate-500"
                   }`}
                 />
-                <span>{item.name}</span>
+                {!isCollapsed && (
+                  <span className="truncate">{item.name}</span>
+                )}
               </Link>
             );
           })}
         </nav>
+      </div>
+
+      {/* Bottom Collapse Toggle Footer */}
+      <div className="p-2 border-t border-slate-100">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className={`w-full flex items-center rounded-lg text-[12px] text-slate-500 hover:text-slate-800 hover:bg-slate-100/80 transition-colors cursor-pointer py-2 ${
+            isCollapsed ? "justify-center px-2" : "px-3 justify-between"
+          }`}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-4 h-4 text-slate-500" />
+          ) : (
+            <>
+              <span className="font-medium text-slate-600 text-[12px]">Collapse</span>
+              <ChevronLeft className="w-4 h-4 text-slate-400" />
+            </>
+          )}
+        </button>
       </div>
     </aside>
   );

@@ -50,7 +50,7 @@ export default function EmployerDashboard() {
               <span>Employer Workspace</span>
             </div>
             <h2 className="text-[19px] font-bold tracking-tight">
-              Welcome back, {currentUser.name}
+              Welcome back, {currentUser.fullName || currentUser.name}
             </h2>
             <p className="text-[13px] text-slate-300">
               You are active on {myProjects.length} projects. You are the designated Team Lead on {teamLeadProjects.length} {teamLeadProjects.length === 1 ? "project" : "projects"}. Click any project to access tasks, deadlines, and deliverables.

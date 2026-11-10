@@ -17,11 +17,12 @@ export const metadata: Metadata = {
   description: "Advanced Multi-Role Project Operations & Tracking System",
   icons: {
     icon: [
-      { url: "/logo.png" },
-      { url: "/icon.png" },
-      { url: "/favicon.ico" }
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/icon.png", type: "image/png" },
+      { url: "/logo.png", type: "image/png" },
     ],
-    shortcut: "/logo.png",
+    shortcut: "/favicon.ico",
     apple: "/logo.png",
   },
 };

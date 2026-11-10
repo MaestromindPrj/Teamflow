@@ -119,8 +119,8 @@ function MediaHubContent() {
     return [...projectMediaList, ...taskMediaList];
   }, [tasks, projects]);
 
-  // Filter media visible to current user based on roles
-  const visibleMedia = useMemo(() => {
+  // All media items accessible to current user based on roles (unfiltered by selected tab or search)
+  const userAccessibleMedia = useMemo(() => {
     return allMediaItems.filter((item) => {
       // CEO and PM can view all company deliverables
       if (isCeo || isPm) return true;
@@ -129,10 +129,15 @@ function MediaHubContent() {
       if (isLeadOnProj) return true;
       // Team members assigned to the project can view project deliverables
       const proj = projects.find((p) => p.id === item.projectId);
-      if (proj && (proj.teamMemberIds.includes(currentUser.id) || proj.teamLeadId === currentUser.id)) return true;
+      if (proj && (proj.teamMemberIds?.includes(currentUser.id) || proj.teamLeadId === currentUser.id)) return true;
       // Team Member can view deliverables assigned to them or uploaded by them
       return item.taskAssignedTo === currentUser.id || item.uploadedBy === currentUser.id;
-    }).filter((item) => {
+    });
+  }, [allMediaItems, isCeo, isPm, currentUser.id, isUserTeamLead, projects]);
+
+  // Filter media visible to current user based on selected type tab and search query
+  const visibleMedia = useMemo(() => {
+    return userAccessibleMedia.filter((item) => {
       if (selectedType !== "All" && selectedType !== "requests" && item.type !== selectedType) {
         return false;
       }
@@ -147,7 +152,7 @@ function MediaHubContent() {
       }
       return true;
     });
-  }, [allMediaItems, isCeo, isPm, currentUser.id, isUserTeamLead, selectedType, searchQuery]);
+  }, [userAccessibleMedia, selectedType, searchQuery]);
 
   // Filter deletion requests relevant to current user
   const relevantRequests = useMemo(() => {
@@ -205,41 +210,37 @@ function MediaHubContent() {
               id: "All",
               label: "All",
               icon: <FolderKanban className="w-4 h-4" />,
-              count: allMediaItems.filter((item) => {
-                if (isCeo || isPm) return true;
-                const isLead = isUserTeamLead(currentUser.id, item.projectId);
-                return isLead || item.taskAssignedTo === currentUser.id || item.uploadedBy === currentUser.id;
-              }).length,
+              count: userAccessibleMedia.length,
             },
             {
               id: "figma",
               label: "Figma",
               icon: <span className="font-bold text-[10px] leading-none">FIG</span>,
-              count: visibleMedia.filter((m) => m.type === "figma").length,
+              count: userAccessibleMedia.filter((m) => m.type === "figma").length,
             },
             {
               id: "pdf",
               label: "PDFs",
               icon: <FileText className="w-4 h-4" />,
-              count: visibleMedia.filter((m) => m.type === "pdf").length,
+              count: userAccessibleMedia.filter((m) => m.type === "pdf").length,
             },
             {
               id: "image",
               label: "Images",
               icon: <ImageIcon className="w-4 h-4" />,
-              count: visibleMedia.filter((m) => m.type === "image").length,
+              count: userAccessibleMedia.filter((m) => m.type === "image").length,
             },
             {
               id: "zip",
               label: "ZIPs",
               icon: <Archive className="w-4 h-4" />,
-              count: visibleMedia.filter((m) => m.type === "zip").length,
+              count: userAccessibleMedia.filter((m) => m.type === "zip").length,
             },
             {
               id: "doc",
               label: "Docs",
               icon: <FileText className="w-4 h-4" />,
-              count: visibleMedia.filter((m) => m.type === "doc").length,
+              count: userAccessibleMedia.filter((m) => m.type === "doc").length,
             },
             {
               id: "requests",

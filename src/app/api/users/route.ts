@@ -86,9 +86,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const effectiveName = (name && name !== id && !name.includes("@") ? name : fullName).trim();
+
     await sql`
       INSERT INTO users (id, name, full_name, email, role, job_title, avatar, phone, employee_id, bio, password_hash, initial_password)
-      VALUES (${id}, ${name || fullName.split(" ")[0]}, ${fullName}, ${normalizedEmail}, ${effectiveRole}, ${effectiveJobTitle}, ${avatar || ""}, ${phone || ""}, ${employeeId || ""}, ${bio || null}, ${passwordHash}, ${initialPassword})
+      VALUES (${id}, ${effectiveName}, ${fullName}, ${normalizedEmail}, ${effectiveRole}, ${effectiveJobTitle}, ${avatar || ""}, ${phone || ""}, ${employeeId || ""}, ${bio || null}, ${passwordHash}, ${initialPassword})
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         full_name = EXCLUDED.full_name,
@@ -102,6 +104,10 @@ export async function POST(req: NextRequest) {
         password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash),
         initial_password = COALESCE(users.initial_password, EXCLUDED.initial_password);
     `;
+
+    if (fullName) {
+      await sql`UPDATE attendance SET user_name = ${fullName.trim()} WHERE user_id = ${id};`;
+    }
 
     let emailSent = false;
     let emailError: string | undefined;

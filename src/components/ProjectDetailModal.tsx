@@ -67,13 +67,19 @@ export default function ProjectDetailModal({
     deleteTaskMedia,
     deleteProjectMedia,
     canUserDeleteMedia,
-    mediaDeletionRequests
+    mediaDeletionRequests,
+    techStacks,
+    createTechStack,
   } = useTeamFlow();
 
   const [activeTab, setActiveTab] = useState<"tasks" | "media" | "team">("tasks");
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isAddMediaOpen, setIsAddMediaOpen] = useState(false);
+  const [isEditingTechStack, setIsEditingTechStack] = useState(false);
+  const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
+  const [newTechInput, setNewTechInput] = useState("");
+  const [isSavingTech, setIsSavingTech] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [uploadTaskTarget, setUploadTaskTarget] = useState<{ id: string; title: string } | null>(null);
   const [selectedTaskFilter, setSelectedTaskFilter] = useState<string>("All");
@@ -139,6 +145,25 @@ export default function ProjectDetailModal({
   const isRegularEmployer = currentUser.role === "employer" && !isLead;
   const canDeleteProject = isCeo || isPm;
   const canAddTeamMember = isCeo || isPm;
+  const canAssignTechStack = isCeo || isPm || isLead;
+
+  const handleAddNewTech = async () => {
+    const trimmed = newTechInput.trim();
+    if (!trimmed) return;
+    const existing = techStacks.find((t) => t.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      if (!selectedTechs.includes(existing.name)) {
+        setSelectedTechs((prev) => [...prev, existing.name]);
+      }
+      setNewTechInput("");
+      return;
+    }
+    const success = await createTechStack(trimmed);
+    if (success) {
+      setSelectedTechs((prev) => [...prev, trimmed]);
+      setNewTechInput("");
+    }
+  };
 
   const currentProject = projects.find((p) => p.id === project.id) || project;
 
@@ -370,24 +395,42 @@ export default function ProjectDetailModal({
                 )}
               </div>
             )}
-            {project.techStack && project.techStack.length > 0 && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <div className="flex items-center gap-1 text-slate-400">
-                  <Cpu className="w-3.5 h-3.5 text-[#0084d4]" />
-                  <span>Tech:</span>
-                </div>
-                <div className="flex items-center gap-1 flex-wrap">
-                  {project.techStack.map((tech) => (
+            {/* Tech Stack Assignment & Display */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1 text-slate-400">
+                <Cpu className="w-3.5 h-3.5 text-[#0084d4]" />
+                <span className="text-[11px] font-medium">Tech:</span>
+              </div>
+              <div className="flex items-center gap-1 flex-wrap">
+                {currentProject.techStack && currentProject.techStack.length > 0 ? (
+                  currentProject.techStack.map((tech) => (
                     <span
                       key={tech}
                       className="px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60"
                     >
                       {tech}
                     </span>
-                  ))}
-                </div>
+                  ))
+                ) : (
+                  <span className="text-[11px] text-slate-400 italic">None assigned</span>
+                )}
+                {canAssignTechStack && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTechs(currentProject.techStack || []);
+                      setNewTechInput("");
+                      setIsEditingTechStack(true);
+                    }}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold text-[#0084d4] hover:bg-sky-50 border border-transparent hover:border-sky-200/80 transition-all cursor-pointer ml-0.5"
+                    title={currentProject.techStack && currentProject.techStack.length > 0 ? "Edit technology stack" : "Assign technology stack"}
+                  >
+                    <Pencil className="w-2.5 h-2.5" />
+                    <span>{currentProject.techStack && currentProject.techStack.length > 0 ? "Edit" : "+ Assign Tech"}</span>
+                  </button>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1063,6 +1106,125 @@ export default function ProjectDetailModal({
             </div>
           </div>
         )}
+        {/* Assign Tech Stack Modal for Team Lead / PM / CEO */}
+        {isEditingTechStack && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#0084d4]">
+                    <Cpu className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-[14px] font-bold text-slate-900">Assign Technology Stack</h3>
+                    <p className="text-[11px] text-slate-500">Configure tech stack for {currentProject.name}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingTechStack(false)}
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-semibold text-slate-700">Available Technologies</span>
+                  <span className="text-[11px] text-slate-400">{selectedTechs.length} selected</span>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg max-h-48 overflow-y-auto">
+                  {techStacks.length === 0 ? (
+                    <p className="text-[12px] text-slate-400">No tech stacks configured yet.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {techStacks.map((tech) => {
+                        const isSelected = selectedTechs.includes(tech.name);
+                        return (
+                          <button
+                            type="button"
+                            key={tech.id}
+                            onClick={() => {
+                              setSelectedTechs((prev) =>
+                                isSelected ? prev.filter((t) => t !== tech.name) : [...prev, tech.name]
+                              );
+                            }}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer ${
+                              isSelected
+                                ? "bg-[#0084d4] text-white shadow-2xs border border-[#0084d4]"
+                                : "bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-100"
+                            }`}
+                          >
+                            <span>{isSelected ? "✓" : "+"}</span>
+                            <span>{tech.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Add Custom Tech Stack */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Add New Technology
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newTechInput}
+                      onChange={(e) => setNewTechInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddNewTech();
+                        }
+                      }}
+                      placeholder="e.g. Next.js, FastAPI, Swift"
+                      className="flex-1 px-3 py-1.5 text-[12px] border border-slate-200 rounded-lg focus:outline-none focus:border-[#0084d4] bg-white text-slate-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddNewTech}
+                      className="px-3 py-1.5 text-[12px] font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shrink-0 cursor-pointer"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingTechStack(false)}
+                  className="px-3.5 py-1.5 text-[12px] font-medium text-slate-600 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingTech}
+                  onClick={async () => {
+                    setIsSavingTech(true);
+                    try {
+                      updateProject(currentProject.id, { techStack: selectedTechs });
+                      setIsEditingTechStack(false);
+                    } finally {
+                      setIsSavingTech(false);
+                    }
+                  }}
+                  className="px-4 py-1.5 text-[12px] font-semibold text-white bg-[#0084d4] hover:bg-[#0073b7] rounded-lg transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
+                >
+                  {isSavingTech ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <DeleteMediaConfirmModal
           isOpen={Boolean(mediaDeleteTarget)}
           onClose={() => setMediaDeleteTarget(null)}

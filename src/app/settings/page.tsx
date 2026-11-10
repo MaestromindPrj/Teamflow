@@ -146,8 +146,10 @@ export default function SettingsPage() {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
+    const updatedFullName = formData.fullName.trim() || currentUser.fullName;
     updateUserProfile({
-      fullName: formData.fullName.trim() || currentUser.fullName,
+      name: updatedFullName,
+      fullName: updatedFullName,
       email: formData.email.trim() || currentUser.email,
       phone: formData.phone,
       avatar: formData.avatar || currentUser.avatar,
