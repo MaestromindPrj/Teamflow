@@ -18,6 +18,7 @@ function formatFileSize(bytes: number): string {
 }
 
 const ALLOWED_EXTS = ["doc", "docx", "pdf", "fig", "png", "jpeg", "jpg"];
+const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB limit
 
 function detectFileType(fileName: string, mimeType?: string): "image" | "pdf" | "figma" | "doc" {
   const ext = fileName.split(".").pop()?.toLowerCase();
@@ -53,14 +54,21 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [calculatedSize, setCalculatedSize] = useState("");
   const [mediaType, setMediaType] = useState<"image" | "pdf" | "figma" | "zip" | "doc">("figma");
+  const [fileError, setFileError] = useState("");
 
   if (!isOpen) return null;
 
   const handleFileSelect = (file: File | undefined) => {
     if (!file) return;
+    setFileError("");
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (!ext || !ALLOWED_EXTS.includes(ext)) {
-      alert("Only .doc, .docx, .pdf, .fig, .png, and .jpeg files are allowed.");
+      setFileError("Only .doc, .docx, .pdf, .fig, .png, and .jpeg files are allowed.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setFileError(`File size exceeds limit: "${file.name}" (${formatFileSize(file.size)}) exceeds the maximum upload limit of 100 MB. Please select a smaller file.`);
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -72,6 +80,7 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
   const handleRemoveFile = () => {
     setSelectedFile(null);
     setCalculatedSize("");
+    setFileError("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -82,6 +91,7 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
     setDescription("");
     setSelectedFile(null);
     setCalculatedSize("");
+    setFileError("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -290,9 +300,14 @@ export default function CreateTaskModal({ project, isOpen, onClose }: CreateTask
                   Upload media attachment
                 </span>
                 <span className="text-[11px] text-slate-400 hidden sm:inline">
-                  (.doc, .pdf, .fig, .docx, .png, .jpeg)
+                  (.doc, .pdf, .fig, .docx, .png, .jpeg - Max 100 MB)
                 </span>
               </div>
+            )}
+            {fileError && (
+              <p className="text-[11px] text-rose-600 mt-1.5 font-medium flex items-center gap-1">
+                <span>{fileError}</span>
+              </p>
             )}
           </div>
 

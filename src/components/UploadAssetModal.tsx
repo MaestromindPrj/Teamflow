@@ -29,6 +29,8 @@ interface SelectedFileItem {
   type: "image" | "pdf" | "figma" | "zip" | "doc";
   isDuplicate: boolean;
   duplicateReason?: string;
+  isSizeExceeded?: boolean;
+  sizeError?: string;
 }
 
 function formatFileSize(bytes: number): string {
@@ -38,6 +40,7 @@ function formatFileSize(bytes: number): string {
 }
 
 const ALLOWED_EXTS = ["doc", "docx", "pdf", "fig", "png", "jpeg", "jpg"];
+const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB limit
 
 function detectFileType(fileName: string, mimeType?: string): "image" | "pdf" | "figma" | "doc" {
   const ext = fileName.split(".").pop()?.toLowerCase();
@@ -150,11 +153,20 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
 
     const newItems: SelectedFileItem[] = [];
     const currentBatchNames = new Set(selectedFiles.map((f) => f.name.trim().toLowerCase()));
+    const oversizedFiles: string[] = [];
 
     validFilesList.forEach((file) => {
       const lower = file.name.trim().toLowerCase();
       let isDup = false;
       let dupReason = "";
+      let isSizeExceeded = false;
+      let sizeError = "";
+
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        isSizeExceeded = true;
+        sizeError = `File exceeds the 100 MB limit (${formatFileSize(file.size)})`;
+        oversizedFiles.push(`"${file.name}" (${formatFileSize(file.size)})`);
+      }
 
       if (existingProjectFileNames.has(lower)) {
         isDup = true;
@@ -172,9 +184,17 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
         size: formatFileSize(file.size),
         type: detectFileType(file.name, file.type),
         isDuplicate: isDup,
-        duplicateReason: dupReason
+        duplicateReason: dupReason,
+        isSizeExceeded,
+        sizeError,
       });
     });
+
+    if (oversizedFiles.length > 0) {
+      setErrorMessage(
+        `File size exceeds limit: ${oversizedFiles.join(", ")} exceeds the maximum upload limit of 100 MB. Please choose a smaller file or attach as an External Link.`
+      );
+    }
 
     setSelectedFiles((prev) => [...prev, ...newItems]);
     if (fileInputRef.current) {
@@ -211,8 +231,9 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
     }
   };
 
-  const validFilesToUpload = selectedFiles.filter((f) => !f.isDuplicate);
+  const validFilesToUpload = selectedFiles.filter((f) => !f.isDuplicate && !f.isSizeExceeded);
   const duplicateFilesCount = selectedFiles.filter((f) => f.isDuplicate).length;
+  const sizeExceededFilesCount = selectedFiles.filter((f) => f.isSizeExceeded).length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,10 +241,12 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
     setSuccessMessage("");
 
     if (validFilesToUpload.length === 0 && !remoteUrl.trim()) {
-      if (duplicateFilesCount > 0) {
+      if (sizeExceededFilesCount > 0 && duplicateFilesCount === 0) {
+        setErrorMessage("All selected files exceed the 100 MB limit. Please select files under 100 MB or attach as an External Link.");
+      } else if (duplicateFilesCount > 0 && sizeExceededFilesCount === 0) {
         setErrorMessage("All selected files are duplicates already present in this project.");
       } else {
-        setErrorMessage("Please select at least one file or enter an asset link.");
+        setErrorMessage("Please select at least one valid file under 100 MB or enter an asset link.");
       }
       return;
     }
@@ -424,7 +447,7 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
                 Choose files or drag & drop here
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Allowed formats: .doc, .pdf, .fig, .docx, .png, .jpeg only
+                Allowed formats: .doc, .pdf, .fig, .docx, .png, .jpeg (Max 100 MB per file)
               </p>
             </div>
           </div>
@@ -445,6 +468,15 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
                 </button>
               </div>
 
+              {sizeExceededFilesCount > 0 && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2 text-rose-800 text-[11px]">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>
+                    {sizeExceededFilesCount} file{sizeExceededFilesCount !== 1 ? "s" : ""} exceed{sizeExceededFilesCount === 1 ? "s" : ""} the 100 MB upload limit. Please remove oversized files or attach as an External Link.
+                  </span>
+                </div>
+              )}
+
               {duplicateFilesCount > 0 && (
                 <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-800 text-[11px]">
                   <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
@@ -459,7 +491,7 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
                   <div
                     key={item.id}
                     className={`flex items-center justify-between p-2.5 rounded-lg border text-left transition-all ${
-                      item.isDuplicate
+                      item.isSizeExceeded || item.isDuplicate
                         ? "bg-rose-50/60 border-rose-200"
                         : "bg-slate-50 border-slate-200"
                     }`}
@@ -467,7 +499,7 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div
                         className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-xs ${
-                          item.isDuplicate
+                          item.isSizeExceeded || item.isDuplicate
                             ? "bg-rose-100 text-rose-600"
                             : "bg-sky-50 text-[#0084d4]"
                         }`}
@@ -491,8 +523,16 @@ export default function UploadAssetModal({ isOpen, onClose }: UploadAssetModalPr
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      {item.isDuplicate ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-[#de2d1d] flex items-center gap-1">
+                      {item.isSizeExceeded ? (
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300 flex items-center gap-1"
+                          title={item.sizeError}
+                        >
+                          <AlertCircle className="w-3 h-3 text-rose-600" />
+                          <span>Exceeds 100 MB</span>
+                        </span>
+                      ) : item.isDuplicate ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 flex items-center gap-1">
                           <Ban className="w-3 h-3" />
                           <span>Duplicate</span>
                         </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   User,
   Project,
@@ -161,7 +161,7 @@ interface TeamFlowContextType {
       url?: string;
       rawFile?: File | null;
     }
-  ) => Promise<{ success: boolean; error?: string; isDuplicate?: boolean }>;
+  ) => Promise<{ success: boolean; error?: string; isDuplicate?: boolean; isSizeExceeded?: boolean }>;
   uploadProjectMedia: (
     projectId: string,
     file: {
@@ -171,7 +171,7 @@ interface TeamFlowContextType {
       url?: string;
       rawFile?: File | null;
     }
-  ) => Promise<{ success: boolean; error?: string; isDuplicate?: boolean }>;
+  ) => Promise<{ success: boolean; error?: string; isDuplicate?: boolean; isSizeExceeded?: boolean }>;
   deleteProjectMedia: (projectId: string, attachmentId: string) => Promise<boolean>;
   toggleClockInOut: () => void;
   toggleUserClockIn: (userId: string) => void;
@@ -266,6 +266,14 @@ const EMPTY_FALLBACK_USER: User = {
   avatar: "",
   phone: "",
   employeeId: "",
+};
+
+const DEFAULT_INACTIVE_CLOCK_IN_STATE: UserClockInState = {
+  isClockedIn: false,
+  clockInTimestamp: null,
+  clockInTimeString: null,
+  clockOutTimeString: null,
+  elapsedSeconds: 0,
 };
 
 export function sanitizeUserData(u: User): User {
@@ -870,28 +878,92 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     refreshFromBackend();
   }, [refreshFromBackend]);
 
+  // Fine-grained state persistence: only stringify the specific slice that changed
   useEffect(() => {
     if (!hasHydrated || !currentUserId) return;
     try {
       localStorage.setItem("teamflow_current_user", currentUserId);
+    } catch {}
+  }, [currentUserId, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
       localStorage.setItem("teamflow_projects", JSON.stringify(projects));
+    } catch {}
+  }, [projects, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
       localStorage.setItem("teamflow_tasks", JSON.stringify(tasks));
+    } catch {}
+  }, [tasks, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
       localStorage.setItem("teamflow_attendance", JSON.stringify(attendance));
+    } catch {}
+  }, [attendance, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
       localStorage.setItem("teamflow_user_clock_in_v3", JSON.stringify(userClockInData));
+    } catch {}
+  }, [userClockInData, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
       localStorage.setItem("teamflow_categories", JSON.stringify(categories));
+    } catch {}
+  }, [categories, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
       localStorage.setItem("teamflow_media_deletion_requests_v1", JSON.stringify(mediaDeletionRequests));
+    } catch {}
+  }, [mediaDeletionRequests, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
       localStorage.setItem("teamflow_leave_requests", JSON.stringify(leaveRequests));
+    } catch {}
+  }, [leaveRequests, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
       localStorage.setItem("teamflow_office_leaves", JSON.stringify(officeLeaves));
+    } catch {}
+  }, [officeLeaves, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
       localStorage.setItem("teamflow_tech_stacks", JSON.stringify(techStacks));
+    } catch {}
+  }, [techStacks, hasHydrated]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
       localStorage.setItem("teamflow_rewards_ledger", JSON.stringify(rewardsLedger));
     } catch {}
-  }, [currentUserId, projects, tasks, attendance, userClockInData, categories, mediaDeletionRequests, leaveRequests, officeLeaves, techStacks, jobRoles, rewardsLedger, hasHydrated]);
+  }, [rewardsLedger, hasHydrated]);
 
-  const currentUser: User =
-    users.find((u) => u.id === currentUserId) ||
-    (currentUserId
-      ? { ...EMPTY_FALLBACK_USER, id: currentUserId }
-      : users[0] || INITIAL_USERS[0] || EMPTY_FALLBACK_USER);
+  const currentUser: User = useMemo(() => {
+    return (
+      users.find((u) => u.id === currentUserId) ||
+      (currentUserId
+        ? { ...EMPTY_FALLBACK_USER, id: currentUserId }
+        : users[0] || INITIAL_USERS[0] || EMPTY_FALLBACK_USER)
+    );
+  }, [users, currentUserId]);
 
   const setCurrentUserId = (id: string) => {
     setCurrentUserIdState(id);
@@ -1514,7 +1586,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify(newTask),
     }).catch((err) => console.warn("Failed to persist task to backend:", err));
 
-    if (initialFile?.rawFile) {
+    if (initialFile?.rawFile && initialFile.rawFile.size <= 100 * 1024 * 1024) {
       const formData = new FormData();
       formData.append("file", initialFile.rawFile);
       formData.append("taskId", newTask.id);
@@ -1694,7 +1766,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       url?: string;
       rawFile?: File | null;
     }
-  ): Promise<{ success: boolean; error?: string; isDuplicate?: boolean }> => {
+  ): Promise<{ success: boolean; error?: string; isDuplicate?: boolean; isSizeExceeded?: boolean }> => {
     const targetTask = tasksRef.current.find((t) => t.id === taskId) || tasks.find((t) => t.id === taskId);
     if (!targetTask) {
       return { success: false, error: "Task not found." };
@@ -1715,26 +1787,104 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
+    const MAX_UPLOAD_FILE_BYTES = 100 * 1024 * 1024; // 100 MB limit
+    if (file.rawFile && file.rawFile.size > MAX_UPLOAD_FILE_BYTES) {
+      return {
+        success: false,
+        isSizeExceeded: true,
+        error: `File size exceeds limit: "${file.name}" (${file.size}) exceeds the maximum upload limit of 100 MB. Please choose a smaller file or attach an external deliverable link.`,
+      };
+    }
+
     if (file.rawFile) {
       try {
-        const formData = new FormData();
-        formData.append("file", file.rawFile);
-        formData.append("taskId", taskId);
-        formData.append("name", file.name);
-        formData.append("uploadedBy", currentUser.id);
-        formData.append("uploadedByName", currentUser.fullName);
+        let uploadRes: Response;
+        let directCloudSuccess = false;
+        let cloudUrl = "";
+        let cloudPublicId = "";
 
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
+        // Attempt direct signed upload to Cloudinary to bypass Vercel serverless request body limits (4.5 MB)
+        try {
+          const signRes = await fetch("/api/upload/sign");
+          if (signRes.ok) {
+            const signData = await signRes.json();
+            if (signData.configured && signData.signature && signData.apiKey && signData.cloudName) {
+              const cloudFormData = new FormData();
+              cloudFormData.append("file", file.rawFile);
+              cloudFormData.append("api_key", signData.apiKey);
+              cloudFormData.append("timestamp", signData.timestamp.toString());
+              cloudFormData.append("signature", signData.signature);
+              cloudFormData.append("folder", signData.folder);
+
+              const cloudRes = await fetch(
+                `https://api.cloudinary.com/v1_1/${signData.cloudName}/auto/upload`,
+                {
+                  method: "POST",
+                  body: cloudFormData,
+                }
+              );
+
+              if (cloudRes.ok) {
+                const cloudJson = await cloudRes.json();
+                cloudUrl = cloudJson.secure_url || cloudJson.url || "";
+                cloudPublicId = cloudJson.public_id || "";
+                directCloudSuccess = !!cloudUrl;
+              }
+            }
+          }
+        } catch (signErr) {
+          console.warn("Direct Cloudinary upload attempt fallback:", signErr);
+        }
+
+        if (directCloudSuccess && cloudUrl) {
+          uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              directUrl: cloudUrl,
+              publicId: cloudPublicId,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              taskId,
+              uploadedBy: currentUser.id,
+              uploadedByName: currentUser.fullName,
+            }),
+          });
+        } else {
+          const formData = new FormData();
+          formData.append("file", file.rawFile);
+          formData.append("taskId", taskId);
+          formData.append("name", file.name);
+          formData.append("uploadedBy", currentUser.id);
+          formData.append("uploadedByName", currentUser.fullName);
+
+          uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+        }
 
         if (!uploadRes.ok) {
-          const errData = await uploadRes.json().catch(() => ({}));
+          let errData: any = null;
+          try {
+            errData = await uploadRes.json();
+          } catch {
+            errData = null;
+          }
+          let errorMessage = errData?.error;
+          if (!errorMessage) {
+            if (uploadRes.status === 413) {
+              errorMessage = `File size exceeds the allowable limit (100 MB). Please choose a smaller file or attach an external deliverable link.`;
+            } else {
+              errorMessage = "Unable to complete file upload. Please verify the file and try again.";
+            }
+          }
           return {
             success: false,
             isDuplicate: Boolean(errData?.isDuplicate),
-            error: errData?.error || "Failed to upload file to cloud storage.",
+            isSizeExceeded: Boolean(errData?.isSizeExceeded || uploadRes.status === 413),
+            error: errorMessage,
           };
         }
 
@@ -1789,9 +1939,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
         return { success: true };
       } catch (uploadErr: unknown) {
-        const msg = uploadErr instanceof Error ? uploadErr.message : "Upload network failure";
         console.error("Could not upload to backend:", uploadErr);
-        return { success: false, error: msg };
+        return { success: false, error: "A network error occurred while uploading. Please check your connection and try again." };
       }
     } else {
       if (!file.url || file.url.startsWith("blob:")) {
@@ -1862,7 +2011,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       url?: string;
       rawFile?: File | null;
     }
-  ): Promise<{ success: boolean; error?: string; isDuplicate?: boolean }> => {
+  ): Promise<{ success: boolean; error?: string; isDuplicate?: boolean; isSizeExceeded?: boolean }> => {
     const targetProject = projects.find((p) => p.id === projectId);
     if (!targetProject) {
       return { success: false, error: "Project not found." };
@@ -1881,26 +2030,104 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
+    const MAX_UPLOAD_FILE_BYTES = 100 * 1024 * 1024; // 100 MB limit
+    if (file.rawFile && file.rawFile.size > MAX_UPLOAD_FILE_BYTES) {
+      return {
+        success: false,
+        isSizeExceeded: true,
+        error: `File size exceeds limit: "${file.name}" (${file.size}) exceeds the maximum upload limit of 100 MB. Please choose a smaller file or attach an external deliverable link.`,
+      };
+    }
+
     if (file.rawFile) {
       try {
-        const formData = new FormData();
-        formData.append("file", file.rawFile);
-        formData.append("projectId", projectId);
-        formData.append("name", file.name);
-        formData.append("uploadedBy", currentUser.id);
-        formData.append("uploadedByName", currentUser.fullName);
+        let uploadRes: Response;
+        let directCloudSuccess = false;
+        let cloudUrl = "";
+        let cloudPublicId = "";
 
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
+        // Attempt direct signed upload to Cloudinary to bypass Vercel serverless request body limits (4.5 MB)
+        try {
+          const signRes = await fetch("/api/upload/sign");
+          if (signRes.ok) {
+            const signData = await signRes.json();
+            if (signData.configured && signData.signature && signData.apiKey && signData.cloudName) {
+              const cloudFormData = new FormData();
+              cloudFormData.append("file", file.rawFile);
+              cloudFormData.append("api_key", signData.apiKey);
+              cloudFormData.append("timestamp", signData.timestamp.toString());
+              cloudFormData.append("signature", signData.signature);
+              cloudFormData.append("folder", signData.folder);
+
+              const cloudRes = await fetch(
+                `https://api.cloudinary.com/v1_1/${signData.cloudName}/auto/upload`,
+                {
+                  method: "POST",
+                  body: cloudFormData,
+                }
+              );
+
+              if (cloudRes.ok) {
+                const cloudJson = await cloudRes.json();
+                cloudUrl = cloudJson.secure_url || cloudJson.url || "";
+                cloudPublicId = cloudJson.public_id || "";
+                directCloudSuccess = !!cloudUrl;
+              }
+            }
+          }
+        } catch (signErr) {
+          console.warn("Direct Cloudinary upload attempt fallback:", signErr);
+        }
+
+        if (directCloudSuccess && cloudUrl) {
+          uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              directUrl: cloudUrl,
+              publicId: cloudPublicId,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              projectId,
+              uploadedBy: currentUser.id,
+              uploadedByName: currentUser.fullName,
+            }),
+          });
+        } else {
+          const formData = new FormData();
+          formData.append("file", file.rawFile);
+          formData.append("projectId", projectId);
+          formData.append("name", file.name);
+          formData.append("uploadedBy", currentUser.id);
+          formData.append("uploadedByName", currentUser.fullName);
+
+          uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+        }
 
         if (!uploadRes.ok) {
-          const errData = await uploadRes.json().catch(() => ({}));
+          let errData: any = null;
+          try {
+            errData = await uploadRes.json();
+          } catch {
+            errData = null;
+          }
+          let errorMessage = errData?.error;
+          if (!errorMessage) {
+            if (uploadRes.status === 413) {
+              errorMessage = `File size exceeds the allowable limit (100 MB). Please choose a smaller file or attach an external deliverable link.`;
+            } else {
+              errorMessage = "Unable to complete file upload. Please verify the file and try again.";
+            }
+          }
           return {
             success: false,
             isDuplicate: Boolean(errData?.isDuplicate),
-            error: errData?.error || "Failed to upload project media to cloud storage.",
+            isSizeExceeded: Boolean(errData?.isSizeExceeded || uploadRes.status === 413),
+            error: errorMessage,
           };
         }
 
@@ -1946,9 +2173,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
         return { success: true };
       } catch (uploadErr: unknown) {
-        const msg = uploadErr instanceof Error ? uploadErr.message : "Upload network failure";
         console.error("Could not upload project media to backend:", uploadErr);
-        return { success: false, error: msg };
+        return { success: false, error: "A network error occurred while uploading. Please check your connection and try again." };
       }
     } else {
       if (!file.url || file.url.startsWith("blob:")) {
@@ -2143,7 +2369,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     checkAndHandleMidnightRollover();
-    const interval = setInterval(checkAndHandleMidnightRollover, 5000);
+    const interval = setInterval(checkAndHandleMidnightRollover, 60000);
     return () => clearInterval(interval);
   }, [checkAndHandleMidnightRollover]);
 
@@ -2330,6 +2556,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
     // Sleep Detection & Heartbeat Engine (Web Worker maintains heartbeat in background tabs)
     let worker: Worker | null = null;
+    let workerUrl: string | null = null;
     let lastLocalTick = Date.now();
 
     const sendHeartbeat = () => {
@@ -2381,7 +2608,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         ],
         { type: "application/javascript" }
       );
-      const workerUrl = URL.createObjectURL(workerBlob);
+      workerUrl = URL.createObjectURL(workerBlob);
       worker = new Worker(workerUrl);
       worker.onmessage = (e) => {
         if (e.data?.type === "SLEEP_DETECTED") {
@@ -2416,8 +2643,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("pageshow", onTabRevisit);
     document.addEventListener("visibilitychange", onTabRevisit);
 
-    // Backup Periodic Heartbeat to backend (every 15s) while clocked in
-    const heartbeatInterval = setInterval(sendHeartbeat, 15000);
+    // Fallback Periodic Heartbeat only if Web Worker is unavailable
+    const heartbeatInterval = !worker ? setInterval(sendHeartbeat, 15000) : null;
 
     // Page Unload / Application Close Auto Clock-Out
     const handleUnload = () => {
@@ -2463,7 +2690,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     return () => {
       clearInterval(tabHeartbeat);
       clearInterval(windowInterval);
-      clearInterval(heartbeatInterval);
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
       window.removeEventListener("focus", onTabRevisit);
       window.removeEventListener("pageshow", onTabRevisit);
       document.removeEventListener("visibilitychange", onTabRevisit);
@@ -2471,6 +2698,9 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("beforeunload", handleUnload);
       if (worker) {
         worker.terminate();
+      }
+      if (workerUrl) {
+        URL.revokeObjectURL(workerUrl);
       }
       unregisterTab();
     };
@@ -2722,53 +2952,51 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     }).catch((err) => console.warn("Failed to persist clock-in to backend:", err));
   };
 
-  const currentUserClockIn: UserClockInState = userClockInData[currentUserId] || {
-    isClockedIn: false,
-    clockInTimestamp: null,
-    clockInTimeString: null,
-    clockOutTimeString: null,
-    elapsedSeconds: 0
-  };
+  const currentUserClockIn: UserClockInState = useMemo(() => {
+    return userClockInData[currentUserId] || DEFAULT_INACTIVE_CLOCK_IN_STATE;
+  }, [userClockInData, currentUserId]);
 
   const isClockedIn = currentUserClockIn.isClockedIn;
 
-  const toggleClockInOut = () => {
+  const toggleClockInOut = useCallback(() => {
     toggleUserClockIn(currentUserId);
-  };
+  }, [toggleUserClockIn, currentUserId]);
 
-  const getProjectTasks = (projectId: string) => {
+  const getProjectTasks = useCallback((projectId: string) => {
     return tasks.filter((t) => t.projectId === projectId);
-  };
+  }, [tasks]);
 
-  const getUserAssignedTasks = (userId: string, projectId?: string) => {
+  const getUserAssignedTasks = useCallback((userId: string, projectId?: string) => {
     return tasks.filter((t) => {
       const matchesUser = t.assignedTo === userId;
       if (projectId) return matchesUser && t.projectId === projectId;
       return matchesUser;
     });
-  };
+  }, [tasks]);
 
-  const getProjectTeamLead = (projectId: string) => {
+  const getProjectTeamLead = useCallback((projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
     if (!project) return undefined;
     return users.find((u) => u.id === project.teamLeadId);
-  };
+  }, [projects, users]);
 
-  const getProjectManager = (projectId: string) => {
+  const getProjectManager = useCallback((projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
     if (!project) return undefined;
     return users.find((u) => u.id === project.projectManagerId);
-  };
+  }, [projects, users]);
 
-  const isUserTeamLead = (userId: string, projectId: string) => {
+  const isUserTeamLead = useCallback((userId: string, projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
     if (!project) return false;
     return project.teamLeadId === userId;
-  };
+  }, [projects]);
 
-  const getAllMedia = () => {
+  const getAllMedia = useCallback(() => {
     const list: Array<TaskAttachment & { projectTitle: string; taskTitle: string; projectId: string }> = [];
+    const projectMap = new Map<string, Project>();
     projects.forEach((proj) => {
+      projectMap.set(proj.id, proj);
       (proj.attachments || []).forEach((att) => {
         list.push({
           ...att,
@@ -2779,8 +3007,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       });
     });
     tasks.forEach((t) => {
-      const proj = projects.find((p) => p.id === t.projectId);
-      t.attachments.forEach((att) => {
+      const proj = projectMap.get(t.projectId);
+      (t.attachments || []).forEach((att) => {
         list.push({
           ...att,
           projectTitle: proj ? proj.name : "Unknown Project",
@@ -2790,9 +3018,9 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       });
     });
     return list;
-  };
+  }, [projects, tasks]);
 
-  const getProjectMedia = (projectId: string) => {
+  const getProjectMedia = useCallback((projectId: string) => {
     const list: Array<TaskAttachment & { taskTitle: string }> = [];
     const proj = projects.find((p) => p.id === projectId);
     if (proj) {
@@ -2806,7 +3034,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     tasks
       .filter((t) => t.projectId === projectId)
       .forEach((t) => {
-        t.attachments.forEach((att) => {
+        (t.attachments || []).forEach((att) => {
           list.push({
             ...att,
             taskTitle: t.title
@@ -2814,7 +3042,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         });
       });
     return list;
-  };
+  }, [projects, tasks]);
 
   const canUserDeleteMedia = (projectId: string): boolean => {
     if (currentUser.role === "ceo") return true;
@@ -3394,79 +3622,151 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const contextValue: TeamFlowContextType = useMemo(
+    () => ({
+      hasHydrated,
+      jobRolesLoaded,
+      currentUser,
+      users,
+      projects,
+      tasks,
+      attendance,
+      userClockInData,
+      currentUserClockIn,
+      setCurrentUserId,
+      updateUserProfile,
+      updateTeamMember,
+      deleteUser,
+      createProject,
+      updateProject,
+      deleteProject,
+      createTask,
+      updateTask,
+      deleteTask,
+      uploadTaskMedia,
+      uploadProjectMedia,
+      deleteProjectMedia,
+      toggleClockInOut,
+      toggleUserClockIn,
+      isClockedIn,
+      getProjectTasks,
+      getUserAssignedTasks,
+      getProjectTeamLead,
+      getProjectManager,
+      isUserTeamLead,
+      getAllMedia,
+      getProjectMedia,
+      jobRoles,
+      createJobRole,
+      updateJobRole,
+      deleteJobRole,
+      categories,
+      createCategory,
+      updateCategory,
+      deleteCategory,
+      departments,
+      createDepartment,
+      updateDepartment,
+      deleteDepartment,
+      addTeamMember,
+      login,
+      logout,
+      rewardsLedger,
+      awardRewardPoints,
+      leaveRequests,
+      applyLeave,
+      reviewLeaveRequest,
+      deleteTaskMedia,
+      canUserDeleteMedia,
+      mediaDeletionRequests,
+      requestMediaDeletion,
+      resolveMediaDeletionRequest,
+      sleepNotice,
+      dismissSleepNotice,
+      officeLeaves,
+      createOfficeLeave,
+      deleteOfficeLeave,
+      techStacks,
+      createTechStack,
+      updateTechStack,
+      deleteTechStack,
+      notificationPreferences,
+      updateNotificationPreferences,
+    }),
+    [
+      hasHydrated,
+      jobRolesLoaded,
+      currentUser,
+      users,
+      projects,
+      tasks,
+      attendance,
+      userClockInData,
+      currentUserClockIn,
+      setCurrentUserId,
+      updateUserProfile,
+      updateTeamMember,
+      deleteUser,
+      createProject,
+      updateProject,
+      deleteProject,
+      createTask,
+      updateTask,
+      deleteTask,
+      uploadTaskMedia,
+      uploadProjectMedia,
+      deleteProjectMedia,
+      toggleClockInOut,
+      toggleUserClockIn,
+      isClockedIn,
+      getProjectTasks,
+      getUserAssignedTasks,
+      getProjectTeamLead,
+      getProjectManager,
+      isUserTeamLead,
+      getAllMedia,
+      getProjectMedia,
+      jobRoles,
+      createJobRole,
+      updateJobRole,
+      deleteJobRole,
+      categories,
+      createCategory,
+      updateCategory,
+      deleteCategory,
+      departments,
+      createDepartment,
+      updateDepartment,
+      deleteDepartment,
+      addTeamMember,
+      login,
+      logout,
+      rewardsLedger,
+      awardRewardPoints,
+      leaveRequests,
+      applyLeave,
+      reviewLeaveRequest,
+      deleteTaskMedia,
+      canUserDeleteMedia,
+      mediaDeletionRequests,
+      requestMediaDeletion,
+      resolveMediaDeletionRequest,
+      sleepNotice,
+      dismissSleepNotice,
+      officeLeaves,
+      createOfficeLeave,
+      deleteOfficeLeave,
+      techStacks,
+      createTechStack,
+      updateTechStack,
+      deleteTechStack,
+      notificationPreferences,
+      updateNotificationPreferences,
+    ]
+  );
+
   return (
-    <TeamFlowContext.Provider
-      value={{
-        hasHydrated,
-        jobRolesLoaded,
-        currentUser,
-        users,
-        projects,
-        tasks,
-        attendance,
-        userClockInData,
-        currentUserClockIn,
-        setCurrentUserId,
-        updateUserProfile,
-        updateTeamMember,
-        deleteUser,
-        createProject,
-        updateProject,
-        deleteProject,
-        createTask,
-        updateTask,
-        deleteTask,
-        uploadTaskMedia,
-        uploadProjectMedia,
-        deleteProjectMedia,
-        toggleClockInOut,
-        toggleUserClockIn,
-        isClockedIn,
-        getProjectTasks,
-        getUserAssignedTasks,
-        getProjectTeamLead,
-        getProjectManager,
-        isUserTeamLead,
-        getAllMedia,
-        getProjectMedia,
-        jobRoles,
-        createJobRole,
-        updateJobRole,
-        deleteJobRole,
-        categories,
-        createCategory,
-        updateCategory,
-        deleteCategory,
-        departments,
-        createDepartment,
-        updateDepartment,
-        deleteDepartment,
-        addTeamMember,
-        login,
-        logout,
-        rewardsLedger,
-        awardRewardPoints,
-        leaveRequests,
-        applyLeave,
-        reviewLeaveRequest,
-        deleteTaskMedia,
-        canUserDeleteMedia,
-        mediaDeletionRequests,
-        requestMediaDeletion,
-        resolveMediaDeletionRequest,
-        sleepNotice,
-        dismissSleepNotice,
-        officeLeaves,
-        createOfficeLeave,
-        deleteOfficeLeave,
-        techStacks,
-        createTechStack,
-        updateTechStack,
-        deleteTechStack,
-        notificationPreferences,
-        updateNotificationPreferences
-      }}
-    >
+    <TeamFlowContext.Provider value={contextValue}>
       {children}
     </TeamFlowContext.Provider>
   );

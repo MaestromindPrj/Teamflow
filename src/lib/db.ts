@@ -263,6 +263,14 @@ export async function initDatabase() {
       await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb;`;
       await sql`ALTER TABLE project_categories DROP COLUMN IF EXISTS description;`;
 
+      // Performance Indexes for scalable, fast querying
+      await sql`CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_attendance_user_date ON attendance(user_id, date);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_leave_requests_user_id ON leave_requests(user_id);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_rewards_ledger_user_id ON rewards_ledger(user_id);`;
+
       // Migrate project codes to be based on categories
       await sql`
         UPDATE projects
@@ -356,79 +364,85 @@ export async function initDatabase() {
       }
     }
 
-    const projectCountResult = await sql`SELECT COUNT(*)::int AS count FROM projects;`;
-    const projectCount = Number(projectCountResult[0]?.count || 0);
+    if (INITIAL_PROJECTS.length > 0) {
+      const projectCountResult = await sql`SELECT COUNT(*)::int AS count FROM projects;`;
+      const projectCount = Number(projectCountResult[0]?.count || 0);
 
-    if (projectCount === 0) {
-      for (const p of INITIAL_PROJECTS) {
-        await sql`
-          INSERT INTO projects (id, name, code, project_manager_id, team_lead_id, team_member_ids, status, priority, start_date, deadline, category, budget, tech_stack)
-          VALUES (
-            ${p.id},
-            ${p.name},
-            ${p.code},
-            ${p.projectManagerId},
-            ${p.teamLeadId},
-            ${JSON.stringify(p.teamMemberIds)}::jsonb,
-            ${p.status},
-            ${p.priority},
-            ${p.startDate},
-            ${p.deadline},
-            ${p.category},
-            ${p.budget},
-            ${JSON.stringify(p.techStack || [])}::jsonb
-          )
-          ON CONFLICT (id) DO NOTHING;
-        `;
+      if (projectCount === 0) {
+        for (const p of INITIAL_PROJECTS) {
+          await sql`
+            INSERT INTO projects (id, name, code, project_manager_id, team_lead_id, team_member_ids, status, priority, start_date, deadline, category, budget, tech_stack)
+            VALUES (
+              ${p.id},
+              ${p.name},
+              ${p.code},
+              ${p.projectManagerId},
+              ${p.teamLeadId},
+              ${JSON.stringify(p.teamMemberIds)}::jsonb,
+              ${p.status},
+              ${p.priority},
+              ${p.startDate},
+              ${p.deadline},
+              ${p.category},
+              ${p.budget},
+              ${JSON.stringify(p.techStack || [])}::jsonb
+            )
+            ON CONFLICT (id) DO NOTHING;
+          `;
+        }
       }
     }
 
-    const taskCountResult = await sql`SELECT COUNT(*)::int AS count FROM tasks;`;
-    const taskCount = Number(taskCountResult[0]?.count || 0);
+    if (INITIAL_TASKS_DATA.length > 0) {
+      const taskCountResult = await sql`SELECT COUNT(*)::int AS count FROM tasks;`;
+      const taskCount = Number(taskCountResult[0]?.count || 0);
 
-    if (taskCount === 0) {
-      for (const t of INITIAL_TASKS_DATA) {
-        await sql`
-          INSERT INTO tasks (id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity)
-          VALUES (
-            ${t.id},
-            ${t.projectId},
-            ${t.title},
-            ${t.description},
-            ${t.assignedTo},
-            ${t.assignedBy},
-            ${t.priority},
-            ${t.status},
-            ${t.deadline},
-            ${t.progress},
-            ${JSON.stringify(t.attachments || [])}::jsonb,
-            ${JSON.stringify(t.activity || [])}::jsonb
-          )
-          ON CONFLICT (id) DO NOTHING;
-        `;
+      if (taskCount === 0) {
+        for (const t of INITIAL_TASKS_DATA) {
+          await sql`
+            INSERT INTO tasks (id, project_id, title, description, assigned_to, assigned_by, priority, status, deadline, progress, attachments, activity)
+            VALUES (
+              ${t.id},
+              ${t.projectId},
+              ${t.title},
+              ${t.description},
+              ${t.assignedTo},
+              ${t.assignedBy},
+              ${t.priority},
+              ${t.status},
+              ${t.deadline},
+              ${t.progress},
+              ${JSON.stringify(t.attachments || [])}::jsonb,
+              ${JSON.stringify(t.activity || [])}::jsonb
+            )
+            ON CONFLICT (id) DO NOTHING;
+          `;
+        }
       }
     }
 
-    const attCountResult = await sql`SELECT COUNT(*)::int AS count FROM attendance;`;
-    const attCount = Number(attCountResult[0]?.count || 0);
+    if (INITIAL_ATTENDANCE_DATA.length > 0) {
+      const attCountResult = await sql`SELECT COUNT(*)::int AS count FROM attendance;`;
+      const attCount = Number(attCountResult[0]?.count || 0);
 
-    if (attCount === 0) {
-      for (const a of INITIAL_ATTENDANCE_DATA) {
-        await sql`
-          INSERT INTO attendance (id, user_id, user_name, user_role, date, clock_in, clock_out, duration, status)
-          VALUES (
-            ${a.id},
-            ${a.userId},
-            ${a.userName},
-            ${a.userRole},
-            ${a.date},
-            ${a.clockIn},
-            ${a.clockOut},
-            ${a.duration},
-            ${a.status}
-          )
-          ON CONFLICT (id) DO NOTHING;
-        `;
+      if (attCount === 0) {
+        for (const a of INITIAL_ATTENDANCE_DATA) {
+          await sql`
+            INSERT INTO attendance (id, user_id, user_name, user_role, date, clock_in, clock_out, duration, status)
+            VALUES (
+              ${a.id},
+              ${a.userId},
+              ${a.userName},
+              ${a.userRole},
+              ${a.date},
+              ${a.clockIn},
+              ${a.clockOut},
+              ${a.duration},
+              ${a.status}
+            )
+            ON CONFLICT (id) DO NOTHING;
+          `;
+        }
       }
     }
 

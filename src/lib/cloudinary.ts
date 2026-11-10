@@ -100,5 +100,14 @@ export async function uploadToCloudinary(
   });
 }
 
+export function generateCloudinarySignature(paramsToSign: Record<string, string | number>): string {
+  configureCloudinary();
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  if (!apiSecret) {
+    throw new Error("Cloudinary API secret is not configured.");
+  }
+  return cloudinary.utils.api_sign_request(paramsToSign, apiSecret);
+}
+
 export default cloudinary;
 
