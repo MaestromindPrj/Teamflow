@@ -16,12 +16,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-100/60 antialiased">
       <Sidebar />
-      <main className="flex-1 flex flex-col h-full overflow-y-auto">
-        {children}
-      </main>
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[#f8fafc]">
+        <main className="flex-1 flex flex-col h-full overflow-y-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
-

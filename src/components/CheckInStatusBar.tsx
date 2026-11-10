@@ -123,7 +123,7 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
               isOnLeaveToday
                 ? "bg-amber-100 text-amber-700 border border-amber-200"
                 : isCheckedIn
-                ? "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30 shadow-2xs"
+                ? "bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-2xs"
                 : "bg-slate-100 text-slate-500 border border-slate-200"
             }`}
           >
@@ -178,8 +178,8 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
                 aria-checked={isCheckedIn}
                 onClick={toggleClockInOut}
                 title={isCheckedIn ? "Click to Check Out" : "Click to Check In"}
-                className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#0084d4] focus:ring-offset-2 ${
-                  isCheckedIn ? "bg-[#4ade1d]" : "bg-slate-300 hover:bg-slate-400"
+                className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                  isCheckedIn ? "bg-emerald-500" : "bg-slate-300 hover:bg-slate-400"
                 }`}
               >
                 <span className="sr-only">Toggle Workday Check-In</span>
@@ -222,7 +222,7 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
           <div className="flex flex-col items-center">
             <span
               className={`text-[16px] font-bold font-mono leading-none ${
-                isCheckedIn ? "text-[#4ade1d]" : "text-slate-500"
+                isCheckedIn ? "text-emerald-600" : "text-slate-500"
               }`}
             >
               {pad(seconds)}
@@ -234,11 +234,11 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
         </div>
 
         <span
-          className={`text-[11px] font-bold px-2 py-1 rounded-md tracking-wider ${
+          className={`text-[11px] font-bold px-2.5 py-1 rounded-md tracking-wider ${
             isOnLeaveToday
               ? "bg-amber-100 text-amber-800 border border-amber-200"
               : isCheckedIn
-              ? "bg-[#4ade1d]/15 text-[#4ade1d]"
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
               : "bg-slate-100 text-slate-600"
           }`}
         >

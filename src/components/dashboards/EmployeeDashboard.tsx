@@ -46,7 +46,7 @@ export default function EmployeeDashboard() {
         <div className="flex flex-col justify-between gap-4 bg-linear-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-lg p-5 shadow-md border border-slate-800">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-white/10 text-white text-[11px] font-semibold border border-white/20">
-              <UserCheck className="w-3 h-3 text-[#4ade1d]" />
+              <UserCheck className="w-3 h-3 text-emerald-400" />
               <span>Employee Workspace</span>
             </div>
             <h2 className="text-[19px] font-bold tracking-tight">

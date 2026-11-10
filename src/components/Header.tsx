@@ -519,19 +519,19 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
       case "ceo":
         return {
           label: "CEO",
-          className: "bg-purple-100 text-purple-700 border-purple-200",
+          className: "bg-purple-50 text-purple-700 border-purple-200/80",
           icon: ShieldCheck
         };
       case "project_manager":
         return {
           label: "Project Manager",
-          className: "bg-blue-100 text-blue-700 border-blue-200",
+          className: "bg-blue-50 text-blue-700 border-blue-200/80",
           icon: Briefcase
         };
       default:
         return {
           label: "Employee",
-          className: "bg-[#4ade1d]/15 text-[#4ade1d] border-[#4ade1d]/30",
+          className: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
           icon: UserCheck
         };
     }
@@ -539,14 +539,14 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
 
   return (
     <header
-      className="px-7 pt-6 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 bg-white/70 backdrop-blur-xs sticky top-0 z-30"
+      className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
       suppressHydrationWarning
     >
       <div>
-        <h1 className="text-[20px] font-bold text-slate-900 tracking-tight leading-snug">
+        <h1 className="text-[19px] sm:text-[21px] font-bold text-slate-900 tracking-tight leading-snug">
           {title}
         </h1>
-        <p className="text-[13px] text-slate-500 font-normal mt-0.5">
+        <p className="text-[12px] sm:text-[13px] text-slate-500 font-normal mt-0.5">
           {subtitle}
         </p>
       </div>
@@ -557,14 +557,21 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
         {mounted && hasHydrated && currentUser.id && currentUser.role !== "ceo" && (
           <button
             onClick={toggleClockInOut}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors cursor-pointer shadow-2xs ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12px] font-semibold border transition-all cursor-pointer shadow-xs ${
               isClockedIn
-                ? "bg-[#4ade1d]/15 text-[#4ade1d] border-[#4ade1d]/30 hover:bg-[#4ade1d]/25"
-                : "bg-[#ffa500]/15 text-[#ffa500] border-[#ffa500]/30 hover:bg-[#ffa500]/25"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70"
+                : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100/70"
             }`}
             title="Toggle Clock In / Out"
           >
-            <Clock className="w-3.5 h-3.5" />
+            {isClockedIn ? (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+            )}
             <span>{isClockedIn ? "Clocked In" : "Clocked Out"}</span>
           </button>
         )}
@@ -680,7 +687,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           >
             <Bell className="w-4 h-4 stroke-[1.8]" />
             {mounted && hasHydrated && notifications.length > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-[#de2d1d] text-white text-[9.5px] font-bold rounded-full flex items-center justify-center shadow-xs animate-in zoom-in-75">
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-rose-600 text-white text-[9.5px] font-bold rounded-full flex items-center justify-center shadow-xs animate-in zoom-in-75">
                 {notifications.length > 9 ? "9+" : notifications.length}
               </span>
             )}

@@ -1,100 +1,26 @@
 @import "tailwindcss";
 
-@theme {
-  --color-orange-50: rgba(255, 165, 0, 0.15);
-  --color-orange-100: rgba(255, 165, 0, 0.15);
-  --color-orange-200: rgba(255, 165, 0, 0.3);
-  --color-orange-300: rgba(255, 165, 0, 0.45);
-  --color-orange-400: #ffa500;
-  --color-orange-500: #ffa500;
-  --color-orange-600: #ffa500;
-  --color-orange-700: #ffa500;
-  --color-orange-800: #ffa500;
-  --color-orange-900: #ffa500;
-  --color-orange-950: #ffa500;
-
-  --color-amber-50: rgba(255, 165, 0, 0.15);
-  --color-amber-100: rgba(255, 165, 0, 0.15);
-  --color-amber-200: rgba(255, 165, 0, 0.3);
-  --color-amber-300: rgba(255, 165, 0, 0.45);
-  --color-amber-400: #ffa500;
-  --color-amber-500: #ffa500;
-  --color-amber-600: #ffa500;
-  --color-amber-700: #ffa500;
-  --color-amber-800: #ffa500;
-  --color-amber-900: #ffa500;
-  --color-amber-950: #ffa500;
-
-  --color-green-50: rgba(74, 222, 29, 0.15);
-  --color-green-100: rgba(74, 222, 29, 0.15);
-  --color-green-200: rgba(74, 222, 29, 0.3);
-  --color-green-300: rgba(74, 222, 29, 0.45);
-  --color-green-400: #4ade1d;
-  --color-green-500: #4ade1d;
-  --color-green-600: #4ade1d;
-  --color-green-700: #4ade1d;
-  --color-green-800: #4ade1d;
-  --color-green-900: #4ade1d;
-  --color-green-950: #4ade1d;
-
-  --color-emerald-50: rgba(74, 222, 29, 0.15);
-  --color-emerald-100: rgba(74, 222, 29, 0.15);
-  --color-emerald-200: rgba(74, 222, 29, 0.3);
-  --color-emerald-300: rgba(74, 222, 29, 0.45);
-  --color-emerald-400: #4ade1d;
-  --color-emerald-500: #4ade1d;
-  --color-emerald-600: #4ade1d;
-  --color-emerald-700: #4ade1d;
-  --color-emerald-800: #4ade1d;
-  --color-emerald-900: #4ade1d;
-  --color-emerald-950: #4ade1d;
-
-  --color-red-50: rgba(222, 45, 29, 0.15);
-  --color-red-100: rgba(222, 45, 29, 0.15);
-  --color-red-200: rgba(222, 45, 29, 0.3);
-  --color-red-300: rgba(222, 45, 29, 0.45);
-  --color-red-400: #de2d1d;
-  --color-red-500: #de2d1d;
-  --color-red-600: #de2d1d;
-  --color-red-700: #de2d1d;
-  --color-red-800: #de2d1d;
-  --color-red-900: #de2d1d;
-  --color-red-950: #de2d1d;
-
-  --color-rose-50: rgba(222, 45, 29, 0.15);
-  --color-rose-100: rgba(222, 45, 29, 0.15);
-  --color-rose-200: rgba(222, 45, 29, 0.3);
-  --color-rose-300: rgba(222, 45, 29, 0.45);
-  --color-rose-400: #de2d1d;
-  --color-rose-500: #de2d1d;
-  --color-rose-600: #de2d1d;
-  --color-rose-700: #de2d1d;
-  --color-rose-800: #de2d1d;
-  --color-rose-900: #de2d1d;
-  --color-rose-950: #de2d1d;
-}
-
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
-  --card-border: #f1f5f9;
-  --sidebar: #ffffff;
-  --sidebar-border: #e2e8f0;
-  --primary: #0084d4;
-  --primary-hover: #0277bd;
+  --card-border: #e2e8f0;
+  --sidebar: #0f172a;
+  --sidebar-border: #1e293b;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
 
-  --app-orange: #ffa500;
-  --app-orange-bg: rgba(255, 165, 0, 0.15);
-  --app-orange-border: rgba(255, 165, 0, 0.3);
+  --app-orange: #f59e0b;
+  --app-orange-bg: rgba(245, 158, 11, 0.12);
+  --app-orange-border: rgba(245, 158, 11, 0.25);
 
-  --app-green: #4ade1d;
-  --app-green-bg: rgba(74, 222, 29, 0.15);
-  --app-green-border: rgba(74, 222, 29, 0.3);
+  --app-green: #10b981;
+  --app-green-bg: rgba(16, 185, 129, 0.12);
+  --app-green-border: rgba(16, 185, 129, 0.25);
 
-  --app-red: #de2d1d;
-  --app-red-bg: rgba(222, 45, 29, 0.15);
-  --app-red-border: rgba(222, 45, 29, 0.3);
+  --app-red: #ef4444;
+  --app-red-bg: rgba(239, 68, 68, 0.12);
+  --app-red-border: rgba(239, 68, 68, 0.25);
 }
 
 body {
@@ -105,6 +31,37 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* =========================================================================
+   Standard Enterprise Palette Overrides (Removes harsh neon AI colors)
+   ========================================================================= */
+
+/* Emerald / Success */
+.text-\[\#4ade1d\] { color: #059669 !important; }
+.bg-\[\#4ade1d\] { background-color: #10b981 !important; }
+.bg-\[\#4ade1d\]\/10 { background-color: rgba(16, 185, 129, 0.08) !important; }
+.bg-\[\#4ade1d\]\/15 { background-color: rgba(16, 185, 129, 0.12) !important; }
+.bg-\[\#4ade1d\]\/25 { background-color: rgba(16, 185, 129, 0.2) !important; }
+.border-\[\#4ade1d\]\/30 { border-color: rgba(16, 185, 129, 0.28) !important; }
+
+/* Amber / Warning */
+.text-\[\#ffa500\] { color: #d97706 !important; }
+.bg-\[\#ffa500\] { background-color: #f59e0b !important; }
+.bg-\[\#ffa500\]\/10 { background-color: rgba(245, 158, 11, 0.08) !important; }
+.bg-\[\#ffa500\]\/15 { background-color: rgba(245, 158, 11, 0.12) !important; }
+.bg-\[\#ffa500\]\/25 { background-color: rgba(245, 158, 11, 0.2) !important; }
+.border-\[\#ffa500\]\/30 { border-color: rgba(245, 158, 11, 0.28) !important; }
+.border-\[\#ffa500\]\/40 { border-color: rgba(245, 158, 11, 0.38) !important; }
+
+/* Primary Royal Blue (Linear / Stripe Executive Blue) */
+.text-\[\#0084d4\] { color: #2563eb !important; }
+.bg-\[\#0084d4\] { background-color: #2563eb !important; }
+.bg-\[\#0084d4\]\/10 { background-color: rgba(37, 99, 235, 0.08) !important; }
+.bg-\[\#0084d4\]\/15 { background-color: rgba(37, 99, 235, 0.12) !important; }
+.border-\[\#0084d4\] { border-color: #2563eb !important; }
+.border-\[\#0084d4\]\/30 { border-color: rgba(37, 99, 235, 0.3) !important; }
+.hover\:bg-\[\#0277bd\]:hover { background-color: #1d4ed8 !important; }
+
+/* Sleek Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
