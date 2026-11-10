@@ -52,6 +52,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
   } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -639,14 +640,31 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
               <div className="pt-1 border-t border-slate-100 px-1.5">
                 <button
                   type="button"
-                  onClick={() => {
-                    logout();
-                    setShowUserMenu(false);
+                  disabled={isSigningOut}
+                  onClick={async () => {
+                    if (isSigningOut) return;
+                    setIsSigningOut(true);
+                    try {
+                      await logout();
+                    } catch {
+                      if (typeof window !== "undefined") {
+                        window.location.replace("/login");
+                      }
+                    }
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <LogOut className="w-4 h-4 text-red-500" />
-                  <span>Sign Out</span>
+                  {isSigningOut ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                      <span>Signing Out...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="w-4 h-4 text-red-500" />
+                      <span>Sign Out</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

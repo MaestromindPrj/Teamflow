@@ -38,16 +38,17 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { currentUser, users, hasHydrated } = useTeamFlow();
   const [mounted, setMounted] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("teamflow_sidebar_collapsed") === "true";
+      } catch {}
+    }
+    return false;
+  });
 
   useEffect(() => {
     setMounted(true);
-    try {
-      const saved = localStorage.getItem("teamflow_sidebar_collapsed");
-      if (saved !== null) {
-        setIsCollapsed(saved === "true");
-      }
-    } catch {}
   }, []);
 
   const toggleSidebar = () => {
@@ -64,12 +65,21 @@ export default function Sidebar() {
     return null;
   }
 
-  if (!mounted || !hasHydrated) {
+  if (!mounted || !hasHydrated || !currentUser.id) {
     return (
-      <aside className="w-56 md:w-64 bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 select-none" suppressHydrationWarning>
+      <aside
+        className={`bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 select-none ${
+          isCollapsed ? "w-18" : "w-56 md:w-64"
+        }`}
+        suppressHydrationWarning
+      >
         <div>
-          <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100">
-            <Link href="/" className="flex items-center gap-2.5">
+          <div
+            className={`h-16 flex items-center border-b border-slate-100 px-3.5 ${
+              isCollapsed ? "justify-center" : "justify-between"
+            }`}
+          >
+            <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -86,19 +96,26 @@ export default function Sidebar() {
                   M
                 </div>
               </div>
-              <div className="flex flex-col justify-center min-w-0">
-                <span className="font-bold text-[16px] text-slate-900 tracking-tight leading-none">
-                  Maestrominds
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase mt-1 leading-none">
-                  Enterprise PM
-                </span>
-              </div>
-            </Link>
+              {!isCollapsed && (
+                <div className="flex flex-col justify-center min-w-0">
+                  <span className="font-bold text-[16px] text-slate-900 tracking-tight leading-none truncate">
+                    Maestrominds
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase mt-1 leading-none truncate">
+                    Enterprise PM
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="p-3 space-y-1.5 animate-pulse">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-9.5 bg-slate-100 rounded-lg" />
+              <div
+                key={i}
+                className={`h-9.5 bg-slate-100 rounded-lg ${
+                  isCollapsed ? "w-10 mx-auto" : "w-full"
+                }`}
+              />
             ))}
           </div>
         </div>
@@ -106,8 +123,7 @@ export default function Sidebar() {
     );
   }
 
-  const activeUser = currentUser.id ? currentUser : (users[0] || currentUser);
-  const role = activeUser.role || "employer";
+  const role = currentUser.id ? currentUser.role : "employer";
   const isCeoOrPm = role === "ceo" || role === "project_manager";
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
@@ -132,7 +148,9 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 select-none transition-all duration-300 ease-in-out ${
+      className={`bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 select-none ${
+        mounted ? "transition-all duration-200 ease-in-out" : ""
+      } ${
         isCollapsed ? "w-18" : "w-56 md:w-64"
       }`}
     >

@@ -620,10 +620,10 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
-      const hasAttendanceCleaned = localStorage.getItem("teamflow_attendance_v4_reset");
+      const hasAttendanceCleaned = localStorage.getItem("teamflow_attendance_v6_reset");
       if (!hasAttendanceCleaned) {
         localStorage.removeItem("teamflow_attendance");
-        localStorage.setItem("teamflow_attendance_v4_reset", "true");
+        localStorage.setItem("teamflow_attendance_v6_reset", "true");
       } else if (savedAttendance) {
         try {
           const parsed = JSON.parse(savedAttendance);
@@ -786,7 +786,11 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       if (attendanceRes && attendanceRes.ok) {
         const data = await attendanceRes.json();
         if (Array.isArray(data.attendance) && data.source !== "error" && data.source !== "fallback_error") {
-          setAttendance(data.attendance);
+          const rawAtt: AttendanceRecord[] = data.attendance;
+          setAttendance((prev) => {
+            // Keep user names fresh and in sync with users
+            return rawAtt;
+          });
         }
       }
 
@@ -861,6 +865,23 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
               ? prev.map((u) => (u.id === sanitized.id ? { ...u, ...sanitized } : u))
               : [sanitized, ...prev];
           });
+        } else {
+          // No active user session from server
+          setCurrentUserIdState("");
+          try {
+            localStorage.removeItem("teamflow_current_user");
+          } catch {}
+          if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+            window.location.replace("/login");
+          }
+        }
+      } else if (meRes && (meRes.status === 401 || meRes.status === 403)) {
+        setCurrentUserIdState("");
+        try {
+          localStorage.removeItem("teamflow_current_user");
+        } catch {}
+        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+          window.location.replace("/login");
         }
       }
     } catch (err) {
@@ -953,11 +974,12 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   }, [rewardsLedger, hasHydrated]);
 
   const currentUser: User = useMemo(() => {
+    if (!currentUserId) {
+      return EMPTY_FALLBACK_USER;
+    }
     return (
       users.find((u) => u.id === currentUserId) ||
-      (currentUserId
-        ? { ...EMPTY_FALLBACK_USER, id: currentUserId }
-        : users[0] || INITIAL_USERS[0] || EMPTY_FALLBACK_USER)
+      { ...EMPTY_FALLBACK_USER, id: currentUserId }
     );
   }, [users, currentUserId]);
 
@@ -1397,14 +1419,22 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async (): Promise<void> => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch {}
+    setCurrentUserIdState("");
     try {
       localStorage.removeItem("teamflow_current_user");
+      localStorage.removeItem("teamflow_attendance");
+      localStorage.removeItem("teamflow_users");
     } catch {}
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      console.warn("Logout fetch failed:", err);
+    }
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      window.location.replace("/login");
     }
   };
 

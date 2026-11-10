@@ -330,6 +330,29 @@ export async function initDatabase() {
         SET initial_password = ${defaultPassword}, password_hash = ${defaultHash} 
         WHERE password_hash IS NULL OR password_hash = '';
       `;
+
+      // Always synchronize historical denormalized names with authoritative users table
+      await sql`
+        UPDATE attendance a
+        SET user_name = COALESCE(u.full_name, u.name, a.user_name),
+            user_role = COALESCE(u.role, a.user_role)
+        FROM users u
+        WHERE a.user_id = u.id;
+      `;
+      await sql`
+        UPDATE leave_requests lr
+        SET user_name = COALESCE(u.full_name, u.name, lr.user_name),
+            applied_by_name = COALESCE(u.full_name, u.name, lr.applied_by_name),
+            user_role = COALESCE(u.role, lr.user_role)
+        FROM users u
+        WHERE lr.user_id = u.id;
+      `;
+      await sql`
+        UPDATE office_leaves ol
+        SET declared_by_name = COALESCE(u.full_name, u.name, ol.declared_by_name)
+        FROM users u
+        WHERE ol.declared_by_id = u.id;
+      `;
     } catch (migErr) {
       console.warn("Migration warning:", migErr);
     }
