@@ -626,6 +626,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(parsed)) {
             const seen = new Set<string>();
             const deduped = parsed.filter((r: AttendanceRecord) => {
+              if (r.userId === "u-emp-1793956721315" && r.status === "Leave") return false;
               const k = `${r.userId}-${r.date}`;
               if (seen.has(k)) return false;
               seen.add(k);
@@ -648,7 +649,15 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       if (savedLeaveRequests) {
         try {
           const parsed = JSON.parse(savedLeaveRequests);
-          if (Array.isArray(parsed) && parsed.length > 0) setLeaveRequests(parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setLeaveRequests(
+              parsed.filter(
+                (l: LeaveRequest) =>
+                  l.id !== "leave-1793958337968-u-emp-1793956721315" &&
+                  !(l.userId === "u-emp-1793956721315" && l.endDate === "2028-02-05")
+              )
+            );
+          }
         } catch {}
       }
 

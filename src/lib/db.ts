@@ -295,6 +295,26 @@ export async function initDatabase() {
         console.warn("Cleanup warning:", cleanupErr);
       }
 
+      // Remove test leave for Muthu Krishnan (456-day leave request and its generated attendance records)
+      try {
+        await sql`
+          DELETE FROM leave_requests
+          WHERE id = 'leave-1793958337968-u-emp-1793956721315'
+             OR (user_id = 'u-emp-1793956721315' AND end_date = '2028-02-05');
+        `;
+        await sql`
+          DELETE FROM attendance
+          WHERE user_id = 'u-emp-1793956721315' AND status = 'Leave';
+        `;
+        await sql`
+          UPDATE attendance
+          SET leave_type = NULL, leave_reason = NULL
+          WHERE user_id = 'u-emp-1793956721315' AND date = '2026-11-06';
+        `;
+      } catch (leaveCleanupErr) {
+        console.warn("Leave cleanup warning:", leaveCleanupErr);
+      }
+
       const defaultPassword = "Maestro@CEO2026!";
       const defaultHash = hashPassword(defaultPassword);
       await sql`
