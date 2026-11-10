@@ -627,7 +627,7 @@ export default function ApplyLeaveModal({
                       onClick={() => handleCellClick(cell.dateStr)}
                       title={tooltip}
                       className={`relative h-8 rounded-md flex flex-col items-center justify-center text-[12px] transition-all ${cellClasses} ${
-                        isToday && !isSelected ? "ring-1 ring-emerald-500 font-bold" : ""
+                        isToday && !isSelected ? "shadow-[inset_0_0_0_2px_#10b981] font-bold" : ""
                       }`}
                     >
                       <span className="leading-none">{cell.dayNum}</span>

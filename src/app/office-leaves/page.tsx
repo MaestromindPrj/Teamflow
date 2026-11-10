@@ -514,7 +514,7 @@ export default function OfficeLeavesPage() {
                           if (cell.isCurrentMonth) {
                             cellClasses += "hover:bg-slate-200/70 text-slate-700 font-medium rounded-lg ";
                             if (isToday) {
-                              cellClasses += "ring-1 ring-[#0084d4] text-[#0084d4] font-bold ";
+                              cellClasses += "shadow-[inset_0_0_0_2px_#0084d4] text-[#0084d4] font-bold ";
                             }
                           } else {
                             cellClasses += "text-slate-300 font-normal hover:bg-slate-100 rounded-lg ";

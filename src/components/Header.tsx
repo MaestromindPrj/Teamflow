@@ -557,7 +557,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
         {mounted && hasHydrated && currentUser.id && currentUser.role !== "ceo" && (
           <button
             onClick={toggleClockInOut}
-            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold border transition-all cursor-pointer shadow-xs ${
+            className={`h-[42px] inline-flex items-center gap-2 px-3.5 rounded-lg text-[12px] font-semibold border transition-all cursor-pointer shadow-xs ${
               isClockedIn
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70"
                 : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100/70"
@@ -580,7 +580,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
             suppressHydrationWarning
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200/90 hover:border-slate-300 transition-all shadow-2xs cursor-pointer"
+            className="h-[42px] flex items-center gap-2.5 px-3 rounded-lg bg-white border border-slate-200/90 hover:border-slate-300 transition-all shadow-2xs cursor-pointer"
           >
             {mounted && hasHydrated && currentUser.id ? (
               <>
@@ -681,7 +681,7 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
         <div className="relative" ref={notifRef} suppressHydrationWarning>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="w-9 h-9 rounded-lg bg-white border border-slate-200/90 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-colors shadow-2xs relative cursor-pointer"
+            className="w-[42px] h-[42px] rounded-lg bg-white border border-slate-200/90 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-colors shadow-2xs relative cursor-pointer"
             title="Notifications"
             suppressHydrationWarning
           >

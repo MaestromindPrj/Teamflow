@@ -252,7 +252,7 @@ export default function DashboardCalendarWidget({ className = "" }: { className?
                 key={cell.dateStr}
                 title={tooltip}
                 className={`relative h-8 rounded-md flex items-center justify-center text-[12px] transition-all cursor-default select-none ${cellStyle} ${
-                  isToday ? "ring-2 ring-emerald-500 ring-offset-1 font-extrabold" : ""
+                  isToday ? "shadow-[inset_0_0_0_2px_#10b981] font-extrabold" : ""
                 }`}
               >
                 <span>{cell.dayNum}</span>
