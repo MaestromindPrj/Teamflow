@@ -3,8 +3,8 @@
 import React from "react";
 import Header from "@/components/Header";
 
-export function PageHeaderSkeleton({ title, subtitle }: { title: string; subtitle?: string }) {
-  return <Header title={title} subtitle={subtitle || "Loading data..."} />;
+export function PageHeaderSkeleton({ title, subtitle }: { title?: string; subtitle?: string }) {
+  return <Header title={title} subtitle={subtitle || (title ? "Loading data..." : undefined)} isLoading={!title} />;
 }
 
 // 1. Grid of cards skeleton (Categories, Job Roles, Tech Stacks, Office Leaves)
@@ -302,6 +302,77 @@ export function TaskDetailSkeleton() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// 9. Dashboard page skeleton
+export function DashboardSkeleton() {
+  return (
+    <div className="flex-1 flex flex-col pb-12 animate-in fade-in duration-200" suppressHydrationWarning>
+      <Header isLoading={true} />
+      <main className="flex-1 px-7 py-6 space-y-6">
+        {/* Top welcome banner / check-in card skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch animate-pulse">
+          <div className="p-6 bg-slate-900/90 rounded-lg shadow-xs space-y-3">
+            <div className="h-5 w-32 bg-slate-700/80 rounded" />
+            <div className="h-6 w-3/5 bg-slate-700 rounded" />
+            <div className="h-4 w-4/5 bg-slate-700/60 rounded" />
+          </div>
+          <div className="p-6 bg-white border border-slate-200/80 rounded-lg shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="h-5 w-28 bg-slate-200 rounded" />
+              <div className="h-6 w-20 bg-slate-100 rounded-full" />
+            </div>
+            <div className="h-10 w-full bg-slate-100 rounded-lg" />
+            <div className="h-4 w-2/3 bg-slate-100 rounded" />
+          </div>
+        </div>
+
+        {/* KPI metrics row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="p-5 bg-white border border-slate-200/80 rounded-lg shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-lg bg-slate-100" />
+                <div className="h-4 w-12 bg-slate-100 rounded" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="h-7 w-20 bg-slate-200 rounded" />
+                <div className="h-4 w-32 bg-slate-100 rounded" />
+              </div>
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div className="h-3 w-24 bg-slate-100 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Main 2-column content skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch animate-pulse">
+          <div className="lg:col-span-8 bg-white border border-slate-200/80 rounded-lg p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="h-5 w-40 bg-slate-200 rounded" />
+              <div className="h-8 w-24 bg-slate-100 rounded-lg" />
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-4 border border-slate-100 rounded-lg bg-slate-50/60 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-48 bg-slate-200 rounded" />
+                    <div className="h-5 w-16 bg-slate-200 rounded" />
+                  </div>
+                  <div className="h-3 w-3/4 bg-slate-100 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="lg:col-span-4 bg-white border border-slate-200/80 rounded-lg p-5 shadow-xs space-y-4">
+            <div className="h-5 w-32 bg-slate-200 rounded" />
+            <div className="h-64 bg-slate-100 rounded-lg" />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

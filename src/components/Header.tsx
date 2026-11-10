@@ -27,12 +27,13 @@ import { NotificationPreferences } from "@/data/teamflowData";
 import UserAvatar from "@/components/UserAvatar";
 
 interface HeaderProps {
-  title: string;
-  subtitle: string;
+  title?: string;
+  subtitle?: string;
   actionButton?: React.ReactNode;
+  isLoading?: boolean;
 }
 
-export default function Header({ title, subtitle, actionButton }: HeaderProps) {
+export default function Header({ title, subtitle, actionButton, isLoading }: HeaderProps) {
   const router = useRouter();
   const {
     currentUser,
@@ -543,12 +544,21 @@ export default function Header({ title, subtitle, actionButton }: HeaderProps) {
       suppressHydrationWarning
     >
       <div>
-        <h1 className="text-[19px] sm:text-[21px] font-bold text-slate-900 tracking-tight leading-snug">
-          {title}
-        </h1>
-        <p className="text-[12px] sm:text-[13px] text-slate-500 font-normal mt-0.5">
-          {subtitle}
-        </p>
+        {isLoading || !title ? (
+          <div className="space-y-1.5 animate-pulse py-0.5">
+            <div className="h-6 w-52 sm:w-64 bg-slate-200 rounded" />
+            <div className="h-3.5 w-72 sm:w-96 bg-slate-100 rounded" />
+          </div>
+        ) : (
+          <>
+            <h1 className="text-[19px] sm:text-[21px] font-bold text-slate-900 tracking-tight leading-snug">
+              {title}
+            </h1>
+            <p className="text-[12px] sm:text-[13px] text-slate-500 font-normal mt-0.5">
+              {subtitle}
+            </p>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
