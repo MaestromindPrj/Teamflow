@@ -651,7 +651,7 @@ function AttendanceContent() {
                         {/* 2. Job Role */}
                         <td className="py-3.5 px-3">
                           <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
+                            className={`h-[22px] inline-flex items-center px-2.5 rounded text-[11px] font-medium leading-none ${
                               row.userRole === "project_manager"
                                 ? "bg-blue-100 text-blue-800 border border-blue-200"
                                 : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
@@ -666,7 +666,7 @@ function AttendanceContent() {
                           <div className="flex items-center gap-1.5">
                             <span className="font-medium text-slate-800">{row.date}</span>
                             {row.isLeaveSpan && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                              <span className="h-[22px] inline-flex items-center text-[10px] font-bold px-1.5 rounded bg-amber-100 text-amber-800 border border-amber-200 leading-none">
                                 {row.leaveDaysCount} Days
                               </span>
                             )}
@@ -676,14 +676,14 @@ function AttendanceContent() {
                         {/* 4. Work Duration (H:M:S) */}
                         <td className="py-3.5 px-3 whitespace-nowrap">
                           {isWorkingNow ? (
-                            <span className="font-mono font-bold text-[12px] text-[#4ade1d] bg-[#4ade1d]/15 px-2.5 py-1 rounded border border-[#4ade1d]/30 inline-flex items-center gap-1.5">
+                            <span className="h-[22px] font-mono font-bold text-[12px] text-[#4ade1d] bg-[#4ade1d]/15 px-2.5 rounded border border-[#4ade1d]/30 inline-flex items-center gap-1.5 leading-none">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#4ade1d] animate-ping" />
                               {liveDurationStr}
                             </span>
                           ) : row.status === "Leave" ? (
                             <span className="text-[12px] text-slate-400 font-mono">—</span>
                           ) : (
-                            <span className="font-mono font-bold text-[12px] text-slate-700 bg-slate-100 px-2.5 py-1 rounded">
+                            <span className="h-[22px] inline-flex items-center font-mono font-bold text-[12px] text-slate-700 bg-slate-100 px-2.5 rounded leading-none">
                               {liveDurationStr}
                             </span>
                           )}

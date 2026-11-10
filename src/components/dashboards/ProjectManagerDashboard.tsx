@@ -63,7 +63,7 @@ export default function ProjectManagerDashboard() {
         <div className="flex flex-col justify-between gap-4 bg-linear-to-r from-blue-900 to-indigo-900 text-white rounded-lg p-5 shadow-md">
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-blue-500/20 text-blue-200 text-[11px] font-semibold border border-blue-400/30">
+              <div className="h-[22px] inline-flex items-center gap-1.5 px-2.5 rounded bg-blue-500/20 text-blue-200 text-[11px] font-semibold border border-blue-400/30 leading-none">
                 <Shield className="w-3 h-3" />
                 <span>Project Management Oversight</span>
               </div>
@@ -235,7 +235,7 @@ export default function ProjectManagerDashboard() {
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200/60 uppercase">
+                        <span className="h-[22px] inline-flex items-center text-[11px] font-bold px-2 rounded bg-blue-50 text-blue-700 border border-blue-200/60 uppercase leading-none">
                           {project.code}
                         </span>
                         <StatusBadge status={project.status} />

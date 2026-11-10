@@ -134,7 +134,7 @@ export default function RequestMediaDeletionModal({
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Explain why this deliverable needs to be removed..."
-                  className="w-full text-[12px] p-2.5 rounded-lg border border-slate-200 focus:outline-hidden focus:border-[#0084d4] focus:ring-1 focus:ring-[#0084d4] resize-none text-slate-800"
+                  className="w-full text-[12px] p-2.5 rounded-lg border border-slate-200 focus:outline-none resize-none text-slate-800"
                 />
               </div>
 

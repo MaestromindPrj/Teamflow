@@ -178,7 +178,7 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
                 aria-checked={isCheckedIn}
                 onClick={toggleClockInOut}
                 title={isCheckedIn ? "Click to Check Out" : "Click to Check In"}
-                className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                   isCheckedIn ? "bg-emerald-500" : "bg-slate-300 hover:bg-slate-400"
                 }`}
               >

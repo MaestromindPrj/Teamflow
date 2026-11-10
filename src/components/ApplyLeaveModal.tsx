@@ -420,7 +420,7 @@ export default function ApplyLeaveModal({
               <select
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
-                className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-slate-800 text-[13px] focus:outline-none focus:ring-1 focus:ring-[#0084d4] cursor-pointer"
+                className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-slate-800 text-[13px] focus:outline-none cursor-pointer"
               >
                 {eligibleUsers.map((u) => (
                   <option key={u.id} value={u.id}>
@@ -701,7 +701,7 @@ export default function ApplyLeaveModal({
             <select
               value={leaveType}
               onChange={(e) => setLeaveType(e.target.value)}
-              className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-slate-800 text-[13px] focus:outline-none focus:ring-1 focus:ring-[#0084d4] cursor-pointer"
+              className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-slate-800 text-[13px] focus:outline-none cursor-pointer"
             >
               {LEAVE_TYPES.map((lt) => (
                 <option key={lt.id} value={lt.id}>
@@ -718,7 +718,7 @@ export default function ApplyLeaveModal({
               onChange={(e) => setReason(e.target.value)}
               placeholder="e.g. Attending family function, medical appointment, vacation..."
               rows={2}
-              className="w-full p-3 bg-white border border-slate-200 rounded-lg text-slate-800 text-[13px] focus:outline-none focus:ring-1 focus:ring-[#0084d4] resize-none"
+              className="w-full p-3 bg-white border border-slate-200 rounded-lg text-slate-800 text-[13px] focus:outline-none resize-none"
             />
           </div>
 

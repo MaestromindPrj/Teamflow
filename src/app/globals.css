@@ -118,16 +118,30 @@ select.no-arrow {
   background-image: none !important;
 }
 
-select:hover:not(:disabled) {
+/* Global clean focus state without harsh blue rings */
+*:focus,
+*:focus-visible {
+  outline: none;
+}
+
+select:hover:not(:disabled):not(.no-arrow):not(.appearance-none):not([class*="appearance-none"]):not(.common-dropdown) {
   border-color: #cbd5e1;
   background-color: #f8fafc;
 }
 
-select:focus:not(:disabled) {
+select:focus,
+select:focus-visible,
+select:focus-within,
+select:active {
   outline: none !important;
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
-  background-color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+button:focus,
+button:focus-visible,
+button:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 select:disabled {

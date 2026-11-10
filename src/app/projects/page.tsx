@@ -221,11 +221,11 @@ function ProjectsContent() {
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200/60 uppercase">
+                      <span className="h-[22px] inline-flex items-center text-[11px] font-bold px-2 rounded bg-blue-50 text-blue-700 border border-blue-200/60 uppercase leading-none">
                         {project.code}
                       </span>
                       {canManageThisProject ? (
-                        <div className="relative inline-flex items-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="relative inline-flex items-center h-[22px]" onClick={(e) => e.stopPropagation()}>
                           <select
                             value={project.status}
                             onChange={(e) => {
@@ -233,7 +233,7 @@ function ProjectsContent() {
                               if (nextStatus === "Planning" && hasCompletedTasks) return;
                               updateProject(project.id, { status: nextStatus });
                             }}
-                            className={`text-[11px] font-semibold rounded pl-2 pr-5 py-0.5 border cursor-pointer appearance-none no-arrow focus:outline-hidden transition-colors ${
+                            className={`h-[22px] text-[11px] font-semibold rounded pl-2.5 pr-6 border cursor-pointer appearance-none no-arrow focus:outline-none transition-colors leading-none ${
                               project.status === "In Progress"
                                 ? "bg-[#e0f2fe] text-[#0284c7] border-sky-200/70 hover:bg-sky-100"
                                 : project.status === "In Review"
@@ -259,13 +259,13 @@ function ProjectsContent() {
                             <option value="In Review">In Review</option>
                             <option value="Completed">Completed</option>
                           </select>
-                          <ChevronDown className="w-3 h-3 text-current absolute right-1 pointer-events-none opacity-70" />
+                          <ChevronDown className="w-3 h-3 text-current absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70" />
                         </div>
                       ) : (
                         <StatusBadge status={project.status} />
                       )}
                       {project.status === "Planning" && Boolean(project.startDate && new Date(project.startDate).getTime() <= new Date().setHours(0, 0, 0, 0)) && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1" title={`Scheduled start date reached: ${project.startDate}`}>
+                        <span className="h-[22px] text-[10px] font-bold px-1.5 rounded bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1 leading-none" title={`Scheduled start date reached: ${project.startDate}`}>
                           <Calendar className="w-3 h-3 text-amber-500" />
                           <span>Scheduled to start</span>
                         </span>

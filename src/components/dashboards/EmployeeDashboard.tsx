@@ -45,7 +45,7 @@ export default function EmployeeDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
         <div className="flex flex-col justify-between gap-4 bg-linear-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-lg p-5 shadow-md border border-slate-800">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-white/10 text-white text-[11px] font-semibold border border-white/20">
+            <div className="h-[22px] inline-flex items-center gap-1.5 px-2.5 rounded bg-white/10 text-white text-[11px] font-semibold border border-white/20 leading-none">
               <UserCheck className="w-3 h-3 text-emerald-400" />
               <span>Employee Workspace</span>
             </div>
@@ -208,7 +208,7 @@ export default function EmployeeDashboard() {
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 uppercase">
+                      <span className="h-[22px] inline-flex items-center text-[11px] font-bold px-2 rounded bg-slate-100 text-slate-700 uppercase leading-none">
                         {project.code}
                       </span>
                       <StatusBadge status={project.status} />
@@ -216,12 +216,12 @@ export default function EmployeeDashboard() {
                     </div>
 
                     {isLead ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium bg-[#ffa500]/15 text-[#ffa500] border border-[#ffa500]/30 shadow-2xs">
+                      <span className="h-[22px] inline-flex items-center gap-1.5 px-2.5 rounded text-[11px] font-medium bg-[#ffa500]/15 text-[#ffa500] border border-[#ffa500]/30 shadow-2xs leading-none">
                         <Crown className="w-3.5 h-3.5 text-[#ffa500]" />
                         <span>Team Lead</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200/60">
+                      <span className="h-[22px] inline-flex items-center gap-1.5 px-2.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200/60 leading-none">
                         <UserCheck className="w-3.5 h-3.5 text-slate-400" />
                         <span>Team Member</span>
                       </span>

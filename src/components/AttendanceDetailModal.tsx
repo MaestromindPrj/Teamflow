@@ -266,13 +266,13 @@ export default function AttendanceDetailModal({
 
               {/* Filters for Period and Status */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-[11px] font-semibold">
+                <div className="h-7 inline-flex items-center rounded border border-slate-200 p-0.5 bg-slate-50 text-[11px] font-semibold">
                   {(["3", "7", "15", "30", "all"] as const).map((opt) => (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => setPeriodFilter(opt)}
-                      className={`px-2 py-1 rounded transition-colors cursor-pointer ${
+                      className={`h-full px-2 rounded flex items-center justify-center transition-colors cursor-pointer leading-none ${
                         periodFilter === opt
                           ? "bg-white text-[#0084d4] font-bold shadow-2xs"
                           : "text-slate-500 hover:text-slate-800"
@@ -287,7 +287,7 @@ export default function AttendanceDetailModal({
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as "all" | "worked" | "leave")}
                   aria-label="Filter by Status"
-                  className="px-2.5 py-1 text-[11px] font-medium bg-white border border-slate-200 rounded text-slate-700 focus:outline-hidden focus:border-[#0084d4] cursor-pointer"
+                  className="h-7 px-2.5 text-[11px] font-medium bg-white border border-slate-200 rounded text-slate-700 cursor-pointer focus:outline-none leading-none"
                 >
                   <option value="all">All Status</option>
                   <option value="worked">Worked Only</option>

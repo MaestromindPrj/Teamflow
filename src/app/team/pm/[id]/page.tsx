@@ -256,7 +256,7 @@ function ProjectManagerDetailContent() {
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                            <span className="h-[22px] inline-flex items-center font-bold text-[11px] bg-slate-100 text-slate-700 px-2 rounded leading-none">
                               {project.code}
                             </span>
                             <h4
@@ -276,7 +276,7 @@ function ProjectManagerDetailContent() {
                               {project.techStack.map((tech) => (
                                 <span
                                   key={tech}
-                                  className="px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60"
+                                  className="h-[22px] inline-flex items-center px-2 rounded text-[10px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60 leading-none"
                                 >
                                   {tech}
                                 </span>

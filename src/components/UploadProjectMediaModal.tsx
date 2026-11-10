@@ -517,7 +517,7 @@ export default function UploadProjectMediaModal({ project, isOpen, onClose }: Up
                   value={remoteUrl}
                   onChange={(e) => setRemoteUrl(e.target.value)}
                   placeholder="https://www.figma.com/file/... or cloud document link"
-                  className="w-full px-3 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0084d4] text-slate-800"
+                  className="w-full px-3 py-2 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-none text-slate-800"
                 />
               </div>
 
@@ -532,7 +532,7 @@ export default function UploadProjectMediaModal({ project, isOpen, onClose }: Up
                       value={remoteName}
                       onChange={(e) => setRemoteName(e.target.value)}
                       placeholder="e.g. Design Prototype"
-                      className="w-full px-3 py-1.5 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0084d4] text-slate-800"
+                      className="w-full px-3 py-1.5 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-none text-slate-800"
                     />
                   </div>
                   <div>
@@ -542,7 +542,7 @@ export default function UploadProjectMediaModal({ project, isOpen, onClose }: Up
                     <select
                       value={remoteType}
                       onChange={(e) => setRemoteType(e.target.value as "image" | "pdf" | "figma" | "zip" | "doc")}
-                      className="w-full px-3 py-1.5 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0084d4] text-slate-800"
+                      className="w-full px-3 py-1.5 text-[12px] bg-white border border-slate-200 rounded-lg focus:outline-none text-slate-800"
                     >
                       <option value="figma">Figma Link</option>
                       <option value="doc">Document</option>

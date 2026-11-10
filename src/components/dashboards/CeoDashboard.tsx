@@ -251,7 +251,7 @@ export default function CeoDashboard() {
                             <div className="flex items-center gap-2 flex-wrap" suppressHydrationWarning>
                               <span
                                 suppressHydrationWarning
-                                className="font-bold text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded"
+                                className="h-[22px] inline-flex items-center font-bold text-[11px] bg-slate-100 text-slate-700 px-2 rounded leading-none"
                               >
                                 {proj.code}
                               </span>
@@ -268,7 +268,7 @@ export default function CeoDashboard() {
                                 {proj.techStack.map((tech) => (
                                   <span
                                     key={tech}
-                                    className="px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60"
+                                    className="h-[22px] inline-flex items-center px-2 rounded text-[10px] font-semibold bg-sky-50 text-[#0084d4] border border-sky-200/60 leading-none"
                                   >
                                     {tech}
                                   </span>

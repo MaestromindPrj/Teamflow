@@ -197,7 +197,7 @@ export default function RewardsPage() {
                           </td>
                           <td className="py-3 px-3">
                             <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
+                              className={`h-[22px] inline-flex items-center px-2.5 rounded text-[11px] font-medium leading-none ${
                                 isPm
                                   ? "bg-blue-100 text-blue-800 border border-blue-200"
                                   : "bg-emerald-50 text-emerald-700 border border-emerald-200"

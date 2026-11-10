@@ -234,11 +234,11 @@ export default function ProjectDetailModal({
         <div className="px-6 py-4.5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
           <div className="flex-1 min-w-0 pr-4">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800 tracking-wider uppercase">
+              <span className="h-[22px] inline-flex items-center text-[11px] font-bold px-2 rounded bg-slate-200 text-slate-800 tracking-wider uppercase leading-none">
                 {project.code}
               </span>
               {canManageProject ? (
-                <div className="relative inline-flex items-center">
+                <div className="relative inline-flex items-center h-[22px]">
                   <select
                     value={project.status}
                     onChange={(e) => {
@@ -246,7 +246,7 @@ export default function ProjectDetailModal({
                       if (nextStatus === "Planning" && hasCompletedTasks) return;
                       updateProject(project.id, { status: nextStatus });
                     }}
-                    className={`text-[11px] font-semibold rounded pl-2.5 pr-6 py-0.5 border cursor-pointer appearance-none no-arrow focus:outline-hidden transition-colors ${
+                    className={`h-[22px] text-[11px] font-semibold rounded pl-2.5 pr-6 border cursor-pointer appearance-none no-arrow focus:outline-none transition-colors leading-none ${
                       project.status === "In Progress"
                         ? "bg-[#e0f2fe] text-[#0284c7] border-sky-200/70 hover:bg-sky-100"
                         : project.status === "In Review"
@@ -272,14 +272,14 @@ export default function ProjectDetailModal({
                     <option value="In Review">In Review</option>
                     <option value="Completed">Completed</option>
                   </select>
-                  <ChevronDown className="w-3 h-3 text-current absolute right-1.5 pointer-events-none opacity-70" />
+                  <ChevronDown className="w-3 h-3 text-current absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70" />
                 </div>
               ) : (
                 <StatusBadge status={project.status} />
               )}
               <PriorityBadge priority={project.priority} />
               {project.status === "Planning" && Boolean(project.startDate && new Date(project.startDate).getTime() <= new Date().setHours(0, 0, 0, 0)) && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1" title={`Scheduled start date reached: ${project.startDate}`}>
+                <span className="h-[22px] text-[10px] font-bold px-2 rounded bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1 leading-none" title={`Scheduled start date reached: ${project.startDate}`}>
                   <Calendar className="w-3 h-3 text-amber-500" />
                   <span>Scheduled to start</span>
                 </span>
@@ -575,7 +575,7 @@ export default function ProjectDetailModal({
                                     e.target.value as "To Do" | "In Progress" | "Review" | "Completed"
                                   )
                                 }
-                                className="px-2.5 py-1 text-[11px] font-semibold bg-slate-50 border border-slate-200 rounded text-slate-800 cursor-pointer focus:outline-hidden focus:border-[#0084d4]"
+                                className="h-[22px] px-2 text-[11px] font-semibold bg-slate-50 border border-slate-200 rounded text-slate-800 cursor-pointer focus:outline-none leading-none"
                                 title="Change task status"
                               >
                                 <option value="To Do">To Do</option>

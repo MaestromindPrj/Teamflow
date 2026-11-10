@@ -123,7 +123,7 @@ export default function RewardLeaderboardWidget() {
 
                   <td className="py-2.5 px-3">
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-medium ${
+                      className={`h-[22px] inline-flex items-center px-2.5 rounded text-[11px] font-medium leading-none ${
                         user.role === "Project Manager"
                           ? "bg-blue-100 text-blue-800 border border-blue-200"
                           : "bg-[#4ade1d]/15 text-[#4ade1d] border border-[#4ade1d]/30"
