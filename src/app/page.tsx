@@ -44,17 +44,17 @@ export default function DashboardPage() {
     switch (activeRole) {
       case "ceo":
         return {
-          title: `Executive Command • ${activeFullName}`,
+          title: `Welcome Back,  ${activeFullName}`,
           subtitle: "Enterprise oversight, cross-project deliverables, and full organization attendance"
         };
       case "project_manager":
         return {
-          title: `Project Operations • ${activeFullName}`,
+          title: `Welcome Back,  ${activeFullName}`,
           subtitle: "Manage projects under your portfolio, assign team leads, and oversee delivery timelines"
         };
       default:
         return {
-          title: `Employee Workspace • ${activeFullName}`,
+          title: `Welcome Back,  ${activeFullName}`,
           subtitle: "Assigned tasks, deadlines, and media deliverables"
         };
     }
