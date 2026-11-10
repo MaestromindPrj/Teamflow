@@ -16,12 +16,9 @@ import {
   CalendarRange,
   Cpu,
   ChevronLeft,
-  ChevronRight,
-  Shield,
-  UserCheck
+  ChevronRight
 } from "lucide-react";
 import { useTeamFlow } from "@/context/TeamFlowContext";
-import UserAvatar from "@/components/UserAvatar";
 
 interface NavItem {
   name: string;
@@ -91,19 +88,19 @@ export default function Sidebar() {
             }`}
           >
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-9 h-9 rounded-xl bg-slate-800 overflow-hidden flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-md bg-white overflow-hidden flex items-center justify-center shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/logo.png"
                   alt="Maestrominds Logo"
-                  className="w-full h-full object-contain rounded-xl"
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     (e.currentTarget as HTMLElement).style.display = "none";
                     const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
                     if (sibling) sibling.style.display = "flex";
                   }}
                 />
-                <div className="hidden w-full h-full items-center justify-center bg-blue-600 text-white font-black text-sm rounded-xl">
+                <div className="hidden w-full h-full items-center justify-center bg-blue-600 text-white font-black text-sm">
                   M
                 </div>
               </div>
@@ -159,13 +156,6 @@ export default function Sidebar() {
 
   const sections: Array<NavItem["section"]> = ["Overview", "Organization", "Management", "Preferences"];
 
-  const roleLabel =
-    role === "ceo"
-      ? "CEO"
-      : role === "project_manager"
-      ? "Project Manager"
-      : currentUser.jobTitle || "Employee";
-
   return (
     <aside
       className={`bg-slate-900 border-r border-slate-800/90 flex flex-col justify-between shrink-0 select-none shadow-xl z-40 ${
@@ -188,22 +178,20 @@ export default function Sidebar() {
             }`}
             title="Maestrominds - Enterprise PM"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 p-0.5 shadow-md shadow-blue-500/20 shrink-0 flex items-center justify-center">
-              <div className="w-full h-full rounded-[10px] bg-slate-900 flex items-center justify-center overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logo.png"
-                  alt="Maestrominds Logo"
-                  className="w-full h-full object-contain p-1"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLElement).style.display = "none";
-                    const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
-                    if (sibling) sibling.style.display = "flex";
-                  }}
-                />
-                <div className="hidden w-full h-full items-center justify-center bg-blue-600 text-white font-black text-sm">
-                  M
-                </div>
+            <div className="w-9 h-9 rounded-md bg-white overflow-hidden shrink-0 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Maestrominds Logo"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = "none";
+                  const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
+                  if (sibling) sibling.style.display = "flex";
+                }}
+              />
+              <div className="hidden w-full h-full items-center justify-center bg-blue-600 text-white font-black text-sm">
+                M
               </div>
             </div>
 
@@ -291,52 +279,26 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      {/* Bottom User Card / Footer */}
-      <div className="p-3 border-t border-slate-800/80 bg-slate-950/40">
-        {!isCollapsed ? (
-          <div className="flex items-center justify-between gap-2.5 p-2 rounded-xl bg-slate-800/50 border border-slate-800">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="relative">
-                <UserAvatar
-                  src={currentUser?.avatar || ""}
-                  name={currentUser?.fullName || currentUser?.name || "User"}
-                  role={currentUser?.role || "employee"}
-                  className="w-8 h-8 rounded-full border border-slate-700 shrink-0"
-                  textClassName="text-[11px]"
-                />
-                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-slate-900" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-semibold text-white truncate leading-tight">
-                  {currentUser?.fullName || currentUser?.name || "User"}
-                </p>
-                <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5">
-                  {roleLabel}
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
-              title="Collapse sidebar"
-              aria-label="Collapse sidebar"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="w-full flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer"
-            title="Expand sidebar"
-            aria-label="Expand sidebar"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        )}
+      {/* Bottom Collapse Toggle Footer (No Profile Details Card) */}
+      <div className="p-2.5 border-t border-slate-800/80 bg-slate-950/40">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className={`w-full flex items-center rounded-lg text-[12px] text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer py-2 ${
+            isCollapsed ? "justify-center px-2" : "px-3 justify-between"
+          }`}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          ) : (
+            <>
+              <span className="text-[11px] font-medium text-slate-400">Collapse sidebar</span>
+              <ChevronLeft className="w-4 h-4 text-slate-400" />
+            </>
+          )}
+        </button>
       </div>
     </aside>
   );
