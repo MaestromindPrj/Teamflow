@@ -447,9 +447,21 @@ function MediaHubContent() {
                               {getFileIcon(file.type)}
                             </div>
                             <div className="min-w-0">
-                              <h4 className="text-[13px] font-bold text-slate-900 truncate group-hover:text-[#0084d4] transition-colors" title={file.name}>
-                                {file.name}
-                              </h4>
+                              {file.url && !file.url.startsWith("blob:") && file.url !== "#" ? (
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[13px] font-bold text-slate-900 hover:text-[#0084d4] transition-colors truncate block hover:underline cursor-pointer"
+                                  title={`Open ${file.name}`}
+                                >
+                                  {file.name}
+                                </a>
+                              ) : (
+                                <h4 className="text-[13px] font-bold text-slate-900 truncate" title={file.name}>
+                                  {file.name}
+                                </h4>
+                              )}
                               <span className="text-[11px] text-slate-400 font-medium">
                                 {file.size} &bull; {file.type.toUpperCase()}
                               </span>

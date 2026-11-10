@@ -625,9 +625,21 @@ export default function ProjectDetailModal({
                                       {getFileIcon(file.type)}
                                     </div>
                                     <div className="min-w-0">
-                                      <p className="font-semibold text-slate-800 truncate leading-tight">
-                                        {file.name}
-                                      </p>
+                                      {file.url && !file.url.startsWith("blob:") && file.url !== "#" ? (
+                                        <a
+                                          href={file.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="font-semibold text-slate-800 hover:text-[#0084d4] truncate leading-tight hover:underline cursor-pointer block"
+                                          title={`Open ${file.name}`}
+                                        >
+                                          {file.name}
+                                        </a>
+                                      ) : (
+                                        <p className="font-semibold text-slate-800 truncate leading-tight">
+                                          {file.name}
+                                        </p>
+                                      )}
                                       <p className="text-[10px] text-slate-400 truncate">
                                         {file.size} &bull; by {file.uploadedByName}
                                       </p>
@@ -734,9 +746,21 @@ export default function ProjectDetailModal({
                           {getFileIcon(file.type)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12px] font-bold text-slate-900 truncate">
-                            {file.name}
-                          </p>
+                          {file.url && !file.url.startsWith("blob:") && file.url !== "#" ? (
+                            <a
+                              href={file.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[12px] font-bold text-slate-900 hover:text-[#0084d4] truncate hover:underline cursor-pointer block"
+                              title={`Open ${file.name}`}
+                            >
+                              {file.name}
+                            </a>
+                          ) : (
+                            <p className="text-[12px] font-bold text-slate-900 truncate">
+                              {file.name}
+                            </p>
+                          )}
                           <p className="text-[11px] text-slate-400 mt-0.5">
                             {file.size} &bull; {file.type.toUpperCase()}
                           </p>
