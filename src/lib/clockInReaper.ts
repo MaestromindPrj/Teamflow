@@ -103,3 +103,4 @@ export async function reapStaleClockInSessions(sql: ReturnType<typeof getDb>): P
 
   return reapedCount;
 }
+

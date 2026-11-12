@@ -1,8 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Clock, Play, Pause, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { Clock, Calendar } from "lucide-react";
 import { useTeamFlow, getLocalDateString } from "@/context/TeamFlowContext";
+
+function parseDurationToSeconds(durationStr?: string | null): number {
+  if (!durationStr || typeof durationStr !== "string") return 0;
+  let total = 0;
+  const hMatch = durationStr.match(/(\d+)\s*h/i);
+  const mMatch = durationStr.match(/(\d+)\s*m/i);
+  const sMatch = durationStr.match(/(\d+)\s*s/i);
+  if (hMatch) total += parseInt(hMatch[1], 10) * 3600;
+  if (mMatch) total += parseInt(mMatch[1], 10) * 60;
+  if (sMatch) total += parseInt(sMatch[1], 10);
+  return total;
+}
+
+function getDayDiff(todayStr: string, pastDateStr: string): number {
+  if (todayStr === pastDateStr) return 0;
+  const tParts = todayStr.split("-").map(Number);
+  const pParts = pastDateStr.split("-").map(Number);
+  if (tParts.length < 3 || pParts.length < 3) return 999;
+  const t = new Date(tParts[0], tParts[1] - 1, tParts[2]).getTime();
+  const p = new Date(pParts[0], pParts[1] - 1, pParts[2]).getTime();
+  return Math.round((t - p) / (1000 * 60 * 60 * 24));
+}
+
+function formatPastDate(dateStr: string): string {
+  const parts = dateStr.split("-").map(Number);
+  if (parts.length < 3) return dateStr;
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 export default function CheckInStatusBar({ className = "" }: { className?: string }) {
   const {
@@ -22,15 +51,100 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
   }, []);
 
   const todayStr = getLocalDateString(new Date());
-  const isOnLeaveToday = attendance.some(
-    (r) => r.userId === currentUser.id && r.date === todayStr && r.status === "Leave"
-  );
 
-  const isCheckedIn = !isOnLeaveToday && (currentUserClockIn?.isClockedIn ?? false);
+  // Filter real attendance records specifically for the logged-in person
+  const userAttendance = useMemo(() => {
+    if (!currentUser?.id) return [];
+    return attendance
+      .filter((r) => r.userId === currentUser.id)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [attendance, currentUser?.id]);
+
+  const todayAttendance = useMemo(() => {
+    return userAttendance.find((r) => r.date === todayStr);
+  }, [userAttendance, todayStr]);
+
+  const isOnLeaveToday = todayAttendance?.status === "Leave";
+
+  // Check if active clock-in belongs to TODAY
+  const isTodayClockIn = currentUserClockIn?.clockInDate === todayStr;
+  const isCheckedIn = !isOnLeaveToday && Boolean(currentUserClockIn?.isClockedIn) && isTodayClockIn;
   const clockInTimestamp = currentUserClockIn?.clockInTimestamp;
-  const elapsedSecondsBase = currentUserClockIn?.elapsedSeconds ?? 0;
-  const clockInTimeStr = currentUserClockIn?.clockInTimeString;
-  const clockOutTimeStr = currentUserClockIn?.clockOutTimeString;
+
+  // Real today elapsed seconds (strictly 0 if user has not worked today)
+  const elapsedSecondsBase = useMemo(() => {
+    if (isTodayClockIn && typeof currentUserClockIn?.elapsedSeconds === "number") {
+      return currentUserClockIn.elapsedSeconds;
+    }
+    if (todayAttendance?.duration) {
+      return parseDurationToSeconds(todayAttendance.duration);
+    }
+    return 0;
+  }, [isTodayClockIn, currentUserClockIn?.elapsedSeconds, todayAttendance?.duration]);
+
+  // Real check-in time of the person today
+  const clockInTimeStr = useMemo(() => {
+    if (!isCheckedIn) return null;
+    if (isTodayClockIn && currentUserClockIn?.clockInTimeString) {
+      return currentUserClockIn.clockInTimeString;
+    }
+    if (todayAttendance?.clockIn && todayAttendance.clockIn !== "—") {
+      return todayAttendance.clockIn;
+    }
+    if (clockInTimestamp) {
+      return new Date(clockInTimestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    return null;
+  }, [isCheckedIn, isTodayClockIn, currentUserClockIn?.clockInTimeString, todayAttendance?.clockIn, clockInTimestamp]);
+
+  // Real last checkout info (date and time) of the person
+  const lastCheckoutInfo = useMemo(() => {
+    // 1. If checked out today, prioritize today's checkout time
+    if (isTodayClockIn && currentUserClockIn?.clockOutTimeString) {
+      return {
+        date: todayStr,
+        time: currentUserClockIn.clockOutTimeString,
+      };
+    }
+    if (todayAttendance?.clockOut && todayAttendance.clockOut !== "—") {
+      return {
+        date: todayStr,
+        time: todayAttendance.clockOut,
+      };
+    }
+
+    // 2. Otherwise look for the most recent completed checkout in their real attendance records
+    const prevRecord = userAttendance.find(
+      (r) => r.date < todayStr && r.clockOut && r.clockOut !== "—"
+    );
+    if (prevRecord && prevRecord.clockOut) {
+      return {
+        date: prevRecord.date,
+        time: prevRecord.clockOut,
+      };
+    }
+
+    // 3. Check if currentUserClockIn holds a checkout timestamp from a previous date
+    if (
+      currentUserClockIn?.clockOutTimeString &&
+      currentUserClockIn.clockInDate &&
+      currentUserClockIn.clockInDate < todayStr
+    ) {
+      return {
+        date: currentUserClockIn.clockInDate,
+        time: currentUserClockIn.clockOutTimeString,
+      };
+    }
+
+    return null;
+  }, [
+    isTodayClockIn,
+    currentUserClockIn?.clockOutTimeString,
+    currentUserClockIn?.clockInDate,
+    todayAttendance?.clockOut,
+    userAttendance,
+    todayStr,
+  ]);
 
   useEffect(() => {
     const calculateSeconds = () => {
@@ -57,6 +171,40 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
   const seconds = tickerSeconds % 60;
 
   const pad = (n: number) => String(n).padStart(2, "0");
+
+  const renderCheckoutSubtitle = () => {
+    if (!lastCheckoutInfo) {
+      return "You haven't checked in today. Click the toggle to start your work session.";
+    }
+
+    const diff = getDayDiff(todayStr, lastCheckoutInfo.date);
+    if (diff === 0) {
+      return (
+        <>
+          Last checked out today at{" "}
+          <span className="font-semibold text-slate-700">{lastCheckoutInfo.time}</span>
+        </>
+      );
+    }
+
+    if (diff === 1) {
+      return (
+        <>
+          Last checked out yesterday at{" "}
+          <span className="font-semibold text-slate-700">{lastCheckoutInfo.time}</span>
+        </>
+      );
+    }
+
+    const dateLabel = formatPastDate(lastCheckoutInfo.date);
+    return (
+      <>
+        Last checked out on{" "}
+        <span className="font-semibold text-slate-700">{dateLabel}</span> at{" "}
+        <span className="font-semibold text-slate-700">{lastCheckoutInfo.time}</span>
+      </>
+    );
+  };
 
   if (!mounted || !hasHydrated) {
     return (
@@ -147,15 +295,10 @@ export default function CheckInStatusBar({ className = "" }: { className?: strin
               ) : isCheckedIn ? (
                 <>
                   Started today at{" "}
-                  <span className="font-semibold text-slate-700">{clockInTimeStr || "Morning"}</span>
-                </>
-              ) : clockOutTimeStr ? (
-                <>
-                  Last checked out at{" "}
-                  <span className="font-semibold text-slate-700">{clockOutTimeStr}</span>
+                  <span className="font-semibold text-slate-700">{clockInTimeStr || "Work Session"}</span>
                 </>
               ) : (
-                "You are currently checked out. Click the toggle to start your work session."
+                renderCheckoutSubtitle()
               )}
             </p>
           </div>
