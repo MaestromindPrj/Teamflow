@@ -709,7 +709,90 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         if (savedUserClockIn) {
           try {
             const parsed = JSON.parse(savedUserClockIn);
-            setUserClockInData(parsed);
+            const now = Date.now();
+            const STALE_HEARTBEAT_THRESHOLD_MS = 2 * 60 * 1000;
+            const sanitized: Record<string, UserClockInState> = {};
+            const todayStr = getLocalDateString(new Date());
+
+            for (const [uid, uState] of Object.entries(parsed as Record<string, UserClockInState>)) {
+              if (uState && uState.isClockedIn) {
+                const lastActive = uState.lastHeartbeat || uState.clockInTimestamp || 0;
+                const isStale = now - lastActive > STALE_HEARTBEAT_THRESHOLD_MS;
+                const isDifferentDay = Boolean(uState.clockInDate && uState.clockInDate !== todayStr);
+
+                if (isStale || isDifferentDay) {
+                  // Computer was shut down or closed earlier - auto clock out at the exact last active timestamp
+                  const clockInTs = uState.clockInTimestamp || lastActive;
+                  const effectiveTargetTs = Math.max(clockInTs, lastActive || now);
+                  const sessionSeconds = Math.max(1, Math.floor((effectiveTargetTs - clockInTs) / 1000));
+                  const totalElapsed = (uState.elapsedSeconds || 0) + sessionSeconds;
+                  const clockOutTimeStr = new Date(effectiveTargetTs).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  });
+                  const formattedDuration = formatSecondsToDuration(totalElapsed);
+                  const sessionDuration = formatSecondsToDuration(sessionSeconds);
+
+                  const existingSessions = uState.sessions ? [...uState.sessions] : [];
+                  let updatedSessions: PunchSession[];
+                  if (existingSessions.length > 0) {
+                    updatedSessions = existingSessions.map((s, idx) => {
+                      if (idx === existingSessions.length - 1) {
+                        return {
+                          ...s,
+                          clockOut: clockOutTimeStr,
+                          duration: sessionDuration,
+                          elapsedSeconds: sessionSeconds,
+                        };
+                      }
+                      return s;
+                    });
+                  } else {
+                    updatedSessions = [
+                      {
+                        sessionNumber: 1,
+                        clockIn: uState.clockInTimeString || clockOutTimeStr,
+                        clockOut: clockOutTimeStr,
+                        duration: formattedDuration,
+                        elapsedSeconds: totalElapsed,
+                      },
+                    ];
+                  }
+
+                  sanitized[uid] = {
+                    ...uState,
+                    isClockedIn: false,
+                    clockInTimestamp: null,
+                    clockOutTimeString: clockOutTimeStr,
+                    elapsedSeconds: totalElapsed,
+                    sessions: updatedSessions,
+                    lastHeartbeat: null,
+                    autoClockOutReason: "heartbeat_timeout",
+                  };
+
+                  // Send auto-out ping to server to ensure database matches
+                  fetch("/api/clock-in/auto-out", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      userId: uid,
+                      timestamp: effectiveTargetTs,
+                      reason: "heartbeat_timeout",
+                    }),
+                  }).catch(() => null);
+                } else {
+                  sanitized[uid] = uState;
+                }
+              } else {
+                sanitized[uid] = uState;
+              }
+            }
+
+            setUserClockInData(sanitized);
+            try {
+              localStorage.setItem("teamflow_user_clock_in_v3", JSON.stringify(sanitized));
+            } catch {}
           } catch {}
         }
       }
@@ -923,6 +1006,20 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshFromBackend();
+    // Periodic poll every 30 seconds to keep attendance and clock-in rosters synchronized across users
+    const pollInterval = setInterval(() => {
+      refreshFromBackend();
+    }, 30000);
+
+    const onWindowFocus = () => {
+      refreshFromBackend();
+    };
+    window.addEventListener("focus", onWindowFocus);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener("focus", onWindowFocus);
+    };
   }, [refreshFromBackend]);
 
   // Fine-grained state persistence: only stringify the specific slice that changed
@@ -2547,6 +2644,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
                 elapsedSeconds: 0,
               },
             ],
+            lastHeartbeat: Date.now(),
           };
           nextData[userId] = rolledState;
 
@@ -2671,11 +2769,11 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ userId, ...nextState }),
       }).catch(() => null);
 
-      if (userId === currentUserIdRef.current && reason === "sleep") {
+      if (userId === currentUserIdRef.current && (reason === "sleep" || reason === "heartbeat_timeout")) {
         setSleepNotice({
           time: clockOutTimeStr,
           duration: formattedDuration,
-          reason: "Device sleep detected",
+          reason: reason === "sleep" ? "Device sleep detected" : "System shutdown / inactive timeout",
         });
       }
 
@@ -2760,6 +2858,27 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       const curUserId = currentUserIdRef.current;
       const curState = userClockInDataRef.current[curUserId];
       if (curState && curState.isClockedIn) {
+        const lastActive = curState.lastHeartbeat || curState.clockInTimestamp || 0;
+        // If the session has already been inactive for > 2 minutes (e.g. laptop shut down / closed), do not revive it!
+        if (lastActive && Date.now() - lastActive > 2 * 60 * 1000) {
+          handleAutoClockOut(curUserId, lastActive, "heartbeat_timeout");
+          return;
+        }
+
+        const now = Date.now();
+        // Update local heartbeat timestamp
+        setUserClockInData((prev) => {
+          const s = prev[curUserId];
+          if (!s || !s.isClockedIn) return prev;
+          return {
+            ...prev,
+            [curUserId]: {
+              ...s,
+              lastHeartbeat: now,
+            },
+          };
+        });
+
         fetch("/api/clock-in/heartbeat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2839,6 +2958,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("focus", onTabRevisit);
     window.addEventListener("pageshow", onTabRevisit);
     document.addEventListener("visibilitychange", onTabRevisit);
+    window.addEventListener("pointerdown", onTabRevisit);
+    window.addEventListener("keydown", onTabRevisit);
 
     // Fallback Periodic Heartbeat only if Web Worker is unavailable
     const heartbeatInterval = !worker ? setInterval(sendHeartbeat, 15000) : null;
@@ -2857,6 +2978,23 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
           timestamp: now,
           reason: "tab_closed",
         });
+
+        // Immediately persist clocked-out state in localStorage so re-opening starts cleanly as checked out
+        try {
+          const raw = localStorage.getItem("teamflow_user_clock_in_v3");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed[curUserId]) {
+              parsed[curUserId] = {
+                ...parsed[curUserId],
+                isClockedIn: false,
+                clockInTimestamp: null,
+                lastHeartbeat: null,
+              };
+              localStorage.setItem("teamflow_user_clock_in_v3", JSON.stringify(parsed));
+            }
+          }
+        } catch {}
 
         try {
           sessionStorage.setItem(
@@ -2891,6 +3029,8 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("focus", onTabRevisit);
       window.removeEventListener("pageshow", onTabRevisit);
       document.removeEventListener("visibilitychange", onTabRevisit);
+      window.removeEventListener("pointerdown", onTabRevisit);
+      window.removeEventListener("keydown", onTabRevisit);
       window.removeEventListener("pagehide", handleUnload);
       window.removeEventListener("beforeunload", handleUnload);
       if (worker) {
@@ -2944,6 +3084,7 @@ export function TeamFlowProvider({ children }: { children: React.ReactNode }) {
         elapsedSeconds: prevElapsedToday,
         clockInDate: todayString,
         sessions: updatedSessions,
+        lastHeartbeat: Date.now(),
       };
 
       setAttendance((prev) => {

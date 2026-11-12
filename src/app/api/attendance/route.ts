@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDbConfigured, initDatabase, getDb } from "@/lib/db";
 import { INITIAL_ATTENDANCE_DATA, AttendanceRecord } from "@/data/teamflowData";
+import { reapStaleClockInSessions } from "@/lib/clockInReaper";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -17,6 +18,9 @@ export async function GET(req: NextRequest) {
   try {
     await initDatabase();
     const sql = getDb();
+    // Reap any stale sessions before querying attendance
+    await reapStaleClockInSessions(sql);
+
     let rows;
 
     if (userId && date) {

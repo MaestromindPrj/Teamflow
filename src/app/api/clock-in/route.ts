@@ -1,20 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDbConfigured, initDatabase, getDb } from "@/lib/db";
 import { UserClockInState } from "@/context/TeamFlowContext";
-
-function formatSecondsToDuration(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
-}
-
-function getLocalDateString(d: Date = new Date()): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+import { reapStaleClockInSessions } from "@/lib/clockInReaper";
 
 const DEFAULT_CLOCK_IN_DATA: Record<string, UserClockInState> = {};
 
@@ -26,109 +13,26 @@ export async function GET() {
   try {
     await initDatabase();
     const sql = getDb();
+    // Reap any stale sessions (e.g. laptop shut down, sleep, or tab closed > 2 minutes ago)
+    await reapStaleClockInSessions(sql);
+
     const rows = await sql`
       SELECT user_id, is_clocked_in, clock_in_timestamp, clock_in_time_string, clock_out_time_string, elapsed_seconds, clock_in_date, sessions, last_heartbeat, updated_at
       FROM clock_in_status;
     `;
 
     const clockInData: Record<string, UserClockInState> = { ...DEFAULT_CLOCK_IN_DATA };
-    const now = Date.now();
-    // 12 hours fallback reaper for truly abandoned sessions (e.g. power cutoff).
-    // Inactive browser tabs are normal multitasking and must never be auto-clocked out.
-    const STALE_HEARTBEAT_THRESHOLD_MS = 12 * 60 * 60 * 1000;
 
     for (const r of rows) {
-      let isClockedIn = Boolean(r.is_clocked_in);
-      let clockInTimestamp = r.clock_in_timestamp ? Number(r.clock_in_timestamp) : null;
-      let clockInTimeString = (r.clock_in_time_string as string) || null;
-      let clockOutTimeString = (r.clock_out_time_string as string) || null;
-      let elapsedSeconds = Number(r.elapsed_seconds || 0);
-      let sessions = Array.isArray(r.sessions) ? r.sessions : undefined;
-      const clockInDate = (r.clock_in_date as string) || undefined;
-      const lastHeartbeat = r.last_heartbeat ? Number(r.last_heartbeat) : null;
-
-      // Reaping check: If marked clocked-in, but application has been inactive/closed for > 2 mins
-      if (isClockedIn && clockInTimestamp) {
-        const lastActivity = lastHeartbeat || (r.updated_at ? new Date(r.updated_at).getTime() : clockInTimestamp);
-        const gap = now - lastActivity;
-
-        if (gap > STALE_HEARTBEAT_THRESHOLD_MS) {
-          // Auto-close abandoned session at lastActivity timestamp
-          const targetTimestamp = Math.max(clockInTimestamp, lastActivity);
-          const sessionSeconds = Math.max(1, Math.floor((targetTimestamp - clockInTimestamp) / 1000));
-          const totalElapsed = elapsedSeconds + sessionSeconds;
-          const outDateObj = new Date(targetTimestamp);
-          const autoOutTimeStr = outDateObj.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          });
-          const formattedDuration = formatSecondsToDuration(totalElapsed);
-          const sessionDuration = formatSecondsToDuration(sessionSeconds);
-
-          const curSessions = Array.isArray(sessions) ? [...sessions] : [];
-          if (curSessions.length > 0) {
-            const lastIdx = curSessions.length - 1;
-            curSessions[lastIdx] = {
-              ...curSessions[lastIdx],
-              clockOut: autoOutTimeStr,
-              duration: sessionDuration,
-              elapsedSeconds: sessionSeconds,
-            };
-          } else {
-            curSessions.push({
-              sessionNumber: 1,
-              clockIn: clockInTimeString || autoOutTimeStr,
-              clockOut: autoOutTimeStr,
-              duration: formattedDuration,
-              elapsedSeconds: totalElapsed,
-            });
-          }
-
-          // Persist the auto-clock-out
-          try {
-            await sql`
-              UPDATE clock_in_status
-              SET is_clocked_in = false,
-                  clock_in_timestamp = NULL,
-                  clock_out_time_string = ${autoOutTimeStr},
-                  elapsed_seconds = ${totalElapsed},
-                  sessions = ${JSON.stringify(curSessions)}::jsonb,
-                  last_heartbeat = NULL,
-                  updated_at = CURRENT_TIMESTAMP
-              WHERE user_id = ${r.user_id};
-            `;
-
-            const targetDate = clockInDate || getLocalDateString(outDateObj);
-            await sql`
-              UPDATE attendance
-              SET clock_out = ${autoOutTimeStr},
-                  duration = ${formattedDuration},
-                  status = 'Checked Out',
-                  sessions = ${JSON.stringify(curSessions)}::jsonb
-              WHERE user_id = ${r.user_id} AND date = ${targetDate};
-            `;
-          } catch (reapErr) {
-            console.warn("Failed to reap stale session for", r.user_id, reapErr);
-          }
-
-          isClockedIn = false;
-          clockInTimestamp = null;
-          clockOutTimeString = autoOutTimeStr;
-          elapsedSeconds = totalElapsed;
-          sessions = curSessions;
-        }
-      }
-
       clockInData[r.user_id as string] = {
-        isClockedIn,
-        clockInTimestamp,
-        clockInTimeString,
-        clockOutTimeString,
-        elapsedSeconds,
-        clockInDate,
-        sessions,
-        lastHeartbeat,
+        isClockedIn: Boolean(r.is_clocked_in),
+        clockInTimestamp: r.clock_in_timestamp ? Number(r.clock_in_timestamp) : null,
+        clockInTimeString: (r.clock_in_time_string as string) || null,
+        clockOutTimeString: (r.clock_out_time_string as string) || null,
+        elapsedSeconds: Number(r.elapsed_seconds || 0),
+        clockInDate: (r.clock_in_date as string) || undefined,
+        sessions: Array.isArray(r.sessions) ? r.sessions : undefined,
+        lastHeartbeat: r.last_heartbeat ? Number(r.last_heartbeat) : null,
       };
     }
 
